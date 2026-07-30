@@ -68,15 +68,32 @@ Không viết test cho component. Toàn bộ ngân sách test dồn vào đây.
 - [x] Sửa `database.types.ts`: khai FK `document_files → documents`. Thiếu nó thì
       `select('*, document_files(*)')` ra `SelectQueryError` chứ không phải mảng row
 
-## G3 · Bước 1 — Sign in · Setup · Nhà mình rỗng
+## G3 · Bước 1 — Sign in · Setup · Nhà mình rỗng — **xong khung, còn 2 việc**
 
-- [ ] `design/` — token từ `design.md §15–16`, `tailwind.config.js`, font Be Vietnam Pro
-- [ ] Primitive `04 §6` — làm `MoneyText` + `AmountInput` **trước**, chúng dễ sai nhất
-- [ ] `(auth)/sign-in.tsx` — Google · Apple · email+mật khẩu, **một** nút `[Tiếp tục]`
-- [ ] `(auth)/forgot-password.tsx` + `reset-password.tsx`
-- [ ] `(auth)/setup.tsx` — `[Tạo nhà mới]` hỏi **đúng một** trường / `[Tôi có mã mời]`
-- [ ] `(app)/_layout.tsx` — 4 tab + FAB, badge chỉ trên tab Tiền và chỉ khi `tight`
-- [ ] `home/index.tsx` rỗng — không ép nhập dữ liệu ban đầu
+- [x] `tailwind.config.js` — token `design.md §15–16`, font Be Vietnam Pro qua `expo-font`
+- [x] Primitive: `MoneyText` · `AmountInput` · `Screen` · `Card` · `SectionHeader` · `Row` ·
+      `Button` · `Field` · `Checkbox` · `StatusPill` · `MemberAvatar` · `DateTile` · `FAB` ·
+      `EmptyState` · `ErrorState` · `Skeleton`
+- [x] `(auth)/sign-in.tsx` — **một** nút `[Tiếp tục]`, email chưa có thì tự đăng ký
+- [x] `(auth)/forgot-password.tsx` + `reset-password.tsx`
+- [x] `(auth)/setup.tsx` — `[Tạo nhà mới]` hỏi **đúng một** trường / `[Tôi có mã mời]`
+- [x] `app/_layout.tsx` — gate 3 nhánh: chưa đăng nhập → chưa có nhà → có nhà
+- [x] `(app)/_layout.tsx` — 4 tab + FAB; `home/index.tsx` rỗng
+- [x] **App bundle được** — `expo export` ra 4.4MB Hermes bytecode
+- [ ] Google + Apple Sign-in — nút đang `disabled`. Cần EAS dev build + provider ở Supabase;
+      Expo Go không đủ. Email+mật khẩu chạy được nên nó mở khoá G4–G7 trong lúc chờ
+- [ ] Bộ icon thật (SVG) thay 4 ký tự tạm ở tab bar
+
+### Hai chỗ hạ tầng phải sửa để app chạy được
+
+- [x] **`nodeLinker: hoisted`** trong `pnpm-workspace.yaml`. Metro không hiểu cây
+      `node_modules` lồng nhau của pnpm — nó thấy `import 'react-native-css-interop/jsx-runtime'`
+      bên trong expo-router rồi đi tìm ở `node_modules` gốc, nơi không có gì.
+      **pnpm v11 đọc thiết lập ở `pnpm-workspace.yaml`, KHÔNG phải `.npmrc`** — đặt nhầm chỗ
+      thì `pnpm config get node-linker` trả `undefined` và cài đặt im lặng chạy theo mặc định
+- [x] **Metro resolver bỏ đuôi `.js`** cho `packages/domain`. Package viết
+      `from './types/base.js'` vì **Deno bắt buộc** đuôi đầy đủ; Metro thì đi tìm file `.js`
+      thật và dừng. Bỏ đuôi ở tầng resolve giữ được cả hai runtime mà không cần bước build
 
 ## G4 · Bước 2 — Thêm nhanh · Việc · Chi tiết việc
 

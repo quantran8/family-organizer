@@ -1,6 +1,26 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Metro không hiểu cây node_modules lồng nhau của pnpm.
+#
+# pnpm mặc định chỉ đặt vào node_modules những package được KHAI BÁO tường minh;
+# phần còn lại nằm trong .pnpm/ và tới được qua symlink. Node giải quyết được,
+# Metro thì không: nó thấy `import 'react-native-css-interop/jsx-runtime'` bên
+# trong expo-router và đi tìm ở node_modules gốc — nơi không có gì cả.
+#
+# Cách sửa "đúng" là khai từng dependency chuyển tiếp bị thiếu vào package.json
+# của app. Nhưng đó là danh sách không có điểm dừng: mỗi lần nâng Expo lại lộ ra
+# vài cái mới, và chúng không phải dependency thật của app — chúng là chi tiết
+# nội bộ của expo-router và nativewind.
+#
+# hoisted = cây node_modules phẳng như npm. Mất tính năng chính của pnpm (chặn
+# dùng nhầm package không khai), đổi lại workspace + store dùng chung vẫn còn.
+#
+# LƯU Ý: pnpm v11 đọc thiết lập ở ĐÂY, không phải ở .npmrc. Đặt node-linker vào
+# .npmrc thì `pnpm config get node-linker` trả `undefined` và cài đặt im lặng
+# chạy theo mặc định — không có cảnh báo nào.
+nodeLinker: hoisted
 # esbuild là bundler của vitest, cần build script để có binary gốc.
 allowBuilds:
   esbuild: true

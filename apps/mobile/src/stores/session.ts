@@ -19,10 +19,14 @@ interface SessionState {
   householdId: UUID | null;
   householdName: string | null;
   memberId: UUID | null;
+  /** Đơn vị tiền của nhà — `formatMoney` cần nó tường minh (xem design/use-currency). */
+  currency: string | null;
 
   setSession: (s: Session | null) => void;
   setRestored: () => void;
-  setHousehold: (h: { id: UUID; name: string; memberId: UUID } | null) => void;
+  setHousehold: (
+    h: { id: UUID; name: string; memberId: UUID; currency?: string } | null,
+  ) => void;
   clear: () => void;
 }
 
@@ -32,17 +36,29 @@ export const useSessionStore = create<SessionState>((set) => ({
   householdId: null,
   householdName: null,
   memberId: null,
+  currency: null,
 
   setSession: (session) => set({ session }),
   setRestored: () => set({ isRestoring: false }),
   setHousehold: (h) =>
     set(
       h
-        ? { householdId: h.id, householdName: h.name, memberId: h.memberId }
-        : { householdId: null, householdName: null, memberId: null },
+        ? {
+            householdId: h.id,
+            householdName: h.name,
+            memberId: h.memberId,
+            currency: h.currency ?? 'VND',
+          }
+        : { householdId: null, householdName: null, memberId: null, currency: null },
     ),
   clear: () =>
-    set({ session: null, householdId: null, householdName: null, memberId: null }),
+    set({
+      session: null,
+      householdId: null,
+      householdName: null,
+      memberId: null,
+      currency: null,
+    }),
 }));
 
 /**
