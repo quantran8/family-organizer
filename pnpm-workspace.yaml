@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+# esbuild là bundler của vitest, cần build script để có binary gốc.
+allowBuilds:
+  esbuild: true
+  # resolver gốc của eslint-import-resolver, cần binary theo nền tảng.
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@expo/cli@57.0.11'
+  - '@expo/inline-modules@0.1.4'
+  - '@expo/local-build-cache-provider@57.0.5'
+  - '@expo/log-box@57.0.2'
+  - '@expo/prebuild-config@57.0.10'
+  - babel-preset-expo@57.0.5
+  - expo-asset@57.0.8
+  - expo-constants@57.0.8
+  - expo-modules-core@57.0.8
+  - expo@57.0.9
