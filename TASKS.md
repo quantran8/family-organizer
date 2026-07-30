@@ -202,11 +202,15 @@ từ con số hiện tại.* Không có màn hình đọc thì `delta` chỉ n�
 ## Kiểm chứng — chạy trước mỗi lần duyệt
 
 ```bash
-pnpm --filter @nhaminh/domain test        # cổng G1
+pnpm --filter @nhaminh/domain test        # cổng G1 — 160 test
 pnpm --filter @nhaminh/mobile typecheck
 pnpm --filter @nhaminh/mobile lint        # chặn literal tiếng Việt trong JSX
-supabase db reset                          # rồi psql -f supabase/tests/smoke.sql
 ```
+
+**Backend chạy trên Supabase Cloud** — không có stack Docker local (xem
+`SETUP-CLOUD.md`). Nghĩa là **không còn `supabase db reset`**: migration mới đẩy
+thẳng bằng `pnpm db:push` và một migration sai là dữ liệu thật. `smoke.sql` GHI
+dữ liệu test nên chỉ chạy trên project trống hoặc project staging riêng.
 
 **Rà bảng từ vựng** — lý do chính để gom chuỗi vào một chỗ là kiểm được bằng một lần quét:
 

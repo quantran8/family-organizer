@@ -1,3 +1,20 @@
+# Dự án chạy trên SUPABASE CLOUD, không dùng stack Docker local (đã chốt).
+#
+# File này vẫn cần: `supabase link`, `db push`, và `functions deploy` đều đọc
+# nó. Các cổng bên dưới chỉ có tác dụng khi chạy `supabase start` — giữ lại để
+# `supabase db diff` (cần shadow database) dùng được nếu sau này cần, nhưng
+# KHÔNG có stack local nào đang chạy.
+#
+# Hệ quả của việc bỏ local, ghi ra để không ai quên:
+#   - `supabase db reset` KHÔNG dùng được nữa. Migration mới phải đẩy thẳng lên
+#     cloud bằng `db push`, và một migration sai trên cloud là dữ liệu thật.
+#   - `supabase/tests/smoke.sql` giờ chạy qua `psql` vào cloud. Nó TẠO dữ liệu
+#     test (hai user a@test.vn / b@test.vn, một nhà, một khoản nợ) — chỉ chạy
+#     trên project trống hoặc project staging riêng, đừng chạy trên project
+#     đang có dữ liệu thật của bạn.
+#
+# `project_id` là tên tham chiếu cục bộ, KHÔNG phải project ref trên cloud.
+# Project ref thật (chuỗi 20 ký tự) nằm ở `.temp/project-ref` sau khi `link`.
 project_id = "nha-minh"
 
 [api]
@@ -10,16 +27,14 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
+# Phải KHỚP major version của project cloud, nếu không `db push` sẽ so sai
+# schema. Supabase project tạo mới hiện dùng Postgres 17 — sửa số này cho khớp
+# thứ Dashboard → Settings → Infrastructure hiển thị.
 major_version = 15
 
 [studio]
 enabled = true
 port = 54323
-
-# Bắt email xác minh và đặt lại mật khẩu ở local, không gửi thật.
-[local_smtp]
-enabled = true
-port = 54324
 
 [auth]
 enabled = true
@@ -38,16 +53,21 @@ enable_anonymous_sign_ins = false
 
 [auth.email]
 enable_signup = true
-# Ở LOCAL để false: bật xác minh thì mọi tài khoản test phải vào hộp thư
-# (127.0.0.1:54324) bấm link trước khi đăng nhập được — chậm mà không kiểm
-# thêm được gì. Trên prod thì BẬT, nhưng client vẫn cho vào app khi chưa xác
-# minh: chặn ngay lúc đăng ký là thêm một chỗ bỏ cuộc trước khi thấy giá trị.
+# Để FALSE trong lúc phát triển, kể cả trên cloud: bật xác minh thì mỗi tài
+# khoản test phải vào hộp thư bấm link trước khi đăng nhập được, mà SMTP mặc
+# định của Supabase giới hạn ~2 email/giờ — đủ để chặn đứng một buổi thử app.
+#
+# BẬT trước khi phát hành, CÙNG LÚC với việc cắm SMTP thật. Nhưng client vẫn
+# cho vào app khi chưa xác minh (`auth.emailNotVerified` ở i18n là một dòng
+# nhắc, không phải một bức tường): chặn ngay lúc đăng ký là thêm một chỗ bỏ
+# cuộc trước khi người dùng kịp thấy giá trị.
 enable_confirmations = false
 double_confirm_changes = true
 secure_password_change = false
 
-# Trước khi phát hành phải cắm SMTP thật (Resend/Postmark) — SMTP mặc định của
-# Supabase giới hạn rất thấp và dễ vào spam. Local dùng local_smtp ở trên.
+# Trước khi phát hành phải cắm SMTP thật (Resend/Postmark) ở Dashboard →
+# Authentication → Emails → SMTP Settings. SMTP mặc định của Supabase giới hạn
+# rất thấp và dễ vào spam.
 
 [auth.external.google]
 enabled = false
