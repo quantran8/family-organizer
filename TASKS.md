@@ -37,6 +37,7 @@ nó chỉ đơn giản là không nhắc — và không ai biết cho tới khi 
 - [x] `lunar/` — `solarToLunar`, `lunarToSolar`, `nextLunarOccurrence` (Hồ Ngọc Đức, UTC+7)
 - [x] `recurrence/` · `reminders/` · `quota/` · `format/` · `attention/` · `history/`
 - [x] **144 test vitest xanh** — phủ hết ca `03 §9` + ca thêm cho G7b
+      (G4 thêm 16 ca cho `groupTasksByDue` → **160**)
 - [x] Đối chiếu lịch âm với bảng thật: 7 ngày Tết, tháng nhuận 2023, 406 lượt round-trip
 
 Không viết test cho component. Toàn bộ ngân sách test dồn vào đây.
@@ -95,14 +96,43 @@ Không viết test cho component. Toàn bộ ngân sách test dồn vào đây.
       `from './types/base.js'` vì **Deno bắt buộc** đuôi đầy đủ; Metro thì đi tìm file `.js`
       thật và dừng. Bỏ đuôi ở tầng resolve giữ được cả hai runtime mà không cần bước build
 
-## G4 · Bước 2 — Thêm nhanh · Việc · Chi tiết việc
+## G4 · Bước 2 — Thêm nhanh · Việc · Chi tiết việc — **xong**
 
-- [ ] `(modals)/quick-add.tsx` · `task-form.tsx`
-- [ ] `plan/index.tsx` tab con Việc | Sự kiện, nhớ tab con lần trước
-- [ ] Chạm ô tròn → xong ngay. **Không** hộp xác nhận, không ăn mừng, không điểm, không chuỗi ngày
-- [ ] `plan/task/[id].tsx` — sửa tại chỗ; việc lặp hiện 5 lần gần nhất đã xong
-- [ ] Nhà mình có nội dung — nhóm rỗng **ẩn hẳn**
-- [ ] Edge `generate-task-instances` · `build-reminders`
+- [x] `(modals)/quick-add.tsx` — **một** ô tên việc, lưu xong đóng ngay ·
+      `task-form.tsx` — form đầy đủ cho việc có hạn / lặp / người làm
+- [x] `plan/index.tsx` tab con Việc | Sự kiện, nhớ tab con lần trước
+      (`stores/ui-prefs`, persist AsyncStorage)
+- [x] Chạm ô tròn → xong ngay. **Không** hộp xác nhận, không ăn mừng, không điểm, không chuỗi ngày
+- [x] Vuốt trái → hoãn sang mai · vuốt phải → xoá với **hoàn tác 5 giây**.
+      Xoá thật hoãn tới khi hết giờ, không xoá-rồi-khôi-phục: khôi phục cần
+      tạo-lại-với-cùng-id mà repository không có
+- [x] `plan/task/[id].tsx` — sửa tại chỗ (mỗi trường tự lưu khi rời khỏi nó,
+      không có nút `[Lưu]` chung); việc lặp hiện 5 lần gần nhất đã xong,
+      **chỉ ngày, không hiện ai làm** (ràng buộc "hai người ngang nhau")
+- [x] Nhà mình có nội dung — thẻ trạng thái + HÔM NAY + TUẦN NÀY, nhóm rỗng **ẩn hẳn**.
+      Quá hạn gộp vào nhóm hôm nay, không thành khối đỏ riêng
+- [x] Edge `generate-task-instances` — cửa sổ 90 ngày, `upsert ignoreDuplicates`
+      để chạy lại không xoá trạng thái đã xong ·
+      `build-reminders` — xoá lịch tương lai chưa gửi rồi dựng lại, **không đụng
+      `sent_at` khác null**; việc một lần bọc thành `TaskInstance` để không bị bỏ sót
+
+### Ba thứ hạ tầng phát hiện trong G4
+
+- [x] **`groupTasksByDue` ở `packages/domain`**, không ở component: ranh giới
+      "tuần này" có ca biên thật (việc hạn Chủ nhật nhìn từ thứ Bảy), và ca biên
+      trong JSX là ca biên không có test. **16 test mới → 160 xanh**
+- [x] **`lib/today.ts` — chỗ DUY NHẤT đọc đồng hồ.** Thiếu nó thì màn này dùng
+      `toISOString()` (UTC) còn màn kia dùng giờ máy, và hai màn lệch nhau một
+      ngày trong khoảng 00:00–07:00 giờ Việt Nam. `useToday()` giữ giá trị ổn
+      định giữa các render (chuỗi mới mỗi render sẽ vào query key → refetch vô hạn)
+- [x] **`react-native-gesture-handler` 2.28 → 2.32.** 2.28 import
+      `react-native/Libraries/Renderer/shims/ReactNative`, thứ RN 0.86 đã bỏ —
+      bundle **chết hẳn** ngay khi có một `Swipeable` đầu tiên. Cũng thêm
+      `GestureHandlerRootView` ở `app/_layout.tsx`: thiếu nó thì cử chỉ vuốt im
+      lặng không chạy trên Android, không lỗi, không cảnh báo
+- [x] Sửa `data/schemas/common.ts`: `recurrence` khai `interval`/`until` trong
+      khi domain là `intervalN`/`untilDate`. Tên lệch làm `expandRecurrence` đọc
+      `intervalN` ra `undefined` rồi lặp mỗi ngày thay vì mỗi tuần
 
 ## G5 · Bước 3 — Mời · Tham gia (F2)
 
@@ -194,7 +224,7 @@ vùng chạm ≥ 44px · trạng thái không chỉ dùng màu · hai thành vi�
 |---|---|---|
 | F1 | Dưới **90 giây** từ mở app tới bản ghi đầu tiên, cả ba đường đăng nhập | G3 |
 | F2 | B chạm deep link → thấy **dữ liệu của A ngay**, không thấy màn hình rỗng | G5 |
-| F3 | Chạm ô tròn → xong tức thì, một chạm, không màn trung gian | G4 |
+| F3 | Chạm ô tròn → xong tức thì, một chạm, không màn trung gian | ✅ G4 |
 | F4 | Thông báo 09:00 mở **thẳng** modal Cập nhật tình hình | G7 |
 | F5 | Nhập `15/8 âm` → xem trước đúng → việc gắn `eventId` hiện trên Nhà mình đúng tuần | G6 |
 | F6 | Chọn 2 ảnh → upload chạy nền, rời màn hình được | G8 |

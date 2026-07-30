@@ -52,14 +52,21 @@ export const optionalText = (max = 2000) =>
     .nullable()
     .default(null);
 
-/** Lặp lại — hình dạng khớp `Recurrence` của domain. */
+/**
+ * Lặp lại — hình dạng khớp `Recurrence` của domain.
+ *
+ * Tên trường phải khớp CHÍNH XÁC (`intervalN`, `untilDate`), không phải
+ * `interval`/`until`: `TaskInput.recur` nhận thẳng type của domain, nên một cái
+ * tên lệch ở đây không phải chuyện thẩm mỹ — nó là `expandRecurrence` đọc
+ * `intervalN` ra `undefined` rồi lặp mỗi ngày một lần thay vì mỗi tuần.
+ */
 export const recurrence = z
   .object({
     freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
-    interval: z.number().int().positive().default(1),
+    intervalN: z.number().int().positive().default(1),
     byWeekday: z.array(z.number().int().min(0).max(6)).optional(),
     byMonthDay: z.number().int().min(1).max(31).optional(),
-    until: isoDate.optional(),
+    untilDate: isoDate.nullable().optional(),
   })
   .nullable()
   .default(null);

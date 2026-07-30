@@ -20,6 +20,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { Slot, SplashScreen, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../global.css';
@@ -42,12 +43,17 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
-        <StatusBar style="dark" />
-        <AuthGate />
-      </PersistQueryClientProvider>
-    </SafeAreaProvider>
+    // GestureHandlerRootView phải bọc NGOÀI CÙNG: thiếu nó thì `Swipeable` trên
+    // từng dòng việc (vuốt để hoãn / xoá) im lặng không phản ứng trên Android —
+    // không lỗi, không cảnh báo, chỉ là cử chỉ không bao giờ chạy.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+          <StatusBar style="dark" />
+          <AuthGate />
+        </PersistQueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

@@ -64,6 +64,17 @@ export function dueLabelText(d: DueLabel): string {
   }
 }
 
+/**
+ * "Cập nhật hôm nay" / "Cập nhật quá hạn 3 ngày" — độ mới của số liệu tiền.
+ *
+ * Dùng lại `formatDueLabel` thay vì tự trừ ngày: cùng một cách nói về khoảng
+ * cách thời gian ở mọi chỗ trong app. "Còn N ngày" không xuất hiện được ở đây
+ * (một lần cập nhật luôn nằm trong quá khứ), nhưng vẫn xử lý để hàm tổng quát.
+ */
+export function lastUpdatedText(d: DueLabel): string {
+  return interpolate(vi.financeStatus.lastUpdated, { label: dueLabelText(d) });
+}
+
 export function weekdayName(w: number): string {
   const names = [
     vi.weekday[0],

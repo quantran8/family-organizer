@@ -68,3 +68,13 @@ secret = "env(APPLE_SECRET)"
 #
 # Ngoại lệ sẽ cần: revenuecat-webhook phải verify_jwt = false (RevenueCat gọi
 # tới, không mang JWT của người dùng) và tự kiểm chữ ký của chính nó.
+
+# Hai function của G4 là CRON, không phải người dùng gọi: chúng chạy cho mọi
+# nhà bằng service role, không thay mặt ai. `verify_jwt = false` vì scheduler
+# không mang JWT của người dùng — bảo vệ nằm ở chỗ chỉ scheduler và service key
+# gọi tới được, không nằm ở JWT.
+[functions.generate-task-instances]
+verify_jwt = false
+
+[functions.build-reminders]
+verify_jwt = false

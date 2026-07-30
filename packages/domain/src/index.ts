@@ -100,6 +100,10 @@ export { nextLunarOccurrence, previousLunarOccurrence } from './lunar/occurrence
 // Lặp lại
 export { expandRecurrence, nextDue } from './recurrence/expand.js';
 
+// Gom việc theo hạn
+export type { TaskGroup, TaskGroupKey } from './tasks/group.js';
+export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tasks/group.js';
+
 // Nhắc nhở
 export type { BuildRemindersInput, ReminderDraft, ReminderSource } from './reminders/build.js';
 export {
