@@ -15,9 +15,9 @@ import {
   formatISODate,
   parseISODate,
   weekdayOf,
-} from '../date/civil.js';
-import type { ISODate, Recurrence } from '../types/base.js';
-import type { Task } from '../types/entities.js';
+} from '../date/civil.ts';
+import type { ISODate, Recurrence } from '../types/base.ts';
+import type { Task } from '../types/entities.ts';
 
 /** Chặn trên số lần lặp sinh ra trong một lần gọi — lưới an toàn chống vòng lặp vô hạn. */
 const MAX_OCCURRENCES = 1000;

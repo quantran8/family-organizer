@@ -5,7 +5,7 @@
  * màn hình tổng hợp — không tự ghép nhiều query.
  */
 
-import type { ISODate, UUID } from './base.js';
+import type { ISODate, UUID } from './base.ts';
 
 /**
  * View `home_feed`. Cột `source` trong DB có kiểu entity_type (7 giá trị) nhưng

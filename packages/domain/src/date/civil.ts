@@ -8,7 +8,7 @@
  * Không hàm nào ở đây đọc đồng hồ — "hôm nay" luôn là tham số truyền vào.
  */
 
-import type { ISODate } from '../types/base.js';
+import type { ISODate } from '../types/base.ts';
 
 export interface CivilDate {
   year: number;

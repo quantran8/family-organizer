@@ -46,11 +46,6 @@ module.exports = {
     scheme: 'family',
     userInterfaceStyle: 'light',
     newArchEnabled: true,
-    splash: {
-      image: './assets/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#FFFFFF',
-    },
     ios: {
       supportsTablet: false,
       bundleIdentifier: 'com.nhaminh.app',
@@ -81,6 +76,15 @@ module.exports = {
     plugins: [
       'expo-router',
       'expo-font',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          imageWidth: 100,
+          resizeMode: 'contain',
+          backgroundColor: '#FFFFFF',
+        },
+      ],
       'expo-secure-store',
       [
         'expo-image-picker',

@@ -5,6 +5,10 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
+    // Cần vì app typecheck luôn source của `packages/domain` qua workspace link,
+    // và import nội bộ ở đó ghi rõ đuôi `.ts` để Deno (Edge Functions) bundle
+    // được — xem chú thích ở `packages/domain/tsconfig.json`.
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -10,9 +10,7 @@
     "mobile": "pnpm --filter @nhaminh/mobile start",
     "db:push": "supabase db push",
     "db:pull": "supabase db pull",
-    "db:diff": "supabase db diff --linked",
-    "fn:deploy": "supabase functions deploy generate-task-instances build-reminders",
-    "fn:serve": "supabase functions serve --env-file supabase/.env.local"
+    "fn:deploy": "supabase functions deploy --import-map supabase/import_map.json generate-task-instances build-reminders"
   },
   "engines": {
     "node": ">=20"

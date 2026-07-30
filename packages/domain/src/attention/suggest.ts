@@ -11,8 +11,8 @@
  * năng gợi ý là Phase 2. Chữ ký hàm giữ nguyên để không phải sửa chỗ gọi.
  */
 
-import type { ISODate, MoneyEntityType, UUID } from '../types/base.js';
-import type { MoneyEvent } from '../types/entities.js';
+import type { ISODate, MoneyEntityType, UUID } from '../types/base.ts';
+import type { MoneyEvent } from '../types/entities.ts';
 
 export const DROP_PCT_OF_ITEM = 0.2;
 export const DROP_PCT_OF_TOTAL_USABLE = 0.1;

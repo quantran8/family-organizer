@@ -17,9 +17,9 @@
  * thì mỗi chỗ gọi lại phải tự nhớ thứ tự.
  */
 
-import { addDays, compareISODate, daysBetween, weekdayOf } from '../date/civil.js';
-import type { ISODate } from '../types/base.js';
-import type { Task } from '../types/entities.js';
+import { addDays, compareISODate, daysBetween, weekdayOf } from '../date/civil.ts';
+import type { ISODate } from '../types/base.ts';
+import type { Task } from '../types/entities.ts';
 
 export type TaskGroupKey = 'overdue' | 'today' | 'tomorrow' | 'this_week' | 'later' | 'no_due';
 

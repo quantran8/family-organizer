@@ -11,9 +11,9 @@
  * mở, đổi lại làm trạng thái khó đoán và khó giải thích.
  */
 
-import { daysBetween } from '../date/civil.js';
-import type { FinanceStatus, ISODate } from '../types/base.js';
-import type { FinanceMetrics } from '../types/views.js';
+import { daysBetween } from '../date/civil.ts';
+import type { FinanceStatus, ISODate } from '../types/base.ts';
+import type { FinanceMetrics } from '../types/views.ts';
 
 /**
  * Lý do có tham số, KHÔNG phải câu tiếng Việt.

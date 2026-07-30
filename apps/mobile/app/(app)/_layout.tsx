@@ -11,7 +11,7 @@
  */
 
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, type ColorValue } from 'react-native';
 
 import { useT } from '@/i18n';
 
@@ -56,6 +56,6 @@ export default function AppLayout() {
  * Bộ icon thật (SVG qua react-native-svg) làm ở cuối G3 — dựng luồng trước, tô
  * sau: một tab bar có icon đẹp mà không đi tới đâu thì không kiểm được gì.
  */
-function TabIcon({ glyph, color }: { glyph: string; color: string }) {
+function TabIcon({ glyph, color }: { glyph: string; color: ColorValue }) {
   return <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
 }

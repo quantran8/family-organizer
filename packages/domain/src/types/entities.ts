@@ -24,7 +24,7 @@ import type {
   Recurrence,
   SubscriptionStatus,
   UUID,
-} from './base.js';
+} from './base.ts';
 
 export interface Household {
   id: UUID;

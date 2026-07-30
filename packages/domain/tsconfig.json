@@ -5,6 +5,13 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
 
+    // Import nội bộ của package này ghi rõ đuôi `.ts`. Lý do: Edge Functions nạp
+    // thẳng source qua `supabase/import_map.json`, và Deno phân giải specifier
+    // tương đối theo đúng mặt chữ — không có đuôi là "module not found" lúc
+    // bundle. Metro và vitest đều đọc được dạng này, nên `.ts` là dạng duy nhất
+    // cả ba cùng hiểu. An toàn vì `noEmit` — cờ này chỉ xung đột khi phát JS.
+    "allowImportingTsExtensions": true,
+
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,

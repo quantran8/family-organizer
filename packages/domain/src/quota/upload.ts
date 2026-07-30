@@ -6,8 +6,8 @@
  * vì presigned URL là thứ cấp quyền ghi thật.
  */
 
-import type { AppError } from '../types/errors.js';
-import type { Household } from '../types/entities.js';
+import type { AppError } from '../types/errors.ts';
+import type { Household } from '../types/entities.ts';
 
 export const FREE_QUOTA_BYTES = 50 * 1024 * 1024;
 export const PRO_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;

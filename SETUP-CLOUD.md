@@ -2,9 +2,18 @@
 
 Dự án **không dùng stack Docker local** (đã chốt). Mọi thứ chạy trên cloud.
 
-Hệ quả phải nhớ: `supabase db reset` không còn dùng được. Migration mới đẩy
-thẳng lên cloud, và một migration sai trên cloud là dữ liệu thật — không có
-bước tập dượt nào ở giữa. Đọc kỹ mục **6** trước khi chạy `smoke.sql`.
+Hệ quả phải nhớ: mọi lệnh Supabase cần Docker đều không dùng được, và chúng đã
+bị bỏ khỏi `package.json` để không ai gọi nhầm:
+
+| Lệnh không dùng được | Cần Docker để | Làm gì thay thế |
+| --- | --- | --- |
+| `supabase db reset` | dựng Postgres local | `pnpm db:push` đẩy thẳng lên cloud |
+| `supabase db diff` | dựng shadow database | `pnpm db:pull` rồi đọc diff bằng git |
+| `supabase functions serve` | chạy Deno runtime | `pnpm fn:deploy` rồi xem Dashboard → Edge Functions → Logs |
+
+Nghĩa là **không có bước tập dượt nào ở giữa**: một migration sai trên cloud là
+dữ liệu thật, và một Edge Function sai cũng chỉ phát hiện được sau khi deploy.
+Đọc kỹ mục **6** trước khi chạy `smoke.sql`.
 
 ---
 

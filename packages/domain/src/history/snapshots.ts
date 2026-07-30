@@ -6,9 +6,9 @@
  * Hai tầng lịch sử khác nhau, cần cả hai — schema.sql §5.5 / §5.7.
  */
 
-import { compareISODate, daysBetween } from '../date/civil.js';
-import type { ISODate, MoneyEntityType } from '../types/base.js';
-import type { MoneyEvent, MoneySnapshot } from '../types/entities.js';
+import { compareISODate, daysBetween } from '../date/civil.ts';
+import type { ISODate, MoneyEntityType } from '../types/base.ts';
+import type { MoneyEvent, MoneySnapshot } from '../types/entities.ts';
 
 /**
  * Chênh lệch giữa một snapshot và mốc liền trước.

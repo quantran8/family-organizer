@@ -6,9 +6,9 @@
  * code cùng tính lịch âm.
  */
 
-import { compareISODate } from '../date/civil.js';
-import type { ISODate } from '../types/base.js';
-import { lunarToSolarClamped, solarToLunar, type LunarDate } from './convert.js';
+import { compareISODate } from '../date/civil.ts';
+import type { ISODate } from '../types/base.ts';
+import { lunarToSolarClamped, solarToLunar, type LunarDate } from './convert.ts';
 
 /** Ngày âm lặp hằng năm — không có `year` vì năm chính là thứ ta đi tìm. */
 export interface LunarAnniversary {

@@ -9,14 +9,14 @@
  * Không bắn quá 2 thông báo mỗi ngày cho mỗi người.
  */
 
-import { addDays, compareISODate } from '../date/civil.js';
-import type { DocType, EntityType, ISODate, UUID } from '../types/base.js';
+import { addDays, compareISODate } from '../date/civil.ts';
+import type { DocType, EntityType, ISODate, UUID } from '../types/base.ts';
 import type {
   FamilyDocument,
   FamilyEvent,
   TaskInstance,
   UpcomingPayment,
-} from '../types/entities.js';
+} from '../types/entities.ts';
 
 /** Giờ bắn mặc định, giờ địa phương. */
 export const DEFAULT_REMIND_HOUR = 8;

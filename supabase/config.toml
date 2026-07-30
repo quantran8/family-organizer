@@ -1,17 +1,23 @@
-# Dự án chạy trên SUPABASE CLOUD, không dùng stack Docker local (đã chốt).
+# Dự án chạy trên SUPABASE CLOUD. KHÔNG có Docker, KHÔNG có stack local.
 #
 # File này vẫn cần: `supabase link`, `db push`, và `functions deploy` đều đọc
-# nó. Các cổng bên dưới chỉ có tác dụng khi chạy `supabase start` — giữ lại để
-# `supabase db diff` (cần shadow database) dùng được nếu sau này cần, nhưng
-# KHÔNG có stack local nào đang chạy.
+# nó. Các cổng bên dưới KHÔNG có tác dụng gì — chúng chỉ dùng cho `supabase
+# start`, thứ không chạy được ở đây. Giữ lại vì CLI đòi các khoá này tồn tại.
 #
-# Hệ quả của việc bỏ local, ghi ra để không ai quên:
-#   - `supabase db reset` KHÔNG dùng được nữa. Migration mới phải đẩy thẳng lên
-#     cloud bằng `db push`, và một migration sai trên cloud là dữ liệu thật.
-#   - `supabase/tests/smoke.sql` giờ chạy qua `psql` vào cloud. Nó TẠO dữ liệu
-#     test (hai user a@test.vn / b@test.vn, một nhà, một khoản nợ) — chỉ chạy
-#     trên project trống hoặc project staging riêng, đừng chạy trên project
-#     đang có dữ liệu thật của bạn.
+# Mọi lệnh cần Docker đều KHÔNG dùng được, đã bỏ khỏi package.json:
+#   - `supabase db reset`  → migration mới đẩy thẳng lên cloud bằng `db push`,
+#     và một migration sai trên cloud là dữ liệu thật.
+#   - `supabase db diff`   → cần shadow database (một container Postgres). Muốn
+#     biết schema cloud lệch gì so với migrations thì dùng `db pull` rồi đọc
+#     diff bằng git.
+#   - `supabase functions serve` → cần Docker để chạy Deno runtime. Sửa Edge
+#     Function thì deploy lên cloud (`pnpm fn:deploy`) rồi xem log ở
+#     Dashboard → Edge Functions → Logs. Không có đường chạy local.
+#
+# `supabase/tests/smoke.sql` chạy qua `psql` vào cloud. Nó TẠO dữ liệu test
+# (hai user a@test.vn / b@test.vn, một nhà, một khoản nợ) — chỉ chạy trên
+# project trống hoặc project staging riêng, đừng chạy trên project đang có dữ
+# liệu thật của bạn, vì không có `db reset` để dọn.
 #
 # `project_id` là tên tham chiếu cục bộ, KHÔNG phải project ref trên cloud.
 # Project ref thật (chuỗi 20 ký tự) nằm ở `.temp/project-ref` sau khi `link`.

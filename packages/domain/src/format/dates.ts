@@ -9,10 +9,10 @@
  * phạm", không viết "cần chú ý" thành "cảnh báo".
  */
 
-import { daysBetween, parseISODate, weekdayOf } from '../date/civil.js';
-import type { ISODate } from '../types/base.js';
-import { solarToLunar } from '../lunar/convert.js';
-import type { FamilyEvent } from '../types/entities.js';
+import { daysBetween, parseISODate, weekdayOf } from '../date/civil.ts';
+import type { ISODate } from '../types/base.ts';
+import { solarToLunar } from '../lunar/convert.ts';
+import type { FamilyEvent } from '../types/entities.ts';
 
 /**
  * Nhãn hạn: "Hôm nay" · "Ngày mai" · "Còn 5 ngày" · "Quá hạn 2 ngày".

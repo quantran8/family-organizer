@@ -208,9 +208,11 @@ pnpm --filter @nhaminh/mobile lint        # chặn literal tiếng Việt trong 
 ```
 
 **Backend chạy trên Supabase Cloud** — không có stack Docker local (xem
-`SETUP-CLOUD.md`). Nghĩa là **không còn `supabase db reset`**: migration mới đẩy
-thẳng bằng `pnpm db:push` và một migration sai là dữ liệu thật. `smoke.sql` GHI
-dữ liệu test nên chỉ chạy trên project trống hoặc project staging riêng.
+`SETUP-CLOUD.md`). Nghĩa là không còn `db reset`, `db diff`, hay `functions
+serve`: migration mới đẩy thẳng bằng `pnpm db:push` và một migration sai là dữ
+liệu thật; Edge Function chỉ chạy được sau `pnpm fn:deploy`, gỡ lỗi bằng
+Dashboard → Edge Functions → Logs. `smoke.sql` GHI dữ liệu test nên chỉ chạy
+trên project trống hoặc project staging riêng.
 
 **Rà bảng từ vựng** — lý do chính để gom chuỗi vào một chỗ là kiểm được bằng một lần quét:
 

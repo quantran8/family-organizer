@@ -30,17 +30,27 @@ import { authRepository } from '@/features/auth/repository';
 import { useMyHouseholds } from '@/features/auth/queries/use-auth';
 import { useSessionStore } from '@/stores/session';
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
+  console.warn('[bootstrap] Không thể giữ splash screen:', error);
+});
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     BeVietnamPro_400Regular,
     BeVietnamPro_500Medium,
     BeVietnamPro_600SemiBold,
   });
   const queryClient = useMemo(() => createQueryClient(), []);
 
-  if (!fontsLoaded) return null;
+  useEffect(() => {
+    if (fontError) {
+      // Font tuỳ biến không được phép chặn toàn bộ ứng dụng. React Native sẽ
+      // dùng system font cho tới khi cấu hình asset được sửa.
+      console.warn('[bootstrap] Không tải được Be Vietnam Pro:', fontError);
+    }
+  }, [fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     // GestureHandlerRootView phải bọc NGOÀI CÙNG: thiếu nó thì `Swipeable` trên
@@ -66,11 +76,20 @@ function AuthGate() {
   // Khôi phục phiên + theo dõi đăng nhập/đăng xuất ở MỘT chỗ.
   useEffect(() => {
     let active = true;
-    void authRepository.getSession().then((s) => {
-      if (!active) return;
-      setSession(s);
-      setRestored();
-    });
+    void authRepository
+      .getSession()
+      .then((s) => {
+        if (active) setSession(s);
+      })
+      .catch((error: unknown) => {
+        // AsyncStorage/session hỏng không được giữ người dùng ở splash mãi.
+        // Xem như chưa đăng nhập; màn sign-in vẫn cho họ phục hồi bình thường.
+        console.warn('[bootstrap] Không thể khôi phục phiên đăng nhập:', error);
+        if (active) setSession(null);
+      })
+      .finally(() => {
+        if (active) setRestored();
+      });
     const unsubscribe = authRepository.onAuthStateChange((s) => {
       setSession(s);
       setRestored();
@@ -92,31 +111,39 @@ function AuthGate() {
     }
   }, [households, setHousehold]);
 
+  const firstHousehold = households?.[0];
+  const effectiveHouseholdId = householdId ?? firstHousehold?.householdId ?? null;
+  const isReady = !isRestoring && (!session || !householdsPending);
+
   useEffect(() => {
-    if (isRestoring) return;
+    if (!isReady) return;
     // Chờ biết có nhà hay không rồi mới điều hướng — điều hướng sớm sẽ đẩy
     // người đã có nhà sang màn setup rồi mới giật ngược lại.
-    if (session && householdsPending) return;
 
     const path: string[] = segments;
     const inAuth = path[0] === '(auth)';
+    const atRoot = path.length === 0;
 
     if (!session) {
       if (!inAuth) router.replace('/(auth)/sign-in');
       return;
     }
-    if (!householdId) {
+    if (!effectiveHouseholdId) {
       // Trừ join/[code]: người nhận lời mời đi thẳng vào đó, không qua setup —
       // route đó tự đổi mã lấy nhà, đẩy về setup sẽ làm mất mã trong deep link.
       if (path[1] !== 'join') router.replace('/(auth)/setup');
       return;
     }
-    if (inAuth) router.replace('/(app)/home');
-  }, [isRestoring, session, householdId, householdsPending, segments, router]);
+    if (inAuth || atRoot) router.replace('/(app)/home');
+  }, [isReady, session, effectiveHouseholdId, segments, router]);
 
   useEffect(() => {
-    if (!isRestoring) void SplashScreen.hideAsync();
-  }, [isRestoring]);
+    if (isReady) {
+      void SplashScreen.hideAsync().catch((error: unknown) => {
+        console.warn('[bootstrap] Không thể ẩn splash screen:', error);
+      });
+    }
+  }, [isReady]);
 
   return <Slot />;
 }

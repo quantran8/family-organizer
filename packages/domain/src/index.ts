@@ -32,7 +32,7 @@ export type {
   Recurrence,
   SubscriptionStatus,
   UUID,
-} from './types/base.js';
+} from './types/base.ts';
 export {
   ASSET_KINDS,
   DOC_TYPES,
@@ -40,7 +40,7 @@ export {
   FAMILY_SIDES,
   FINANCE_STATUSES,
   LIQUIDITIES,
-} from './types/base.js';
+} from './types/base.ts';
 
 export type {
   Asset,
@@ -57,15 +57,15 @@ export type {
   Task,
   TaskInstance,
   UpcomingPayment,
-} from './types/entities.js';
+} from './types/entities.ts';
 
-export type { FinanceMetrics, HomeFeedItem, MoneyFeedItem } from './types/views.js';
+export type { FinanceMetrics, HomeFeedItem, MoneyFeedItem } from './types/views.ts';
 
-export type { AppError } from './types/errors.js';
-export { AppErrorException, isAppErrorException } from './types/errors.js';
+export type { AppError } from './types/errors.ts';
+export { AppErrorException, isAppErrorException } from './types/errors.ts';
 
 // Ngày dương
-export type { CivilDate } from './date/civil.js';
+export type { CivilDate } from './date/civil.ts';
 export {
   addDays,
   addMonthsClamped,
@@ -79,33 +79,33 @@ export {
   minISODate,
   parseISODate,
   weekdayOf,
-} from './date/civil.js';
+} from './date/civil.ts';
 
 // Tài chính
-export type { FinanceReason } from './finance/status.js';
-export { computeFinanceStatus, explainFinanceStatus } from './finance/status.js';
-export { inferLiquidity } from './finance/liquidity.js';
+export type { FinanceReason } from './finance/status.ts';
+export { computeFinanceStatus, explainFinanceStatus } from './finance/status.ts';
+export { inferLiquidity } from './finance/liquidity.ts';
 
 // Lịch âm
-export type { LunarDate } from './lunar/convert.js';
+export type { LunarDate } from './lunar/convert.ts';
 export {
   lunarMonthLength,
   lunarToSolar,
   lunarToSolarClamped,
   solarToLunar,
-} from './lunar/convert.js';
-export type { LunarAnniversary } from './lunar/occurrence.js';
-export { nextLunarOccurrence, previousLunarOccurrence } from './lunar/occurrence.js';
+} from './lunar/convert.ts';
+export type { LunarAnniversary } from './lunar/occurrence.ts';
+export { nextLunarOccurrence, previousLunarOccurrence } from './lunar/occurrence.ts';
 
 // Lặp lại
-export { expandRecurrence, nextDue } from './recurrence/expand.js';
+export { expandRecurrence, nextDue } from './recurrence/expand.ts';
 
 // Gom việc theo hạn
-export type { TaskGroup, TaskGroupKey } from './tasks/group.js';
-export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tasks/group.js';
+export type { TaskGroup, TaskGroupKey } from './tasks/group.ts';
+export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tasks/group.ts';
 
 // Nhắc nhở
-export type { BuildRemindersInput, ReminderDraft, ReminderSource } from './reminders/build.js';
+export type { BuildRemindersInput, ReminderDraft, ReminderSource } from './reminders/build.ts';
 export {
   buildReminders,
   capPerDay,
@@ -113,21 +113,21 @@ export {
   DEFAULT_REMIND_HOUR,
   defaultLeadDaysForDocument,
   MAX_REMINDERS_PER_DAY,
-} from './reminders/build.js';
+} from './reminders/build.ts';
 
 // Quota
-export type { CanUploadResult } from './quota/upload.js';
+export type { CanUploadResult } from './quota/upload.ts';
 export {
   canUpload,
   FREE_QUOTA_BYTES,
   hasStorageEntitlement,
   MAX_FILE_BYTES,
   PRO_QUOTA_BYTES,
-} from './quota/upload.js';
+} from './quota/upload.ts';
 
 // Gợi ý gắn cờ
-export type { AttentionSuggestion } from './attention/suggest.js';
-export { suggestAttention } from './attention/suggest.js';
+export type { AttentionSuggestion } from './attention/suggest.ts';
+export { suggestAttention } from './attention/suggest.ts';
 
 // Lịch sử tiền
 export type {
@@ -135,16 +135,16 @@ export type {
   EventDayGroup,
   MoneyEventShape,
   SnapshotDiff,
-} from './history/snapshots.js';
+} from './history/snapshots.ts';
 export {
   describeMoneyEvent,
   diffSnapshots,
   filterByEntityType,
   groupEventsByDay,
   withDiffs,
-} from './history/snapshots.js';
+} from './history/snapshots.ts';
 
 // Định dạng
-export { formatMoney, formatMoneyShort } from './format/money.js';
-export type { DueLabel, LunarLabel } from './format/dates.js';
-export { formatDueLabel, formatLunarLabel, lunarLabelOfDate } from './format/dates.js';
+export { formatMoney, formatMoneyShort } from './format/money.ts';
+export type { DueLabel, LunarLabel } from './format/dates.ts';
+export { formatDueLabel, formatLunarLabel, lunarLabelOfDate } from './format/dates.ts';

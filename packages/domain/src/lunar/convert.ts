@@ -19,8 +19,8 @@ import {
   jdnOf,
   toJulianDayNumber,
   type CivilDate,
-} from '../date/civil.js';
-import type { ISODate } from '../types/base.js';
+} from '../date/civil.ts';
+import type { ISODate } from '../types/base.ts';
 
 /** Múi giờ Việt Nam, tính bằng phần của ngày. UTC+7 = 7/24. */
 const TIMEZONE = 7 / 24;

@@ -8,7 +8,7 @@
  * nhập-vài-giây, mà nó lại là điều kiện bắt buộc để tính được trạng thái.
  */
 
-import type { AssetKind, Liquidity } from '../types/base.js';
+import type { AssetKind, Liquidity } from '../types/base.ts';
 
 export function inferLiquidity(kind: AssetKind): Liquidity {
   switch (kind) {
