@@ -263,9 +263,21 @@ export function toMoneySnapshot(r: MoneySnapshotRow): MoneySnapshot {
   };
 }
 
+/**
+ * Chỉ những cột `toDocument` thật sự đọc.
+ *
+ * Danh sách giấy tờ select ÍT cột hơn màn chi tiết (không lấy `r2_key` — 01 §6),
+ * nên nhận `DocumentFileRow` đầy đủ ở đây sẽ ép chỗ gọi phải select thừa. Khai
+ * đúng phần mình dùng để cả hai câu select cùng khớp.
+ */
+export type DocumentFileFields = Pick<
+  DocumentFileRow,
+  'id' | 'filename' | 'mime' | 'size_bytes' | 'page_order' | 'is_confirmed' | 'deleted_at'
+>;
+
 export function toDocument(
   r: DocumentRow,
-  files: DocumentFileRow[] = [],
+  files: DocumentFileFields[] = [],
   urls: Record<string, { thumbUrl: string | null; fileUrl: string | null }> = {},
 ): FamilyDocument {
   return {

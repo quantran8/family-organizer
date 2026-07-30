@@ -373,11 +373,30 @@ export type MoneyFeedRow = {
  * Khi nào muốn autocomplete đầy đủ: chạy `supabase gen types typescript` rồi
  * thay file này. Chỗ gọi không phải đổi.
  */
-type TableOf<Row> = {
+type TableOf<Row, Rels extends readonly unknown[] = []> = {
   Row: Row;
   Insert: Partial<Row> & Record<string, unknown>;
   Update: Partial<Row> & Record<string, unknown>;
-  Relationships: [];
+  Relationships: Rels;
+};
+
+/**
+ * Khoá ngoại — CHỈ khai báo cái nào thật sự dùng để nhúng (`select('*, x(*)')`).
+ *
+ * PostgREST suy ra kiểu của phần nhúng từ đây; thiếu nó thì `document_files`
+ * trong `select('*, document_files(*)')` ra `SelectQueryError` chứ không phải
+ * mảng row, và lỗi hiện ra dưới dạng một thông báo TypeScript dài mười dòng
+ * không nhắc gì tới khoá ngoại.
+ *
+ * Không liệt kê hết mọi FK của schema: phần còn lại không nhúng ở đâu cả, và
+ * một danh sách dài không ai kiểm chỉ là chỗ để sai.
+ */
+type DocumentFilesRelationship = {
+  foreignKeyName: 'document_files_document_id_fkey';
+  columns: ['document_id'];
+  isOneToOne: false;
+  referencedRelation: 'documents';
+  referencedColumns: ['id'];
 };
 
 type ViewOf<Row> = { Row: Row; Relationships: [] };
@@ -401,7 +420,7 @@ export interface Database {
       money_snapshots: TableOf<MoneySnapshotRow>;
       attention_items: TableOf<AttentionItemRow>;
       documents: TableOf<DocumentRow>;
-      document_files: TableOf<DocumentFileRow>;
+      document_files: TableOf<DocumentFileRow, [DocumentFilesRelationship]>;
       reminders: TableOf<ReminderRow>;
     };
     Views: {
