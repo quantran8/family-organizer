@@ -17,7 +17,7 @@ enabled = true
 port = 54323
 
 # Bắt email xác minh và đặt lại mật khẩu ở local, không gửi thật.
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 
@@ -31,20 +31,23 @@ additional_redirect_urls = [
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 enable_signup = true
+# Khớp zod schema signInInput ở apps/mobile: "Mật khẩu cần ít nhất 8 ký tự."
+minimum_password_length = 8
 # Xưng hô và tên hiển thị lấy từ profiles, không lấy từ provider.
 enable_anonymous_sign_ins = false
 
 [auth.email]
 enable_signup = true
-# BẬT xác minh email, NHƯNG client vẫn cho vào app khi chưa xác minh —
-# chặn ngay lúc đăng ký là thêm một chỗ bỏ cuộc trước khi thấy giá trị (G3).
-enable_confirmations = true
+# Ở LOCAL để false: bật xác minh thì mọi tài khoản test phải vào hộp thư
+# (127.0.0.1:54324) bấm link trước khi đăng nhập được — chậm mà không kiểm
+# thêm được gì. Trên prod thì BẬT, nhưng client vẫn cho vào app khi chưa xác
+# minh: chặn ngay lúc đăng ký là thêm một chỗ bỏ cuộc trước khi thấy giá trị.
+enable_confirmations = false
 double_confirm_changes = true
 secure_password_change = false
-# Tối thiểu 8 ký tự, khớp zod schema signInInput ở apps/mobile.
-[auth.email.smtp]
-# Dev dùng inbucket. Trước khi phát hành phải cắm SMTP thật (Resend/Postmark) —
-# SMTP mặc định của Supabase giới hạn rất thấp và dễ vào spam.
+
+# Trước khi phát hành phải cắm SMTP thật (Resend/Postmark) — SMTP mặc định của
+# Supabase giới hạn rất thấp và dễ vào spam. Local dùng local_smtp ở trên.
 
 [auth.external.google]
 enabled = false
@@ -56,7 +59,12 @@ enabled = false
 client_id = "env(APPLE_CLIENT_ID)"
 secret = "env(APPLE_SECRET)"
 
-[functions]
-# Edge Functions nạp packages/domain thẳng từ source qua import map,
+# Edge Functions nạp packages/domain thẳng từ source qua import_map.json,
 # không qua bước build (01 §1).
-verify_jwt = true
+#
+# `[functions]` KHÔNG nhận khoá chung — mỗi function một section riêng
+# `[functions.<tên>]`. Khai báo khi thêm function ở G6/G8/G9; mặc định
+# verify_jwt = true nên các function gọi từ app không cần khai gì thêm.
+#
+# Ngoại lệ sẽ cần: revenuecat-webhook phải verify_jwt = false (RevenueCat gọi
+# tới, không mang JWT của người dùng) và tự kiểm chữ ký của chính nó.
