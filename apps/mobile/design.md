@@ -1,562 +1,744 @@
 # Nhà mình — Design System
 
-## 1. Design direction
+## 1. North star
 
-**Style:** Soft Premium Utility  
-**Theme:** White-first, warm neutral, calm, modern, youthful but mature  
-**Primary audience:** Gen Z and young Millennials, approximately 24–35 years old  
-**Product context:** A shared family space for tasks, events, important expenses, and documents.
+**Style:** Energetic Premium Utility  
+**Foundation:** Apple Human Interface Guidelines  
+**Audience:** Gen Z and young Millennials, approximately 24–35  
+**Product:** A shared home space for tasks, events, money, and important documents
 
-The interface should feel like a well-designed family notebook rather than a productivity dashboard, accounting tool, or project-management app.
+The product should feel:
 
-### Core qualities
+- Fast to scan.
+- Energetic, not noisy.
+- Premium, not decorative.
+- Familiar, not generic iOS.
+- Supportive, not controlling.
 
-- Bright and spacious.
-- Warm rather than clinical.
-- Premium through typography, spacing, and restraint.
-- Friendly without becoming childish or overly cute.
-- Easy to scan in a few seconds.
-- Supportive rather than controlling.
+> **HIG governs interaction. Nhà mình governs expression.**
+
+Use Apple platform conventions for hierarchy, navigation, feedback, accessibility, and touch behavior. Use the Nhà mình visual language for color, rhythm, tone, and brand character.
 
 ### Avoid
 
 - Gradients.
-- Glassmorphism and backdrop blur.
-- Neon colors.
-- Dense dashboards and excessive charts.
-- Heavy shadows.
-- Too many colorful cards on one screen.
-- Workplace language such as “owner”, “approval”, “performance”, or “violation”.
-- Gender-coded colors for household members.
+- Color used without meaning.
+- Calm wellness or meditation aesthetics.
+- Dense dashboards.
+- Excessive cards, borders, or shadows.
+- Long explanatory text on overview screens.
+- Corporate workflow language.
+- Gender-coded member colors.
+- Copying stock iOS visuals without product character.
 
 ---
 
-## 2. Visual principles
+## 2. HIG design principles
 
-### 2.1 White-first surfaces
+### 2.1 Purpose
 
-White is the main background. Use a slightly warm off-white only to separate grouped areas, inputs, and page backgrounds.
+Every screen starts from one user question.
 
-Do not use gradients. Visual hierarchy should come from:
+Examples:
 
-1. Typography.
-2. Spacing.
-3. Flat surface colors.
-4. Borders.
-5. Very subtle shadows.
+- Home: `Hôm nay nhà mình có gì?`
+- Money: `Sắp phải chuẩn bị khoản nào?`
+- Documents: `Giấy tờ nào sắp hết hạn?`
 
-### 2.2 Calm hierarchy
+Anything that does not help answer the screen question should move to a detail view.
 
-Each screen should have one clear primary focus. On the Home screen, the hierarchy is:
+### 2.2 Familiarity
 
-1. Today’s tasks.
-2. Upcoming family event.
-3. Items requiring attention.
-4. Secondary activity or navigation.
+Use patterns people already understand:
 
-### 2.3 Context over raw data
+- Tab bar for top-level navigation.
+- Toolbar for actions.
+- Bottom sheet for short, temporary choices.
+- Circular control for task completion.
+- Chevron for drill-down.
+- Standard back navigation.
 
-A card should answer:
+Keep appearance branded, but keep behavior predictable.
 
-- What is happening?
-- When is it happening?
-- What needs to be prepared?
+### 2.3 Simplicity
 
-Do not expose every field in list views. Detailed information belongs on the detail screen.
+Simplicity means focused, not empty.
 
-### 2.4 Shared, not supervised
+- Show only what is useful now.
+- Put the most important content first.
+- Prefer one clear action over several equal actions.
+- Remove duplicate labels, descriptions, and badges.
+- Reveal detail progressively.
 
-Use language that communicates coordination between two people rather than monitoring one another.
+### 2.4 Flexibility
 
-Preferred labels:
+The interface must adapt to:
 
-- Nhà mình
-- Cả hai
-- Cần chuẩn bị
-- Sắp đến hạn
-- Đã xong
-- Cập nhật gần nhất
+- `375–430px` mobile widths.
+- Safe areas.
+- Dynamic text.
+- Increased contrast.
+- Reduced motion.
+- Longer Vietnamese labels.
+- Empty, normal, and high-density data states.
+
+### 2.5 Craft
+
+Premium quality comes from:
+
+- Precise spacing.
+- Strong type hierarchy.
+- Controlled color usage.
+- Smooth but restrained feedback.
+- Clear wording.
+- Consistent alignment.
+
+Do not use visual decoration to compensate for weak hierarchy.
+
+### 2.6 Delight
+
+Delight should be subtle and useful:
+
+- A responsive pressed state.
+- A clean task-completion transition.
+- A focused weekly date rhythm.
+- A distinctive event surface.
+- Fast recovery through undo where needed.
+
+No confetti, strong bounce, or decorative animation.
+
+### 2.7 Responsibility
+
+- Explain financial and privacy states clearly.
+- Do not imply blame between household members.
+- Do not rank or compare people.
+- Do not rely on color alone.
+- Make destructive actions reversible or confirm them when necessary.
+
+---
+
+## 3. Less text — mandatory product principle
+
+Gen Z users should understand an overview screen in approximately three seconds.
+
+### 3.1 Content limits
+
+| Element | Rule |
+|---|---|
+| Screen question | One sentence, preferably `4–8` words |
+| Section title | `1–3` words |
+| Primary button | `1–2` words, maximum `3` |
+| Row title | One line |
+| Row metadata | One short line |
+| Badge | Number or `1–2` words |
+| Empty-state title | Maximum `6` words |
+| Empty-state body | Maximum `12–16` words |
+| Alert | State what happened, then the next action |
+
+These are product constraints, not rigid localization character limits. Preserve meaning first.
+
+### 3.2 Writing rules
+
+- Start buttons with a clear action: `Thêm`, `Lưu`, `Xem`, `Đã trả`.
+- Use familiar words.
+- Use sentence case.
+- Remove words that do not change meaning.
+- Avoid clever labels that require interpretation.
+- Avoid instructional paragraphs on Home.
+- Never repeat the same fact in a title, subtitle, and badge.
+- Prefer `25 ngày` over `Còn lại 25 ngày cho đến thời điểm hết hạn`.
+- Prefer `2 việc chuẩn bị` over `Có tổng cộng 2 công việc cần được chuẩn bị`.
+
+### 3.3 Progressive disclosure
+
+Overview screens show:
+
+1. What.
+2. When.
+3. The next action or preparation state.
+
+Detail screens show:
+
+- Notes.
+- History.
+- Relationships.
+- Full amounts.
+- Settings.
+- Secondary actions.
+
+### 3.4 Home copy pattern
+
+```text
+Hôm nay nhà mình có gì?
+
+Hôm nay
+Chồng đổ rác
+Trước 20:00 · Chồng
+
+Cuối tuần
+Giỗ ông ngoại
+15/8 âm lịch · Nhà vợ
+
+Cần chú ý
+Bảo hiểm xe hết hạn sau 25 ngày
+```
+
+Do not add descriptions unless they change the next decision.
+
+---
+
+## 4. Visual direction
+
+### 4.1 White-first, energetic premium
+
+White is the main content surface. Energy comes from a small number of saturated accents, not from filling the screen with color.
+
+Recommended visual balance:
+
+- `88–92%` white and neutral surfaces.
+- Black for text and primary actions.
+- Saturated color stays in markers, dates, active navigation, and compact icon fills.
+- Large content areas remain white; use tinted surfaces only inside temporary controls or very small highlights.
+
+### 4.2 Color roles
+
+- **Black:** action and decisive state.
+- **Signal blue:** brand, time rhythm, events, selected markers.
+- **Clear green:** positive status only.
+- **Tangerine:** attention, deadlines, and upcoming payments.
+- **Red:** destructive or critical only; rare.
+
+A screen may use indigo, green, and coral, but only one should occupy a large surface.
+
+### 4.3 Not a wellness palette
 
 Avoid:
 
-- Người chịu trách nhiệm
-- Chờ phê duyệt
-- Vi phạm ngân sách
-- Nhiệm vụ thất bại
-- Hiệu suất thành viên
+- Dusty sage as the main brand color.
+- Beige-heavy surfaces.
+- Muted plum or clay combinations.
+- Low-contrast pastel sections.
+- Soft colors on every container.
+
+The product should feel active and current, not meditative.
 
 ---
 
-## 3. Color system
+## 5. Color system
 
-### 3.1 Neutral colors
-
-| Token | Value | Usage |
-|---|---|---|
-| `surface.base` | `#FFFFFF` | Main app background |
-| `surface.page` | `#EEEDE9` | Outer desktop preview background |
-| `surface.subtle` | `#F7F7F4` | Grouped controls and muted areas |
-| `surface.raised` | `#FFFFFF` | Cards and navigation |
-| `text.primary` | `#181817` | Main text |
-| `text.secondary` | `#6E6E68` | Metadata and supporting text |
-| `text.tertiary` | `#96968F` | Placeholder and inactive navigation |
-| `border.subtle` | `#EAEAE5` | Card borders and dividers |
-| `border.strong` | `#C9C9C2` | Checkbox and stronger separators |
-
-Use warm neutrals rather than blue-gray neutrals. This keeps the interface closer to a home environment and away from a corporate SaaS appearance.
-
-### 3.2 Brand color — Iris
+### 5.1 Neutral tokens
 
 | Token | Value | Usage |
 |---|---|---|
-| `brand.50` | `#F5F2FF` | Soft selected backgrounds |
-| `brand.100` | `#ECE6FF` | Avatar and decorative tint |
-| `brand.500` | `#7457E8` | Primary actions and active navigation |
-| `brand.600` | `#6247D3` | Text links and pressed states |
+| `canvas` | `#F4F4F6` | Desktop preview and outer canvas |
+| `surface` | `#FFFFFF` | Main screen background |
+| `soft` | `#F7F7F9` | Hover, grouped controls, subtle fill |
+| `ink` | `#101014` | Primary text |
+| `muted` | `#707078` | Metadata |
+| `subtle` | `#A4A4AD` | Inactive navigation and chevrons |
+| `line` | `#ECECF0` | Dividers |
 
-Brand color should occupy approximately 5–8% of a screen. Do not use large purple backgrounds for every section.
+Use cool-neutral grays with a slight softness. Avoid blue-gray corporate surfaces and beige wellness surfaces.
 
-### 3.3 Module colors
+### 5.2 Action tokens
 
-| Module | Foreground | Soft background |
+| Token | Value | Usage |
 |---|---|---|
-| Tasks | `#5876C7` | `#EDF4FF` |
-| Events | `#B35D8F` | `#FFF1F7` |
-| Important expenses | `#A8662B` | `#FFF4E8` |
-| Documents | `#2B7E72` | `#EDF8F5` |
+| `action` | `#111114` | Primary CTA background |
+| `action.pressed` | `#29292F` | Pressed state |
+| `action.disabled` | `#D8D8DE` | Disabled background |
+| `action.disabledText` | `#8B8B94` | Disabled label |
 
-These colors identify content types. They should not imply success, failure, or severity.
+Primary actions are black. Brand color must not compete with the primary CTA.
 
-### 3.4 Status colors
+### 5.3 Brand tokens — signal blue
 
-| Status | Foreground | Background |
+| Token | Value | Usage |
 |---|---|---|
-| Success | `#2D7B6F` | `#E4F4F0` |
-| Upcoming deadline | `#A65F21` | `#FFF4E7` |
-| Critical | `#B64C4C` | `#FDEEEE` |
-| Information | `#5876C7` | `#EDF4FF` |
+| `brand` | `#2F63F5` | Brand marker, selected date, active navigation |
+| `brand.deep` | `#1F4ED0` | Links and emphasized metadata |
+| `brand.soft` | `#F1F5FF` | Compact icon fills and selected controls |
+| `brand.line` | `#DEDBFF` | Divider inside brand surface |
 
-Use red sparingly. A financial amount or document should not be red by default.
+Use brand color for identity and time-related context, not for every action.
+
+### 5.4 Semantic tokens
+
+| Meaning | Foreground | Soft background | Usage |
+|---|---|---|---|
+| Positive | `#13A86B` | `#E9F9F1` | Stable status, completed positive state |
+| Attention | `#FF643A` | `#FFF0EB` | Deadline, upcoming payment, preparation gap |
+| Critical | `#D64545` | `#FFF0F0` | Error or destructive consequence only |
+
+Do not use semantic colors as decorative module colors.
+
+### 5.5 Color rules
+
+- Use black for primary CTA.
+- Use one large tinted surface maximum per viewport.
+- Use colored icon containers only for semantic meaning.
+- Keep text on white primarily black or neutral gray.
+- Do not use color alone to communicate status.
+- Do not assign colors to household members by gender.
+- Financial amounts are neutral by default.
 
 ---
 
-## 4. Typography
+## 6. Typography
 
-### Typeface
+### 6.1 Typeface
 
-**Primary:** Be Vietnam Pro  
-**Fallback:** `ui-sans-serif`, `system-ui`, sans-serif
+Use the platform system font stack:
 
-Be Vietnam Pro is used because it supports Vietnamese clearly and feels modern without being overly technical.
+```css
+font-family:
+  ui-sans-serif,
+  -apple-system,
+  BlinkMacSystemFont,
+  "SF Pro Text",
+  Inter,
+  "Segoe UI",
+  sans-serif;
+```
 
-### Type scale
+This keeps Vietnamese legible, supports platform familiarity, and avoids loading a decorative font.
 
-| Style | Font size | Line height | Weight | Usage |
+### 6.2 Type scale
+
+| Style | Size | Line height | Weight | Usage |
 |---|---:|---:|---:|---|
-| Display | 30px | 36px | 600 | Home greeting |
-| Title 1 | 26px | 32px | 600 | Page title |
-| Title 2 | 23px | 29px | 600 | Featured card title |
-| Heading | 16px | 22px | 600 | Section title |
-| Body | 15px | 22px | 400–500 | Main content |
-| Label | 14px | 18px | 500–600 | Actions and metadata |
-| Caption | 12px | 16px | 400–600 | Supporting information |
-| Micro | 10–11px | 14px | 500–600 | Date tiles and compact tags |
+| Display | `32–40px` | `1.02` | `700–730` | Home question |
+| Section | `21–22px` | `1.25` | `700–720` | Main section titles |
+| Feature title | `18px` | `23px` | `700` | Featured event |
+| Body | `16px` | `22–23px` | `500–600` | Row title and main content |
+| Meta | `13px` | `17–18px` | `400–600` | Date, person, amount |
+| Caption | `12px` | `15px` | `600–700` | Compact labels and badges |
 
-### Typography rules
+Avoid text below `11px`. Use `12px` as the normal minimum.
 
-- Use sentence case.
-- Avoid excessive bold text.
-- Use negative letter spacing only for large headings.
-- Use tabular numerals for financial values where alignment matters.
-- On overview screens, prefer readable shortened amounts such as `25 triệu` over `25.000.000 ₫`.
-- Keep metadata concise and secondary in contrast.
+### 6.3 Typography rules
+
+- Support Dynamic Type in native implementation.
+- Keep primary row titles to one line where possible.
+- Use negative tracking only for large titles.
+- Do not use uppercase for normal headings.
+- Uppercase is allowed only for very short identity labels such as `NHÀ MÌNH`.
+- Use tabular numerals for aligned financial values.
+- Avoid excessive bold; use weight to establish hierarchy, not decorate every label.
 
 ---
 
-## 5. Spacing and layout
+## 7. Layout and spacing
 
-### Base spacing scale
+### 7.1 Mobile frame
+
+- Target width: `375–430px`.
+- Horizontal padding: `20px`.
+- Minimum touch target: `44 × 44pt`.
+- Respect top and bottom safe areas.
+- Main content scrolls behind the bottom navigation layer.
+
+### 7.2 Spacing scale
 
 | Token | Value |
 |---|---:|
-| `space.1` | 4px |
-| `space.2` | 8px |
-| `space.3` | 12px |
-| `space.4` | 16px |
-| `space.5` | 20px |
-| `space.6` | 24px |
-| `space.7` | 28px |
-| `space.8` | 32px |
-| `space.10` | 40px |
-| `space.12` | 48px |
+| `space.1` | `4px` |
+| `space.2` | `8px` |
+| `space.3` | `12px` |
+| `space.4` | `16px` |
+| `space.5` | `20px` |
+| `space.6` | `24px` |
+| `space.7` | `28px` |
+| `space.8` | `32px` |
+| `space.9` | `36px` |
+| `space.10` | `40px` |
 
-### Mobile layout
+### 7.3 Hierarchy by spacing
 
-- Primary target width: `375–430px`.
-- Horizontal page padding: `20px`.
-- Header top padding: `24px`.
-- Gap between major sections: `32px`.
-- Gap between cards: `12px`.
-- Card inner padding: `16–20px`.
-- Minimum touch target: `44 × 44px`.
-- Bottom safe-area padding must use `env(safe-area-inset-bottom)`.
+- Header to week rhythm: `8–12px`.
+- Week rhythm to status: `20px`.
+- Major sections: `32–36px`.
+- Section title to content: `8–12px`.
+- Row vertical padding: `12px`.
+- Row minimum height: `72–82px`.
 
-### Desktop preview
+Use whitespace before adding a container.
 
-The mobile UI may be centered inside a device-like frame:
+### 7.4 Desktop preview
 
-- Maximum width: `430px`.
-- Outer background: `#EEEDE9`.
-- Desktop frame radius: `36px`.
-- Avoid adding gradients or decorative glow around the frame.
+- Canvas: `#F4F4F6`.
+- Maximum screen width: `430px`.
+- Frame radius: `42px`.
+- Frame shadow: `0 24px 80px rgba(21,21,27,.17)`.
+
+The frame is a demo artifact, not part of the native mobile UI.
 
 ---
 
-## 6. Shape system
+## 8. Shape and elevation
 
 | Component | Radius |
 |---|---:|
-| Small tag | 999px |
-| Avatar | 999px |
-| Icon container | 15px |
-| Button and input | 14px |
-| List card | 20px |
-| Featured card | 24px |
-| Bottom sheet | 28px top corners |
-| Desktop preview frame | 36px |
+| Avatar | `999px` |
+| Primary action | `999px` |
+| Week day | `16px` |
+| Icon container | `14–15px` |
+| Compact status surface | `20px` |
+| Feature event surface | `24px` |
+| Bottom sheet | `28px` top corners |
+| Desktop preview | `42px` |
 
-Rounded corners should feel soft but not toy-like. Avoid using very large pill shapes for every component.
+### Elevation rules
 
----
-
-## 7. Borders and shadows
-
-### Borders
-
-```css
-border: 1px solid #EAEAE5;
-```
-
-Borders are the default method for separating white cards from a white background.
-
-### Card shadow
-
-```css
-box-shadow:
-  0 1px 2px rgba(24, 24, 23, 0.03),
-  0 10px 30px rgba(24, 24, 23, 0.04);
-```
-
-### Frame shadow
-
-```css
-box-shadow: 0 12px 40px rgba(24, 24, 23, 0.07);
-```
-
-Rules:
-
-- Do not use glow effects.
-- Do not use colored shadows except for a small primary floating action button.
-- Avoid stacking shadows on every card.
-- Use borders and spacing before adding elevation.
+- Lists use spacing and dividers, not cards.
+- Status may use a flat tinted surface without shadow.
+- The event date tile may use one small colored shadow.
+- Primary CTA may use a subtle black shadow.
+- Bottom sheet may use elevation to establish modality.
+- Do not add shadows to every row or section.
 
 ---
 
-## 8. Iconography
+## 9. Iconography
 
-### Style
+- Outline icons by default.
+- Stroke width: `1.9–2.3px`.
+- Rounded caps and joins.
+- Default icon size: `18–24px`.
+- Filled icon for selected navigation or completed state.
+- Use familiar symbols for familiar actions.
+- Add a text label when an icon alone is ambiguous.
+- Every icon-only control needs an accessibility label.
 
-- Outline icons.
-- Stroke width: `1.8–2px`.
-- Rounded line caps and joins.
-- Default sizes: `20px`, `21px`, `23px`, and `24px`.
-- Use filled icons only for selected or completed states.
+Recommended sources:
 
-### Recommended source
-
-- Lucide Icons.
-- Phosphor Icons.
-- SF Symbols for native iOS implementation.
-
-### Main icons
-
-- Home.
-- Calendar.
-- Check circle.
-- Document.
-- Wallet or card.
-- Bell.
-- User.
-- Plus.
-- Chevron right.
-
-Do not use highly detailed illustrations as functional icons.
+- SF Symbols for native iOS.
+- Lucide or Phosphor for web prototypes.
 
 ---
 
-## 9. Core components
+## 10. Action hierarchy
 
-### 9.1 Section header
+### 10.1 Primary action
 
-Structure:
+Example: `Thêm`
 
-```text
-[Section title] [Optional count or action]
-```
+- Solid black background.
+- White icon and label.
+- Minimum height: `44px`.
+- Short verb label.
+- Pill shape is allowed for the single primary toolbar action.
 
-Example:
+### 10.2 Secondary action
 
-```text
-Hôm nay                         1/3 xong
-```
+Examples: `Xem tất cả`, `Hủy`
 
-Rules:
+- Text-only or soft-neutral fill.
+- Brand color is allowed for contextual links.
+- Must not visually compete with the primary action.
 
-- Title uses Heading style.
-- Secondary action uses 14px medium text.
-- Optional count may use a soft brand pill.
+### 10.3 Destructive action
 
-### 9.2 Task list card
+Examples: `Xóa`, `Rời nhà`
 
-A task row contains:
-
-1. Completion control.
-2. Task name.
-3. Time or context metadata.
-4. Person avatar or paired avatars.
-
-Recommended dimensions:
-
-- Row padding: `16px`.
-- Checkbox: `24px`.
-- Avatar: `32px`.
-- Divider between rows.
-
-Completed state:
-
-- Filled iris checkbox.
-- Check icon in white.
-- Main text may use line-through.
-- Content opacity around 55%.
-
-Do not add multiple workflow statuses.
-
-### 9.3 Featured event card
-
-Use one flat dark color instead of a gradient.
-
-Current recommended background:
-
-```css
-background: #211D2E;
-```
-
-The card may contain:
-
-- Family-side tag such as `Bên ngoại`.
-- Event title.
-- Solar or lunar date.
-- Date tile.
-- Number of preparation items.
-- Expected amount.
-- Departure or start time.
-
-The internal white CTA row creates contrast without using a gradient.
-
-### 9.4 Attention row
-
-Use for documents, financial items, and deadlines.
-
-Structure:
-
-1. Colored icon container.
-2. Main label.
-3. Supporting deadline or context.
-4. Amount or status badge.
-
-Keep rows compact. Not every attention item needs a full card.
-
-### 9.5 Avatar
-
-- Standard sizes: `32px` and `40px`.
-- Use initials when photos are unavailable.
-- Use independent neutral accent colors.
-- Do not assign pink to one gender and blue to another.
-- Paired avatars overlap by approximately `6–8px`.
-
-### 9.6 Status badge
-
-- Height: approximately `28px`.
-- Horizontal padding: `10px`.
-- Text: `11–12px`, semibold.
-- Fully rounded.
-- Use a flat soft background.
-
-### 9.7 Floating add button
-
-- Size: `56 × 56px`.
-- Background: `#7457E8`.
-- Icon: white plus, approximately `25px`.
-- Positioned slightly above the bottom navigation.
-- A subtle brand-colored shadow is allowed.
-
-The button represents “Thêm vào nhà mình”, not a generic enterprise create action.
+- Use critical red only at the decision point.
+- Confirm when the outcome is difficult to reverse.
+- Provide undo where practical.
 
 ---
 
-## 10. Navigation
+## 11. Navigation
 
-Recommended bottom navigation:
+### 11.1 Bottom tab bar
+
+Use exactly four top-level destinations:
 
 1. Nhà mình.
-2. Lịch.
-3. Add button.
+2. Việc.
+3. Tiền.
 4. Giấy tờ.
-5. Tài khoản.
 
-### Active state
+The tab bar is navigation only. Do not place the quick-add action as a tab item.
 
-- Icon and label use `brand.600`.
-- Label weight: semibold.
-- Do not add a large colored tab background.
+### 11.2 Active state
 
-### Inactive state
+- Filled or stronger icon.
+- Black label and icon.
+- Small indigo marker for brand expression.
+- No large selected background.
 
-- Icon and label use `text.tertiary`.
-- Label weight: medium.
+### 11.3 Inactive state
 
-### Navigation container
+- `subtle` gray.
+- Medium or semibold caption.
+- Preserve readable contrast.
 
-- White background.
-- Top border using `border.subtle`.
-- No blur and no translucent glass effect.
+### 11.4 Material layer
+
+A light translucent navigation material is allowed only for persistent navigation or modal layers.
+
+```css
+background: rgba(255, 255, 255, 0.90);
+backdrop-filter: saturate(170%) blur(22px);
+```
+
+Do not use blur on cards, rows, or content surfaces.
 
 ---
 
-## 11. Home screen structure
+## 12. Home screen structure
 
 ```text
 Header
-├── Household avatars
-├── Notification button
-├── Current date
-└── Greeting and central question
+├── Household identity
+├── Black Add action
+├── Current solar + lunar date
+└── One central question
+
+Week rhythm
+└── Seven compact day controls
+
+Status
+└── One compact semantic surface
 
 Today
-├── Section title and completion count
-└── Task list card
+├── Section title + count
+└── Flat task rows
 
-Upcoming
-├── Section title and calendar action
-└── Featured family event card
+Weekend
+└── One featured indigo event surface
 
 Attention
-├── Section title and item count
-├── Document deadline row
-└── Important expense row
+└── Flat semantic rows
 
 Bottom navigation
-└── Central add button
+└── Four top-level destinations
 ```
 
-### Home-screen content order
+### Home hierarchy
 
-1. What needs to be done today.
-2. What event is coming next.
-3. What requires preparation or attention.
-4. How to navigate or add new information.
+1. Current day and week rhythm.
+2. Status requiring no interpretation.
+3. Tasks due today.
+4. Nearest family event.
+5. Items requiring attention.
+6. Navigation.
 
-The screen should remain understandable without charts.
+### Home rules
 
----
-
-## 12. Content style
-
-### Tone
-
-- Warm.
-- Direct.
-- Brief.
-- Nonjudgmental.
-- Equal between household members.
-
-### Good examples
-
-- `Nhà mình có gì hôm nay?`
-- `3 việc cần chuẩn bị`
-- `Hết hạn sau 25 ngày`
-- `Cần chuẩn bị trước 05/09`
-- `Đã xong lúc 08:12`
-- `Cả hai`
-- `Xem lịch`
-
-### Avoid
-
-- `Bạn đã thất bại hoàn thành nhiệm vụ.`
-- `Người chịu trách nhiệm chưa xử lý.`
-- `Khoản chi vi phạm ngân sách.`
-- `Yêu cầu đối phương phê duyệt.`
-- `Hiệu suất tuần này giảm.`
+- No charts.
+- No progress dashboard.
+- No paragraph copy.
+- No more than one prominent colored card.
+- Empty groups disappear.
+- Keep the first viewport useful without scrolling.
+- Every row must answer `what` and `when`.
 
 ---
 
-## 13. Motion guidance
+## 13. Core components
 
-The current demo is static, but future implementation should use restrained motion.
+### 13.1 Week rhythm
 
-| Interaction | Duration |
-|---|---:|
-| Tap feedback | 100–150ms |
-| State transition | 180–240ms |
-| Page transition | 240–300ms |
-| Bottom sheet | 280–340ms |
+Purpose: create energy and make time visible without opening a calendar.
+
+- Seven compact day controls.
+- Active day uses black fill.
+- Indigo or coral dot indicates meaningful activity.
+- Dots supplement labels; they never carry the full meaning alone.
+- Horizontal scrolling is allowed on narrow screens.
+
+### 13.2 Compact status
+
+Purpose: communicate financial readiness in one glance.
+
+- One semantic icon.
+- One short title.
+- One supporting line maximum.
+- Freshness shown as compact time text.
+- Positive uses green.
+- Attention uses coral.
+- Critical uses red only when necessary.
+
+### 13.3 Task row
+
+Structure:
+
+1. Completion control.
+2. One-line task name.
+3. One metadata line.
+4. Small semantic marker when needed.
 
 Rules:
 
-- No strong bounce animation.
-- No confetti for completing routine tasks.
-- Do not animate every card on page load.
-- Use motion to clarify state and spatial relationship.
+- Minimum row height: `76px`.
+- Checkbox: `24px`.
+- Divider starts after the checkbox column.
+- Completion changes checkbox to black.
+- Completed text may use line-through and reduced contrast.
+- No extra status chips.
+
+### 13.4 Featured event
+
+This is the only prominent color surface on Home.
+
+- Background: `brand.soft`.
+- Date tile: `brand`.
+- Title: one line.
+- Lunar date and family side: one line.
+- Preparation summary: one line.
+- One clear drill-down action.
+
+Do not add illustrations, gradients, or multiple nested cards.
+
+### 13.5 Attention row
+
+- Flat row, not a full card.
+- Semantic icon container.
+- One-line title.
+- One supporting line.
+- Chevron for drill-down.
+- Coral for deadlines and preparation gaps.
+- Indigo may identify an event-related financial item.
+
+### 13.6 Quick-add sheet
+
+- Open from the black `Thêm` toolbar action.
+- Top radius: `28px`.
+- Dimmed backdrop.
+- One title and one short instruction line maximum.
+- Each option has icon, title, and one short metadata line.
+- `Hủy` remains visible.
+- Return focus to the trigger after closing.
 
 ---
 
-## 14. Accessibility
+## 14. Motion and feedback
 
-- Maintain at least WCAG AA contrast for body text.
-- Minimum touch target is `44 × 44px`.
-- Do not rely on color alone to indicate status.
-- Use labels for icon-only controls.
-- Support dynamic text where possible.
-- Ensure completed tasks remain readable despite reduced opacity.
-- Avoid text smaller than `11px` except nonessential micro labels.
-- Respect reduced-motion settings in production.
+| Interaction | Duration |
+|---|---:|
+| Press feedback | `120–160ms` |
+| State change | `180–240ms` |
+| Page transition | `240–300ms` |
+| Bottom sheet | `300–340ms` |
+
+Recommended pressed state:
+
+```css
+transform: scale(0.975);
+opacity: 0.72;
+```
+
+Rules:
+
+- Motion explains state or location.
+- No strong bounce.
+- No animated decoration on page load.
+- No confetti for routine completion.
+- Respect `prefers-reduced-motion`.
 
 ---
 
-## 15. Tailwind configuration
+## 15. Accessibility
+
+- Minimum touch target: `44 × 44pt`.
+- Keep sufficient spacing between adjacent controls.
+- Support Dynamic Type in native implementation.
+- Normal body text should remain readable at increased sizes.
+- Meet WCAG AA contrast.
+- Do not rely on color alone.
+- Preserve text meaning when icons are hidden.
+- Provide accessible names for icon-only controls.
+- Support increased contrast.
+- Keep completed tasks readable.
+- Respect reduced motion.
+- Maintain logical focus order in sheets and forms.
+
+---
+
+## 16. Tone and language
+
+### Voice
+
+- Direct.
+- Brief.
+- Warm.
+- Equal between household members.
+- Action-oriented.
+- Nonjudgmental.
+
+### Preferred
+
+- `Hôm nay nhà mình có gì?`
+- `2 việc`
+- `Thêm`
+- `Xem tất cả`
+- `2 việc chuẩn bị`
+- `Hết hạn sau 25 ngày`
+- `Cả hai`
+- `Đã xong`
+
+### Avoid
+
+- `Bạn cần phải thực hiện các công việc sau đây.`
+- `Người chịu trách nhiệm chưa xử lý.`
+- `Khoản chi vi phạm ngân sách.`
+- `Hiệu suất thành viên giảm.`
+- `Nhấn vào đây để xem thêm thông tin.`
+- `Hãy cùng bắt đầu ngay nào!`
+
+---
+
+## 17. Tailwind configuration
 
 ```js
 tailwind.config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Be Vietnam Pro', 'ui-sans-serif', 'system-ui'],
+        sans: [
+          'ui-sans-serif',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'Inter',
+          'Segoe UI',
+          'sans-serif',
+        ],
       },
       colors: {
-        ink: '#181817',
-        muted: '#6E6E68',
-        subtle: '#F7F7F4',
-        line: '#EAEAE5',
-        iris: {
-          50: '#F5F2FF',
-          100: '#ECE6FF',
-          500: '#7457E8',
-          600: '#6247D3',
+        canvas: '#F4F4F6',
+        surface: '#FFFFFF',
+        ink: '#101014',
+        muted: '#707078',
+        subtle: '#A4A4AD',
+        line: '#ECECF0',
+        soft: '#F7F7F9',
+        action: '#111114',
+        brand: {
+          DEFAULT: '#6257F6',
+          deep: '#4C43D8',
+          soft: '#F0EFFF',
+          line: '#DEDBFF',
+        },
+        positive: {
+          DEFAULT: '#13A86B',
+          soft: '#E9F9F1',
+        },
+        attention: {
+          DEFAULT: '#FF643A',
+          soft: '#FFF0EB',
+        },
+        critical: {
+          DEFAULT: '#D64545',
+          soft: '#FFF0F0',
         },
       },
       boxShadow: {
-        soft: '0 12px 40px rgba(24,24,23,.07)',
-        card: '0 1px 2px rgba(24,24,23,.03), 0 10px 30px rgba(24,24,23,.04)',
+        action: '0 8px 22px rgba(17,17,20,.16)',
+        brand: '0 10px 22px rgba(98,87,246,.22)',
+        frame: '0 24px 80px rgba(21,21,27,.17)',
+        sheet: '0 -16px 48px rgba(0,0,0,.18)',
       },
     },
   },
@@ -565,42 +747,45 @@ tailwind.config = {
 
 ---
 
-## 16. CSS tokens
+## 18. CSS tokens
 
 ```css
 :root {
   /* Surfaces */
-  --surface-base: #ffffff;
-  --surface-page: #eeede9;
-  --surface-subtle: #f7f7f4;
-  --surface-raised: #ffffff;
+  --canvas: #f4f4f6;
+  --surface: #ffffff;
+  --soft: #f7f7f9;
 
-  /* Text */
-  --text-primary: #181817;
-  --text-secondary: #6e6e68;
-  --text-tertiary: #96968f;
+  /* Text and structure */
+  --ink: #101014;
+  --muted: #707078;
+  --subtle: #a4a4ad;
+  --line: #ececf0;
+
+  /* Primary action */
+  --action: #111114;
+  --action-pressed: #29292f;
+  --action-disabled: #d8d8de;
+  --action-disabled-text: #8b8b94;
 
   /* Brand */
-  --brand-50: #f5f2ff;
-  --brand-100: #ece6ff;
-  --brand-500: #7457e8;
-  --brand-600: #6247d3;
+  --brand: #2f63f5;
+  --brand-deep: #1f4ed0;
+  --brand-soft: #f1f5ff;
+  --brand-line: #dedbff;
 
   /* Semantic */
-  --color-task: #5876c7;
-  --color-event: #b35d8f;
-  --color-finance: #a8662b;
-  --color-document: #2b7e72;
-  --color-danger: #b64c4c;
-
-  /* Borders */
-  --border-subtle: #eaeae5;
-  --border-strong: #c9c9c2;
+  --positive: #13a86b;
+  --positive-soft: #e9f9f1;
+  --attention: #ff643a;
+  --attention-soft: #fff0eb;
+  --critical: #d64545;
+  --critical-soft: #fff0f0;
 
   /* Radius */
-  --radius-control: 14px;
-  --radius-icon: 15px;
-  --radius-card: 20px;
+  --radius-week-day: 16px;
+  --radius-icon: 14px;
+  --radius-status: 20px;
   --radius-featured: 24px;
   --radius-sheet: 28px;
 
@@ -613,47 +798,76 @@ tailwind.config = {
   --space-6: 24px;
   --space-7: 28px;
   --space-8: 32px;
+  --space-9: 36px;
   --space-10: 40px;
-  --space-12: 48px;
 }
 ```
 
 ---
 
-## 17. Design review checklist
+## 19. Review checklist
 
-Before approving a screen, verify:
+### HIG foundation
 
-- [ ] The main background is white or warm off-white.
-- [ ] No gradients are used.
-- [ ] No glassmorphism or backdrop blur is used.
-- [ ] There is one clear primary focus.
-- [ ] The screen can be scanned in a few seconds.
-- [ ] Brand purple is used selectively.
-- [ ] Module colors are soft and contextual.
-- [ ] Text is warm and nonjudgmental.
-- [ ] The UI does not resemble project-management software.
-- [ ] Cards rely primarily on spacing and borders, not heavy shadows.
-- [ ] Important dates, amounts, and actions have clear hierarchy.
-- [ ] Touch targets are at least 44px.
+- [ ] The screen has one clear purpose.
+- [ ] Familiar controls behave as expected.
+- [ ] The tab bar contains navigation only.
+- [ ] Primary actions are easy to find.
+- [ ] Touch targets are at least `44 × 44pt`.
+- [ ] Feedback is immediate and restrained.
+- [ ] Accessibility states are supported.
+
+### Less text
+
+- [ ] The screen is understandable in about three seconds.
+- [ ] Each row communicates one idea.
+- [ ] Row titles fit on one line where possible.
+- [ ] Metadata is limited to one short line.
+- [ ] Buttons use short, action-oriented labels.
+- [ ] No fact is repeated across title, subtitle, and badge.
+- [ ] Detail is progressively disclosed.
+- [ ] Home contains no explanatory paragraph.
+
+### Visual system
+
+- [ ] White remains the main surface.
+- [ ] Primary CTA is black.
+- [ ] No gradient is used.
+- [ ] Only one prominent colored surface appears in the viewport.
+- [ ] Indigo, green, and coral have distinct roles.
+- [ ] The palette feels energetic, not wellness-oriented.
+- [ ] Lists rely on spacing and dividers, not repeated cards.
+- [ ] Shadows are rare and purposeful.
+- [ ] The result feels branded without looking like stock iOS.
+
+### Product behavior
+
+- [ ] Language is shared and nonjudgmental.
+- [ ] Household members are treated equally.
+- [ ] Financial data is not summarized by person.
 - [ ] Status is not communicated by color alone.
-- [ ] Household members are represented equally.
+- [ ] Empty groups disappear from Home.
 
 ---
 
-## 18. Current demo reference
+## 20. Current demo reference
 
-The current static Home screen demo is implemented in:
+The reference implementation is:
 
 ```text
-home-screen-demo.html
+home-premium-tailwind.html
 ```
 
-It uses:
+It currently demonstrates:
 
-- Tailwind CSS via CDN.
-- Be Vietnam Pro from Google Fonts.
-- A mobile-first width of `430px`.
-- Flat colors only.
-- No gradients.
-- No functional JavaScript interactions.
+- HIG-based navigation and interaction behavior.
+- System typography with custom brand hierarchy.
+- White-first energetic premium styling.
+- Black primary actions.
+- Electric indigo, fresh green, and coral semantic accents.
+- Four-item navigation.
+- Toolbar quick-add action.
+- Week rhythm control.
+- One featured event surface.
+- Bottom sheet behavior.
+- Safe-area, increased-contrast, and reduced-motion support.

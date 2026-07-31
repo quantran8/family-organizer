@@ -1,3 +1,9 @@
 --- xcodebuild: WARNING: Using the first of multiple matching destinations:
-{ platform:iOS Simulator, arch:arm64, id:DCC391EE-EB20-4B87-92F9-2C4F7493C239, OS:18.5, name:iPhone 16 Pro }
-{ platform:iOS Simulator, arch:x86_64, id:DCC391EE-EB20-4B87-92F9-2C4F7493C239, OS:18.5, name:iPhone 16 Pro }
+{ platform:iOS Simulator, arch:arm64, id:E311FD2D-E93D-48B9-92A6-C53E57C61355, OS:26.0.1, name:iPhone 12(iOS 26.0) }
+{ platform:iOS Simulator, arch:x86_64, id:E311FD2D-E93D-48B9-92A6-C53E57C61355, OS:26.0.1, name:iPhone 12(iOS 26.0) }
+** BUILD FAILED **
+
+
+The following build commands failed:
+	Building workspace Nhmnh with scheme Nhmnh and configuration Debug
+(1 failure)

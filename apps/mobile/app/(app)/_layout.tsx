@@ -46,6 +46,13 @@ export default function AppLayout() {
         name="docs"
         options={{ title: t.tabs.docs, tabBarIcon: ({ color }) => <TabIcon glyph={ICON.docs} color={color} /> }}
       />
+      {/*
+        Cài đặt KHÔNG chiếm một tab (05 §2) — đúng bốn nhóm thông tin, không
+        thêm. Nhưng thư mục `settings/` nằm cạnh bốn tab kia nên expo-router
+        mặc định mọc thêm mục thứ năm; `href: null` giấu nó đi mà vẫn giữ
+        route điều hướng tới được. Vào qua avatar ở header màn Nhà mình.
+      */}
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

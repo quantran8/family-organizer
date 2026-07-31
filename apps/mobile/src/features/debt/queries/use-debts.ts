@@ -18,11 +18,20 @@ export function useDebts() {
   });
 }
 
-export function useDebt(id: UUID) {
+/**
+ * Một khoản nợ.
+ *
+ * `id` nhận `null` được: `money/payment/[id].tsx` gọi nó với `sourceDebtId`, và
+ * phần lớn khoản sắp trả KHÔNG sinh từ nợ nên giá trị đó là null. Không có
+ * `enabled` thì mỗi lần mở một khoản chi thường (học phí, tiền nhà) sẽ bắn một
+ * câu query với id rỗng và nhận về lỗi cho thứ không tồn tại.
+ */
+export function useDebt(id: UUID | null) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.debts.detail(hh, id),
-    queryFn: () => debtRepository.get(hh, id),
+    queryKey: queryKeys.debts.detail(hh, id ?? ('' as UUID)),
+    queryFn: () => debtRepository.get(hh, id as UUID),
+    enabled: id !== null,
   });
 }
 

@@ -16,7 +16,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Pressable, Text, View } from 'react-native';
 
 import { useT } from '@/i18n';
-import { Checkbox } from './checkbox';
+import { Checkbox } from '@/design/components';
 
 export interface TaskRowProps {
   title: string;

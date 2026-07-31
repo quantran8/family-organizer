@@ -22,11 +22,13 @@ export function usePayments(window: PaymentWindow, today: ISODate) {
   });
 }
 
-export function usePayment(id: UUID) {
+/** `id` nhận `null` cho form tạo mới — xem chú thích ở `useAsset`. */
+export function usePayment(id: UUID | null) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.payments.detail(hh, id),
-    queryFn: () => paymentRepository.get(hh, id),
+    queryKey: queryKeys.payments.detail(hh, id ?? ('' as UUID)),
+    queryFn: () => paymentRepository.get(hh, id as UUID),
+    enabled: id !== null,
   });
 }
 

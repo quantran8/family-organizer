@@ -6,17 +6,47 @@
  */
 
 import { addDays, type ISODate } from '@nhaminh/domain';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';
-import { householdRepository } from '@/features/household/repository';
-import { useHouseholdId } from '@/stores/session';
+import { householdRepository, type HouseholdPatch } from '@/features/household/repository';
+import { useHouseholdId, useSessionStore } from '@/stores/session';
 
 export function useHousehold() {
   const hh = useHouseholdId();
   return useQuery({
     queryKey: queryKeys.household.detail(hh),
     queryFn: () => householdRepository.get(hh),
+  });
+}
+
+/**
+ * Đổi tên nhà / nhịp cập nhật.
+ *
+ * KHÔNG optimistic: đây là thao tác hiếm và không nằm trên đường đi hằng ngày,
+ * nên một vòng round-trip ở đây không ai thấy phiền — trong khi hiện tên mới rồi
+ * lại giật về tên cũ thì có.
+ *
+ * Đồng bộ lại `stores/session` vì tên nhà hiện ở header màn Nhà mình, đọc từ
+ * store chứ không từ query. Quên bước này thì đổi tên xong header vẫn tên cũ
+ * cho tới lần mở app sau.
+ */
+export function useUpdateHousehold() {
+  const hh = useHouseholdId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: HouseholdPatch) => householdRepository.update(hh, patch),
+    onSuccess: (household) => {
+      qc.setQueryData(queryKeys.household.detail(hh), household);
+      void qc.invalidateQueries({ queryKey: ['my-households'] });
+      const { memberId, currency } = useSessionStore.getState();
+      useSessionStore.getState().setHousehold({
+        id: hh,
+        name: household.name,
+        memberId,
+        ...(currency ? { currency } : {}),
+      });
+    },
   });
 }
 

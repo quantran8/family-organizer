@@ -6,27 +6,10 @@ import { AppErrorException } from '@nhaminh/domain';
 
 import { throwAppError, unwrap, unwrapMaybe } from '@/data/shared/errors';
 import { currentProfileId } from '@/data/shared/session';
+import { generateInviteCode, normalizeInviteCode } from '@/features/invite/code';
 import type { InviteRow } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import type { InviteRepository } from './invite-repository.interface';
-
-/** Bỏ 0 O 1 I — dễ đọc nhầm khi đọc mã qua điện thoại (01 §8). */
-const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-
-export const CODE_LENGTH = 6;
-
-function generateCode(): string {
-  let out = '';
-  for (let i = 0; i < CODE_LENGTH; i += 1) {
-    out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
-  }
-  return out;
-}
-
-/** Chuẩn hoá mã người dùng gõ: tự viết hoa, bỏ khoảng trắng (05 §3.2). */
-export function normalizeInviteCode(raw: string): string {
-  return raw.replace(/\s/g, '').toUpperCase().slice(0, CODE_LENGTH);
-}
 
 export const inviteRepository: InviteRepository = {
   async currentCode(hh) {
@@ -52,7 +35,7 @@ export const inviteRepository: InviteRepository = {
         const row = await unwrap<InviteRow>(
           supabase
             .from('invites')
-            .insert({ household_id: hh, code: generateCode(), invited_by: invitedBy })
+            .insert({ household_id: hh, code: generateInviteCode(), invited_by: invitedBy })
             .select()
             .single(),
         );

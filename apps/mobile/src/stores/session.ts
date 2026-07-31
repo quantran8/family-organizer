@@ -24,8 +24,19 @@ interface SessionState {
 
   setSession: (s: Session | null) => void;
   setRestored: () => void;
+  /**
+   * `name` và `memberId` NHẬN `null` được, và đó là chuyện thường xuyên:
+   * ngay sau khi B đổi mã mời lấy nhà (F2), ta mới biết `householdId` — tên nhà
+   * và member của B phải chờ `my_households` trả về ở vòng sau.
+   *
+   * Trước đây chỗ đó truyền chuỗi rỗng để lách kiểu `UUID`. Nó là bug im lặng:
+   * `memberId` đi thẳng vào `completed_by` khi B chạm ô tròn đầu tiên, và
+   * `''` không phải uuid hợp lệ nên Postgres từ chối cả câu update. B đánh dấu
+   * xong một việc và không có gì xảy ra — không lỗi trên màn hình, vì optimistic
+   * đã đổi giao diện trước rồi.
+   */
   setHousehold: (
-    h: { id: UUID; name: string; memberId: UUID; currency?: string } | null,
+    h: { id: UUID; name: string | null; memberId: UUID | null; currency?: string } | null,
   ) => void;
   clear: () => void;
 }
@@ -45,8 +56,10 @@ export const useSessionStore = create<SessionState>((set) => ({
       h
         ? {
             householdId: h.id,
-            householdName: h.name,
-            memberId: h.memberId,
+            // Chuỗi rỗng chuẩn hoá về null: "chưa biết" phải là MỘT giá trị,
+            // không phải hai. Chỗ đọc chỉ cần kiểm null.
+            householdName: h.name === '' ? null : h.name,
+            memberId: h.memberId === '' ? null : h.memberId,
             currency: h.currency ?? 'VND',
           }
         : { householdId: null, householdName: null, memberId: null, currency: null },

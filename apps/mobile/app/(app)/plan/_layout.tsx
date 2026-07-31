@@ -34,6 +34,17 @@ export default function PlanLayout() {
           headerTintColor: '#181817',
         }}
       />
+      <Stack.Screen
+        name="event/[id]"
+        options={{
+          headerShown: true,
+          title: '',
+          headerBackTitle: '',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTintColor: '#181817',
+        }}
+      />
     </Stack>
   );
 }

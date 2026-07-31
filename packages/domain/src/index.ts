@@ -104,6 +104,10 @@ export { expandRecurrence, nextDue } from './recurrence/expand.ts';
 export type { TaskGroup, TaskGroupKey } from './tasks/group.ts';
 export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tasks/group.ts';
 
+// Gom sự kiện theo tháng
+export type { EventMonthGroup } from './events/group.ts';
+export { groupEventsByMonth } from './events/group.ts';
+
 // Nhắc nhở
 export type { BuildRemindersInput, ReminderDraft, ReminderSource } from './reminders/build.ts';
 export {

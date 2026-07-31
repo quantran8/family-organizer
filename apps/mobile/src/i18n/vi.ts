@@ -195,8 +195,25 @@ export const vi = {
     fieldLeapMonth: 'Tháng nhuận',
     fieldLocation: 'Địa điểm',
     fieldEstimatedCost: 'Chi phí dự kiến',
-    // Dòng xem trước — không có nó người dùng sẽ không tin app hiểu lịch âm.
-    lunarPreview: 'Năm nay rơi vào {weekday} {date}',
+    /**
+     * Dòng xem trước — không có nó người dùng sẽ không tin app hiểu lịch âm.
+     *
+     * `05 §5.5` viết mẫu là "Năm nay rơi vào…", nhưng câu đó SAI ở một ca rất
+     * hay gặp: ngày âm đã qua trong năm nay thì lần kế tiếp rơi vào năm sau, và
+     * "năm nay" lúc đó là một lời nói dối kèm ngày đúng — thứ làm mất niềm tin
+     * nhanh hơn cả không có dòng nào. Dùng "Lần tới rơi vào" cho mọi trường
+     * hợp, và luôn kèm đủ năm để người dùng tự thấy.
+     */
+    lunarPreview: 'Lần tới rơi vào {weekday} {date}',
+    /** Hậu tố sau ngày âm: "15/8 âm". Tách riêng để dòng ngày ghép được. */
+    lunarSuffix: 'âm',
+    monthLabel: 'Tháng {month}/{year}',
+    /**
+     * Sự kiện âm lịch vừa tạo, Edge `refresh-lunar-dates` chưa chạy xong.
+     * Nói thẳng thay vì để trống — chỗ trống ở đúng vị trí ngày trông như dữ
+     * liệu hỏng, và người dùng vừa bấm Lưu sẽ tưởng thao tác thất bại.
+     */
+    pendingDate: 'Đang tính ngày',
     lunarBoth: '{lunar} âm — {weekday} {solar}',
     lastYear: 'Năm ngoái: {date}',
     sectionTasks: 'Việc cần chuẩn bị',
@@ -445,6 +462,11 @@ export const vi = {
     inviteShare: 'Chia sẻ',
     inviteCopy: 'Sao chép mã',
     inviteCopied: 'Đã sao chép',
+    // Nội dung share sheet. Có CẢ mã lẫn đường dẫn: người nhận trên máy đã cài
+    // app chạm link là xong, người chưa cài vẫn đọc được mã để gõ tay sau.
+    inviteShareMessage:
+      'Vào {household} cùng mình nhé. Mã mời: {code}\n{url}',
+    inviteExpiry: 'Mã có hiệu lực 7 ngày.',
     subscription: 'Gói dịch vụ',
     notifications: 'Thông báo',
     storage: 'Dung lượng',
@@ -493,6 +515,15 @@ export const vi = {
     yesterday: 'Hôm qua',
     inDays: 'Còn {days} ngày',
     overdueDays: 'Quá hạn {days} ngày',
+    /**
+     * Khoảng cách về quá khứ KHÔNG mang nghĩa trễ hẹn.
+     *
+     * "Quá hạn 40 ngày" đúng cho một khoản phải trả, nhưng SAI cho một sổ tiết
+     * kiệm chưa cập nhật giá trị: người dùng không hứa sẽ cập nhật, nên họ
+     * không lỡ hẹn gì cả. Dùng nhãn trung tính này ở mọi chỗ nói về độ mới của
+     * số liệu (04 §7 — không phán xét).
+     */
+    daysAgo: '{days} ngày trước',
   },
 
   weekday: {

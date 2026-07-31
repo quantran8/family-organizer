@@ -59,18 +59,65 @@ Nó là thứ duy nhất có hai người tiêu thụ ở hai runtime: Hermes (R
 ## 2. Phân lớp trong app
 
 ```
-UI (screens, components)
+UI (screens/, components/)
   ↓ chỉ gọi hook
-hooks/          useHomeFeed, useAssets, useSettlePayment …
+queries/        useHomeFeed, useAssets, useSettlePayment …
   ↓ chỉ gọi repository
-repositories/   assetRepo, paymentRepo, documentRepo …
+repository/     assetRepo, paymentRepo, documentRepo …
   ↓ chỉ gọi
 lib/supabase, lib/storage
 ```
 
-**Quy tắc cứng:** không có `supabase.from(...)` nào nằm ngoài `repositories/`. Lint rule chặn import `@supabase/*` từ `app/` và `components/`.
+**Quy tắc cứng:** không có `supabase.from(...)` nào nằm ngoài `repository/`. Lint rule chặn import `@supabase/*` và chặn import thẳng `repository/` từ mọi file thuộc tầng UI.
 
 Lý do không phải thẩm mỹ: đây là điều kiện để đổi backend sau này chỉ phải viết lại một thư mục, và để test hook bằng repository giả.
+
+### Cắt theo feature, không cắt theo loại file
+
+Mọi thứ thuộc về một feature nằm cùng một thư mục — kể cả màn hình:
+
+```
+src/features/asset/
+  repository/   asset-repository.ts · .interface.ts · index.ts
+  queries/      use-assets.ts
+  schemas/      asset-schema.ts
+  components/   asset-row.tsx            ← component riêng feature
+  screens/      asset-list-screen.tsx    ← MÀN HÌNH nằm ở đây
+                asset-detail-screen.tsx
+                asset-form-screen.tsx
+```
+
+### `app/` chỉ là bảng định tuyến
+
+Expo Router bắt buộc file route nằm đúng vị trí trong `app/`. Nó **không** bắt file đó chứa UI. Mỗi route là một dòng:
+
+```ts
+// app/(app)/money/assets.tsx
+export { AssetListScreen as default } from '@/features/asset/screens/asset-list-screen';
+```
+
+Vì sao quan trọng: để nguyên UI trong `app/` thì một feature bị xé làm hai cây thư mục — sửa "cách hiện một khoản tài sản" phải đoán giữa `app/(app)/money/assets.tsx` và `src/features/asset/`. Cấu trúc feature mất ý nghĩa đúng lúc nó cần nhất, và mức độ lệch tăng theo số màn hình.
+
+**26 file route 1-dòng là bắt buộc, không phải dư thừa.** Expo Router 57 chỉ có file-based routing — đường dẫn URL suy ra từ đường dẫn file, và không có API khai route bằng code. `app/(app)/money/asset/[id].tsx` *chính là* định nghĩa route `/money/asset/:id`; xoá file là mất route. Cây thư mục trong `app/` vì thế phản chiếu cây URL, không phản chiếu cách tổ chức code.
+
+Hai ngoại lệ hợp lệ trong `app/`:
+
+- `_layout.tsx` — khai báo Stack/Tabs và thứ tự provider. **Không chứa logic nghiệp vụ**: gate điều hướng nằm ở `features/auth/components/auth-gate.tsx`, bắt deep link ở `features/invite/queries/`.
+- `app/index.tsx` — route rỗng, giữ chỗ trong lúc gate quyết định đi nhánh nào.
+
+Rà nhanh:
+
+```bash
+find app -name '*.tsx' ! -name '_layout.tsx' | xargs wc -l | sort -rn | head
+```
+
+File route dài hơn 1 dòng (trừ `app/index.tsx`) là một màn hình đang lẫn vào bảng định tuyến.
+
+### `design/components/` chỉ chứa primitive
+
+Primitive **không biết gì về nghiệp vụ**: nhận giá trị nguyên thuỷ, không import type thực thể từ `@nhaminh/domain`. Component biết về một thực thể (`FamilyEvent`, một khoản tài sản) thuộc về `features/<feat>/components/`.
+
+Phép thử khi phân vân: *feature thứ hai có dùng nó không?* Không → nó thuộc feature đó. `StatusPill` ở lại `design/` vì cả `home` lẫn `money` đều dùng; `EventRow` thì không.
 
 ### Luôn filter `household_id` tường minh
 

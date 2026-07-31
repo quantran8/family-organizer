@@ -22,11 +22,21 @@ export function useAssets() {
   });
 }
 
-export function useAsset(id: UUID) {
+/**
+ * Một khoản.
+ *
+ * `id` nhận `null` được, và đó là ca thật chứ không phải phòng xa:
+ * `(modals)/asset-form.tsx` dùng chung cho tạo mới lẫn sửa, nên lúc tạo mới nó
+ * không có id nào để đưa. Không có `enabled` thì hook bắn một câu query với id
+ * rỗng — Postgres từ chối vì không phải uuid hợp lệ, và màn hình tạo mới hiện
+ * một lỗi cho thứ người dùng chưa hề làm.
+ */
+export function useAsset(id: UUID | null) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.assets.detail(hh, id),
-    queryFn: () => assetRepository.get(hh, id),
+    queryKey: queryKeys.assets.detail(hh, id ?? ('' as UUID)),
+    queryFn: () => assetRepository.get(hh, id as UUID),
+    enabled: id !== null,
   });
 }
 

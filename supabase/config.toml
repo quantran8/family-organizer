@@ -104,3 +104,18 @@ verify_jwt = false
 
 [functions.build-reminders]
 verify_jwt = false
+
+# `refresh-lunar-dates` có HAI người gọi: app (ngay sau khi lưu một sự kiện, để
+# ngày dương có mặt trong vài giây) và cron đêm (quét lại mọi sự kiện, vì ngày
+# dương của một ngày âm đổi mỗi năm).
+#
+# `verify_jwt = false` vì cron không mang JWT. App gọi qua `functions.invoke`
+# thì vẫn kèm JWT, nhưng function không dùng tới: nó chạy service role và tự
+# quyết định phạm vi bằng `eventId` trong body.
+#
+# Hệ quả bảo mật đã cân nhắc: ai biết URL đều gọi được. Thứ họ làm được nhiều
+# nhất là bắt tính lại ngày âm — một phép tính thuần, không đọc ra dữ liệu nào
+# và không ghi gì ngoài chính cột cache. Đổi lại là cron chạy được mà không phải
+# nhúng service key vào một chỗ thứ hai.
+[functions.refresh-lunar-dates]
+verify_jwt = false

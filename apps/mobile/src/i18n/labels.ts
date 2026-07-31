@@ -72,7 +72,27 @@ export function dueLabelText(d: DueLabel): string {
  * (một lần cập nhật luôn nằm trong quá khứ), nhưng vẫn xử lý để hàm tổng quát.
  */
 export function lastUpdatedText(d: DueLabel): string {
-  return interpolate(vi.financeStatus.lastUpdated, { label: dueLabelText(d) });
+  return interpolate(vi.financeStatus.lastUpdated, { label: agoLabelText(d) });
+}
+
+/**
+ * Độ mới của một con số: "Hôm nay" · "Hôm qua" · "40 ngày trước".
+ *
+ * KHÁC `dueLabelText` ở đúng một nhánh, và nhánh đó quan trọng: `overdue_days`
+ * ở đây đọc thành *"40 ngày trước"*, không phải *"Quá hạn 40 ngày"*.
+ *
+ * Một sổ tiết kiệm chưa cập nhật 40 ngày không lỡ hẹn với ai — người dùng chưa
+ * bao giờ hứa sẽ cập nhật nó. Gọi đó là "quá hạn" là app tự đặt ra một deadline
+ * rồi trách người dùng vì không giữ (04 §7 — chữ ấm, không phán xét).
+ *
+ * Nhánh `in_days`/`tomorrow` không xảy ra với một mốc trong quá khứ, nhưng vẫn
+ * xử lý để hàm tổng quát và không có nhánh nào ném.
+ */
+export function agoLabelText(d: DueLabel): string {
+  if (d.kind === 'overdue_days') {
+    return interpolate(vi.dueLabel.daysAgo, { days: d.days });
+  }
+  return dueLabelText(d);
 }
 
 export function weekdayName(w: number): string {
@@ -129,11 +149,18 @@ export function lunarLabelText(l: LunarLabel): string {
   });
 }
 
-/** Dòng xem trước trong form sự kiện — không có nó, người dùng không tin app hiểu lịch âm. */
+/**
+ * Dòng xem trước trong form sự kiện — không có nó, người dùng không tin app
+ * hiểu lịch âm (05 §5.5).
+ *
+ * `fullSolarDate` chứ KHÔNG phải `shortSolarDate`: ngày âm đã qua trong năm nay
+ * thì lần kế tiếp rơi vào năm sau, và một dòng "rơi vào Thứ Bảy 6/2" không có
+ * năm sẽ bị đọc là năm nay. Đây đúng là chỗ không được để người dùng đoán.
+ */
 export function lunarPreviewText(solarDate: string, weekday: number): string {
   return interpolate(vi.event.lunarPreview, {
     weekday: weekdayName(weekday),
-    date: shortSolarDate(solarDate),
+    date: fullSolarDate(solarDate),
   });
 }
 
