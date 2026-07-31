@@ -1,1 +1,28 @@
 node_modules
+
+# ── Thư mục native do Expo CNG sinh ra ──
+#
+# `ios/` và `android/` KHÔNG vào git. Chúng là kết quả biên dịch của
+# `app.config.js`, không phải nguồn: `expo prebuild` sinh lại từ đầu mỗi lần
+# cần build native.
+#
+# Lý do cụ thể, học được lúc đổi scope sang `@family-organizer`: `ios/` từng
+# được theo dõi, và nó giữ nguyên `com.nhaminh.app` cùng thư mục `Nhmnh` sau
+# khi `app.config.js` đã đổi bundle id. Hai nguồn sự thật cho cùng một giá trị,
+# và bản trong git là bản CŨ — thứ chỉ lộ ra ở lần build native tiếp theo.
+#
+# Cần sửa gì ở tầng native thì sửa qua `app.config.js` hoặc một config plugin,
+# đừng sửa thẳng vào thư mục sinh ra.
+ios/
+android/
+
+# Kết quả build
+dist/
+.expo/
+
+# Biến môi trường — chứa khoá thật
+.env
+.env.local
+
+# macOS
+.DS_Store

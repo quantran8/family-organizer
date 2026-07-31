@@ -18,7 +18,7 @@
  * lịch sử; sửa sai bằng cách cập nhật lại giá trị qua thao tác bình thường.
  */
 
-import { describeMoneyEvent, type DayBucket, type MoneyEntityType } from '@nhaminh/domain';
+import { describeMoneyEvent, type DayBucket, type MoneyEntityType } from '@family-organizer/domain';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
@@ -137,7 +137,7 @@ export function MoneyChangesScreen() {
                     <Text className="mt-0.5 text-caption text-muted">
                       {moneyEventText(shape, currency)}
                     </Text>
-                    <Text className="mt-0.5 text-micro text-tertiary">
+                    <Text className="mt-0.5 text-micro text-subtle">
                       {[
                         fullSolarDate(e.occurredOn),
                         // Người thực hiện — NGỮ CẢNH ở cấp dòng, không phải một
@@ -172,7 +172,7 @@ export function MoneyChangesScreen() {
 
         {isFetchingNextPage ? (
           <View className="py-6">
-            <ActivityIndicator size="small" color="#7457E8" />
+            <ActivityIndicator size="small" color="#6257F6" />
           </View>
         ) : null}
       </ScrollView>

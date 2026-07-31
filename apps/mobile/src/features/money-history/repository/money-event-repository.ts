@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import type { MoneyEventRow } from '@/lib/database.types';
 import { unwrap } from '@/data/shared/errors';
 import { toMoneyEvent } from '@/data/shared/mappers';
-import type { MoneyEntityType, MoneyEvent, UUID } from '@nhaminh/domain';
+import type { MoneyEntityType, MoneyEvent, UUID } from '@family-organizer/domain';
 
 import type { MoneyEventRepository } from './money-event-repository.interface';
 

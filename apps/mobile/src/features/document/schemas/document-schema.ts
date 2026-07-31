@@ -5,7 +5,7 @@
  * Mọi thứ còn lại tuỳ chọn, và file là bước làm sau — KHÔNG chặn lưu.
  */
 
-import { DOC_TYPES } from '@nhaminh/domain';
+import { DOC_TYPES } from '@family-organizer/domain';
 import { z } from 'zod';
 
 import {

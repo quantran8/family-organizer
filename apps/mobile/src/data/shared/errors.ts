@@ -6,7 +6,7 @@
  * attention_one_open_per_entity" không nói gì với người dùng.
  */
 
-import { AppErrorException, type AppError } from '@nhaminh/domain';
+import { AppErrorException, type AppError } from '@family-organizer/domain';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 /** Mã PostgREST/Postgres → AppError. */

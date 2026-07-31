@@ -27,17 +27,17 @@ export function NavRow({ label, value, onPress, last = false }: NavRowProps) {
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}: ${value}` : label}
       onPress={onPress}
-      className={`min-h-touch flex-row items-center gap-3 py-3.5 active:bg-subtle ${
+      className={`min-h-touch flex-row items-center gap-3 py-3.5 active:bg-soft ${
         last ? '' : 'border-b border-line'
       }`}
     >
       <Text className="flex-1 text-body text-ink">{label}</Text>
       {value ? (
-        <Text numberOfLines={1} className="max-w-[55%] text-body text-tertiary">
+        <Text numberOfLines={1} className="max-w-[55%] text-body text-subtle">
           {value}
         </Text>
       ) : null}
-      <Text className="text-body text-line-strong">›</Text>
+      <Text className="text-body text-subtle">›</Text>
     </Pressable>
   );
 }

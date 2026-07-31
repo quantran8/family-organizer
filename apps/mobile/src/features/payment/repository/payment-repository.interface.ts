@@ -7,7 +7,7 @@
  *   'chờ xác nhận' = phê duyệt núp bóng → không làm.
  */
 
-import type { ISODate, Recurrence, UpcomingPayment, UUID } from '@nhaminh/domain';
+import type { ISODate, Recurrence, UpcomingPayment, UUID } from '@family-organizer/domain';
 
 export type PaymentWindow = '7d' | '30d' | 'overdue' | 'paid' | 'all';
 

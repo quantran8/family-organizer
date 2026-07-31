@@ -97,7 +97,7 @@ function CreateHouseholdForm({ onBack }: { onBack: () => void }) {
         )}
       />
       {create.isError ? (
-        <Text className="mb-3 text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="mb-3 text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
       <Button label={t.setup.createSubmit} loading={create.isPending} onPress={onSubmit} />
       <BackLink onPress={onBack} />
@@ -171,7 +171,7 @@ function JoinHouseholdForm({ onBack }: { onBack: () => void }) {
         )}
       />
       {redeem.isError ? (
-        <Text className="mb-3 text-caption text-danger">{t.error.inviteInvalid}</Text>
+        <Text className="mb-3 text-caption text-critical">{t.error.inviteInvalid}</Text>
       ) : null}
       <Button label={t.setup.joinSubmit} loading={redeem.isPending} onPress={onSubmit} />
       <BackLink onPress={onBack} />

@@ -98,30 +98,82 @@ không thay mặt người dùng nào — RLS theo `auth.uid()` sẽ chặn sạ
 chúng tự lọc `household_id` trong từng câu truy vấn, không có lưới an toàn phía
 dưới.
 
+Ba function của G8 (`presign-upload`, `confirm-upload`, `sign-download`) thì
+**ngược lại**: client gọi thẳng, thay mặt một người dùng thật, nên chúng dùng
+JWT của người gọi và RLS vẫn là lưới an toàn. Service role ở đó là lựa chọn
+SAI — chúng nhận `documentId` từ thân request, và với service role thì một id
+của nhà khác cũng đọc được.
+
+### Kho file (Cloudflare R2) — cần cho phần đính ảnh của G8
+
+```bash
+supabase secrets set \
+  R2_ACCOUNT_ID=<account id> \
+  R2_ACCESS_KEY_ID=<access key> \
+  R2_SECRET_ACCESS_KEY=<secret> \
+  R2_BUCKET=<tên bucket>
+```
+
+Lấy ở **Cloudflare Dashboard → R2 → Manage API tokens**. `R2_ACCOUNT_ID` là
+chuỗi hex trong URL dashboard R2.
+
+**Chưa đặt cũng không sao.** Ba function trả `503 storage_not_configured` và
+app hiện đúng câu đó; phần *ghi thông tin giấy tờ + vị trí bản giấy* — đường
+chính của tính năng (05 §7.2) — không đụng tới R2 và chạy đầy đủ.
+
+Bucket phải để **KHÔNG công khai**. Giấy tờ ở đây là căn cước, hộ chiếu, giấy
+khai sinh: một URL đoán được là một rò rỉ không thu hồi được. Mọi lần đọc đều đi
+qua `sign-download` và nhận một URL sống 15 phút.
+
+Hai chỗ R2 khác S3, cả hai đều làm chữ ký sai theo kiểu khó đoán vì thông báo
+lỗi không nhắc gì tới nguyên nhân:
+
+- Region **luôn** là `auto`. Đặt `ap-southeast-1` cho giống Supabase → 403.
+- Bucket nằm trong **path**, không phải subdomain. Virtual-host style ký ra chữ
+  ký hợp lệ nhưng trỏ tới một host không tồn tại.
+
 ### Cron
 
-Dashboard → **Integrations → Cron** (hoặc SQL bên dưới). Thứ tự quan trọng:
-`build-reminders` đọc `task_instances`, nên nó phải chạy **sau**.
+Dashboard → **Integrations → Cron** (hoặc SQL bên dưới).
+
+Cron của Postgres tính theo **UTC**, không theo giờ máy bạn — `0 17` là 00:00
+hôm sau ở Việt Nam. Cột "giờ VN" dưới đây là giờ người dùng thật sự trải nghiệm.
+
+| Giờ VN | UTC | Job | Vì sao ở đúng chỗ đó trong thứ tự |
+|---|---|---|---|
+| 02:00 | `0 19` | `purge-soft-deleted` | xoá cứng bản ghi quá 30 ngày, kèm xoá object R2 |
+| 03:00 | `0 20` | `sweep-orphan-uploads` | dọn `document_files` pending quá 24h |
+| 03:30 | `30 20` | `generate-task-instances` | vật hoá việc lặp, cửa sổ 90 ngày |
+| 04:00 | `0 21` | `refresh-lunar-dates` | tính `next_occurrence_date` cho sự kiện âm lịch |
+| 04:30 | `30 21` | `build-reminders` | **phải chạy sau** hai job trên — nó đọc `task_instances` và `next_occurrence_date` |
+| 05:00 | `0 22` | `spawn-debt-installments` | sinh kỳ trả nợ tiếp theo |
+| 05:15 | `15 22` | `expire-attention-items` | đóng cờ cần trao đổi đã quá `expires_at` |
+| 09:00 | `0 2` | `nudge-snapshot-update` | **phải chạy sau `build-reminders`** — xem dưới |
+| 23:50 | `50 16` | `autosnapshot-monthly` | tự thoát nếu chưa phải ngày cuối tháng |
+
+**Hai phụ thuộc thứ tự không có gì trong code nói ra:**
+
+1. `build-reminders` đọc `task_instances` và `next_occurrence_date`, nên nó phải
+   chạy **sau** `generate-task-instances` và `refresh-lunar-dates`.
+2. `build-reminders` **xoá sạch mọi nhắc nhở tương lai chưa gửi** của một nhà
+   rồi dựng lại từ đầu. Hàng do `nudge-snapshot-update` ghi có `fire_at` trong
+   cùng ngày — nằm đúng trong khoảng bị xoá. Chạy nudge **trước** 04:30 thì lời
+   nhắc biến mất trước khi kịp bắn, và không có lỗi nào để nhìn thấy.
 
 ```sql
+-- Mẫu cho một job; lặp lại cho từng dòng trong bảng trên.
 select cron.schedule(
-  'generate-task-instances', '0 17 * * *',   -- 00:00 giờ VN (UTC+7)
+  'generate-task-instances', '30 20 * * *',
   $$ select net.http_post(
        url := 'https://<ref>.supabase.co/functions/v1/generate-task-instances',
        headers := '{"Authorization":"Bearer <service_role key>"}'::jsonb
      ) $$
 );
-select cron.schedule(
-  'build-reminders', '30 17 * * *',          -- 00:30 giờ VN, sau function trên
-  $$ select net.http_post(
-       url := 'https://<ref>.supabase.co/functions/v1/build-reminders',
-       headers := '{"Authorization":"Bearer <service_role key>"}'::jsonb
-     ) $$
-);
 ```
 
-Cron của Postgres tính theo **UTC**, không theo giờ máy bạn — `0 17` là 00:00
-hôm sau ở Việt Nam.
+`purge-soft-deleted` cần key R2 (mục trên). Chưa có key thì nó **bỏ qua**
+`document_files` thay vì xoá — xoá hàng DB mà chưa xoá được object sẽ làm mất
+`r2_key` vĩnh viễn, và object nằm lại trên bucket không ai tìm ra.
 
 ---
 
@@ -160,8 +212,8 @@ Metro** — Expo đọc config một lần lúc bắt đầu, không theo dõi f
 
 ```bash
 pnpm test                                  # cổng G1 — 160 test domain
-pnpm --filter @nhaminh/mobile typecheck
-pnpm --filter @nhaminh/mobile lint         # chặn literal tiếng Việt trong JSX
+pnpm --filter @family-organizer/mobile typecheck
+pnpm --filter @family-organizer/mobile lint         # chặn literal tiếng Việt trong JSX
 ```
 
 ---

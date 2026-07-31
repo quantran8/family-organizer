@@ -6,7 +6,7 @@
  * (schema §5.4).
  */
 
-import type { Goal, ISODate, UUID } from '@nhaminh/domain';
+import type { Goal, ISODate, UUID } from '@family-organizer/domain';
 
 export interface GoalInput {
   name: string;

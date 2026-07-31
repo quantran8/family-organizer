@@ -20,7 +20,7 @@ import {
   type Task,
   type TaskGroupKey,
   type UUID,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { RefreshControl, SectionList, Text, View } from 'react-native';

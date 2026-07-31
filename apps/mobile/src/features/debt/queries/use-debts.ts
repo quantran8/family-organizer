@@ -2,7 +2,7 @@
  * Hook đọc/ghi Nợ.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateFinance } from '@/data/queries/invalidate';

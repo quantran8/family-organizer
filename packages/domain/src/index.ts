@@ -1,5 +1,5 @@
 /**
- * @nhaminh/domain — package dùng chung DUY NHẤT.
+ * @family-organizer/domain — package dùng chung DUY NHẤT.
  *
  * Hai người tiêu thụ, hai runtime: Hermes (apps/mobile) và Deno
  * (supabase/functions). Ràng buộc ở 01 §1:
@@ -85,6 +85,7 @@ export {
 export type { FinanceReason } from './finance/status.ts';
 export { computeFinanceStatus, explainFinanceStatus } from './finance/status.ts';
 export { inferLiquidity } from './finance/liquidity.ts';
+export { debtPaidAmount, progressPct } from './finance/progress.ts';
 
 // Lịch âm
 export type { LunarDate } from './lunar/convert.ts';

@@ -6,17 +6,17 @@
  * được xanh/đỏ, và một chấm màu không chữ với họ là không có thông tin.
  */
 
-import type { FinanceStatus } from '@nhaminh/domain';
+import type { FinanceStatus } from '@family-organizer/domain';
 import { Text, View } from 'react-native';
 
 import { useT } from '@/i18n';
 
 /** design.md §3.4 — thay bảng màu ở 04 §2 (đã lỗi thời). */
 const STATUS_CLASS: Record<FinanceStatus, { bg: string; text: string; dot: string }> = {
-  ok: { bg: 'bg-ok-soft', text: 'text-ok', dot: 'bg-ok' },
-  watch: { bg: 'bg-warn-soft', text: 'text-warn', dot: 'bg-warn' },
-  tight: { bg: 'bg-danger-soft', text: 'text-danger', dot: 'bg-danger' },
-  no_data: { bg: 'bg-subtle', text: 'text-muted', dot: 'bg-tertiary' },
+  ok: { bg: 'bg-positive-soft', text: 'text-positive', dot: 'bg-positive' },
+  watch: { bg: 'bg-attention-soft', text: 'text-attention', dot: 'bg-attention' },
+  tight: { bg: 'bg-critical-soft', text: 'text-critical', dot: 'bg-critical' },
+  no_data: { bg: 'bg-soft', text: 'text-muted', dot: 'bg-subtle' },
 };
 
 export interface StatusPillProps {

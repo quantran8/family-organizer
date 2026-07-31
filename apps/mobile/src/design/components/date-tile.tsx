@@ -19,8 +19,10 @@ export interface DateTileProps {
 }
 
 const TONE = {
-  default: { box: 'bg-subtle', day: 'text-ink', month: 'text-muted' },
-  event: { box: 'bg-event-soft', day: 'text-event', month: 'text-event' },
+  default: { box: 'bg-soft', day: 'text-ink', month: 'text-muted' },
+  // Ngày của một sự kiện = ngữ cảnh thời gian → brand (design.md §5.3), không
+  // phải một màu module riêng.
+  event: { box: 'bg-brand-soft', day: 'text-brand-deep', month: 'text-brand-deep' },
   // Trên thẻ nổi bật nền tối (design.md §9.3).
   inverted: { box: 'bg-white/15', day: 'text-white', month: 'text-white/70' },
 } as const;

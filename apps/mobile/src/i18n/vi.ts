@@ -20,7 +20,7 @@
  * sinh ra toast "Đã cập nhật", không phải "Thành công".
  *
  * Số, tiền, ngày KHÔNG nằm ở đây — chúng đi qua formatMoney/formatDueLabel/
- * formatLunarLabel ở @nhaminh/domain. Bảng này chỉ ghép nhãn quanh chúng.
+ * formatLunarLabel ở @family-organizer/domain. Bảng này chỉ ghép nhãn quanh chúng.
  */
 
 export type Interpolations = Record<string, string | number>;
@@ -359,6 +359,25 @@ export const vi = {
     sectionHistory: 'Các kỳ đã trả',
     emptyTitle: 'Chưa có khoản nợ nào',
     emptyBody: 'Ghi lại khoản nợ để biết mỗi kỳ cần chuẩn bị bao nhiêu.',
+
+    // ── G9 ──
+    formEditTitle: 'Sửa khoản nợ',
+    /** Nhãn dưới con số lớn trên màn chi tiết. */
+    remainingLabel: 'Còn phải trả',
+    perPeriod: '{amount} mỗi kỳ',
+    nextDueLabel: 'Kỳ tới {date}',
+    noNextDue: 'Chưa đặt kỳ trả tiếp theo',
+    settled: 'Đã tất toán',
+    /** Bộ lọc: nợ đã tất toán vẫn xem lại được, nhưng không nằm cùng nợ đang trả. */
+    filterOpen: 'Đang trả',
+    filterSettled: 'Đã tất toán',
+    /**
+     * Dư nợ là trường CHỈ ĐỌC sau khi tạo (02 §7) — dòng này giải thích vì sao
+     * form sửa không có ô đó, thay vì để người dùng đi tìm.
+     */
+    remainingReadonly: 'Dư nợ tự giảm mỗi lần bạn đánh dấu một kỳ đã trả.',
+    deleteConfirm: 'Xoá khoản nợ này?',
+    savedToast: 'Đã lưu khoản nợ',
   },
 
   goal: {
@@ -394,6 +413,19 @@ export const vi = {
     // Câu hỏi KHÔNG BAO GIỜ là "vì sao khoản này giảm".
     suggestTitle: 'Khoản này thay đổi khá nhiều',
     suggestBody: 'Ghi chú lại để cả hai cùng nắm?',
+
+    // ── G9 ──
+    /** Tiêu đề sheet gắn cờ — nói việc nó làm, không doạ. */
+    flagTitle: 'Đánh dấu cần trao đổi',
+    flagBody: 'Người kia sẽ thấy khoản này trong mục Cần trao đổi.',
+    resolveTitle: 'Đóng cờ này?',
+    /** Ai gắn + khi nào. Ngữ cảnh, KHÔNG phải quy trách nhiệm. */
+    flaggedBy: '{name} đánh dấu {date}',
+    flaggedOn: 'Đánh dấu {date}',
+    /** Dòng dẫn sang khoản liên quan. */
+    seeEntity: 'Xem khoản này',
+    /** Khoản gắn cờ đã bị xoá — cờ vẫn còn, nhưng không dẫn đi đâu được. */
+    entityGone: 'Khoản này đã bị xoá',
   },
 
   doc: {
@@ -429,6 +461,40 @@ export const vi = {
     createRenewalPayment: 'Ghi khoản chi',
     emptyTitle: 'Chưa có giấy tờ nào',
     emptyBody: 'Ghi lại giấy tờ quan trọng và chỗ để bản giấy.',
+
+    // ── G8 ──
+    formEditTitle: 'Sửa giấy tờ',
+    // Nhắc lại ngay dưới tên form: file là bước sau, không phải điều kiện để lưu.
+    formFilesLater: 'Lưu trước, thêm ảnh sau cũng được.',
+    filterAll: 'Tất cả',
+    filterNoExpiry: 'Không có hạn',
+    noExpiry: 'Không có hạn',
+    /** Ô giữ chỗ khi file là PDF — client không dựng thumbnail cho PDF. */
+    fileKindPdf: 'PDF',
+    expiresOn: 'Hết hạn {date}',
+    // Dòng phụ trên thẻ: còn bao nhiêu ngày. Quá hạn dùng agoLabel, không trách móc.
+    ownedBy: 'Thuộc về {name}',
+    physicalPrefix: 'Bản giấy:',
+    physicalUnknown: 'Chưa ghi chỗ để bản giấy',
+    fieldNotes: 'Ghi chú',
+    fieldRemindLead: 'Nhắc trước',
+    remindLeadDays: '{days} ngày',
+    sectionFiles: 'Ảnh và file',
+    // Hàng đợi: người dùng rời màn hình được, nên trạng thái phải đọc được từ xa.
+    queueUploading: 'Đang tải {done}/{total}',
+    queueFailed: '{count} file chưa tải lên được',
+    queueRetry: 'Thử lại',
+    queueRemove: 'Bỏ khỏi hàng đợi',
+    queuePending: 'Đang chờ',
+    fileRemove: 'Gỡ file này',
+    fileRemoveConfirm: 'Gỡ file khỏi giấy tờ này?',
+    openFile: 'Mở file',
+    share: 'Chia sẻ',
+    storageUsed: 'Đã dùng {used} trên {total}',
+    // Sau khi lưu — tên nút là việc nó làm, toast nhắc lại đúng việc đó.
+    savedToast: 'Đã lưu giấy tờ',
+    fileAddedToast: 'Đã thêm file',
+    deleteConfirm: 'Xoá giấy tờ này?',
   },
 
   docType: {

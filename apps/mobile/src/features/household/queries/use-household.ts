@@ -5,7 +5,7 @@
  * biết TanStack Query (01 §2).
  */
 
-import { addDays, type ISODate } from '@nhaminh/domain';
+import { addDays, type ISODate } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';

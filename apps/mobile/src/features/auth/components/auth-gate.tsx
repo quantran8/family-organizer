@@ -23,6 +23,7 @@ import { Slot, SplashScreen, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useMyHouseholds, useRestoreSession } from '@/features/auth/queries/use-auth';
+import { useResumeUploads } from '@/features/document/queries/use-upload-queue';
 import { useCaptureInviteCode } from '@/features/invite/queries/use-capture-invite-code';
 import { readPendingInvite } from '@/stores/pending-invite';
 import { useSessionStore } from '@/stores/session';
@@ -51,6 +52,12 @@ export function AuthGate() {
   const isReady = !isRestoring && (!session || !householdsPending);
 
   useCaptureInviteCode();
+
+  // File còn dang dở từ lần mở app trước — chạy tiếp sau khi ĐÃ có phiên và có
+  // nhà. Chạy sớm hơn thì pha 1 và pha 3 gọi Edge mà chưa có JWT, và mọi mục
+  // đang chờ lập tức `failed`: người dùng mở app lên thấy tám file báo lỗi cho
+  // một việc chưa kịp bắt đầu.
+  useResumeUploads(isReady && session !== null && effectiveHouseholdId !== null);
 
   useEffect(() => {
     if (!isReady) return;

@@ -12,7 +12,7 @@
  * chỗ họ đang đứng.
  */
 
-import { formatISODate, type ISODate } from '@nhaminh/domain';
+import { formatISODate, type ISODate } from '@family-organizer/domain';
 
 /** Lệch múi giờ Việt Nam, tính bằng phút. */
 const VN_OFFSET_MINUTES = 7 * 60;

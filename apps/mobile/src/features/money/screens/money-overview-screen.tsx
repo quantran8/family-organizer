@@ -16,7 +16,7 @@
  * khác nhau về cùng một thứ là cách phá niềm tin nhanh nhất trong app tiền chung.
  */
 
-import { computeFinanceStatus, explainFinanceStatus, formatDueLabel } from '@nhaminh/domain';
+import { computeFinanceStatus, explainFinanceStatus, formatDueLabel } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
@@ -78,7 +78,7 @@ export function MoneyOverviewScreen() {
                 <Text className="mt-2 text-body text-ink">
                   {financeReasonText(explainFinanceStatus(metrics, today).reason)}
                 </Text>
-                <Text className="mt-1 text-caption text-tertiary">
+                <Text className="mt-1 text-caption text-subtle">
                   {metrics.lastUpdatedOn
                     ? lastUpdatedText(formatDueLabel(metrics.lastUpdatedOn, today))
                     : t.financeStatus.neverUpdated}
@@ -93,7 +93,7 @@ export function MoneyOverviewScreen() {
             </View>
 
             {/* ── BỐN DÒNG NHÓM ── gộp theo `liquidity`, chiều gộp duy nhất được phép. */}
-            <View className="mt-6 overflow-hidden rounded-card border border-line">
+            <View className="mt-6 overflow-hidden rounded-status border border-line">
               <GroupRow
                 label={t.money.usable}
                 amount={metrics.totalUsable}
@@ -124,10 +124,15 @@ export function MoneyOverviewScreen() {
                   })
                 }
               />
-              {/* "Đang nợ" dẫn sang màn Nợ — lên ở G9. Tới lúc đó dòng này đổi
-                  ĐÍCH chứ không đổi hình dạng: người dùng đã quen bốn dòng ở
-                  đây, và một dòng mọc thêm mũi tên sau vài tuần đọc như lỗi. */}
-              <GroupRow label={t.money.debt} amount={metrics.totalDebt} last />
+              {/* G9 nối đích cho dòng này. Đúng như ghi chú cũ dự kiến: chỉ đổi
+                  ĐÍCH, không đổi hình dạng — `GroupRow` vốn đã vẽ mũi tên khi có
+                  `onPress`, nên bốn dòng vẫn là bốn dòng giống nhau. */}
+              <GroupRow
+                label={t.money.debt}
+                amount={metrics.totalDebt}
+                onPress={() => router.push('/(app)/money/debts')}
+                last
+              />
             </View>
 
             {/* ── LỊCH SỬ (G7b) ──
@@ -168,7 +173,7 @@ export function MoneyOverviewScreen() {
                   hitSlop={8}
                   onPress={() => router.push('/(app)/money/payments')}
                 >
-                  <Text className="text-label font-medium text-iris-500">{t.common.see}</Text>
+                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
                 </Pressable>
               }
             />
@@ -178,14 +183,14 @@ export function MoneyOverviewScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={p.name}
                 onPress={() => router.push(`/(app)/money/payment/${p.id}`)}
-                className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-subtle"
+                className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-soft"
               >
                 <Text numberOfLines={1} className="flex-1 text-body text-ink">
                   {p.name}
                 </Text>
                 <MoneyText amount={p.amount} short withSymbol size="body" />
                 {p.dueDate ? (
-                  <Text className="w-24 text-right text-caption text-tertiary">
+                  <Text className="w-24 text-right text-caption text-subtle">
                     {dueLabelText(formatDueLabel(p.dueDate, today))}
                   </Text>
                 ) : null}
@@ -195,22 +200,43 @@ export function MoneyOverviewScreen() {
         ) : null}
 
         {/* ── CẦN TRAO ĐỔI ──
-            KHÔNG có luồng bình luận (05 §6.7) — mỗi dòng chỉ dẫn tới khoản liên
-            quan. Màn `attention.tsx` và nút "Đã rõ" lên ở G9; mục này đã hiện
-            được từ bây giờ vì cờ sinh ra từ màn chi tiết khoản tiền của G7. */}
+            KHÔNG có luồng bình luận (05 §6.7). Mục này là dòng TÓM TẮT: nút
+            "Đã rõ" và ngữ cảnh đầy đủ nằm ở `money/attention` (G9). Cố ý không
+            đặt nút đóng cờ ở đây — đóng một cờ mà không thấy nó thuộc khoản nào
+            là đóng một thứ mình chưa đọc.
+
+            Vẫn dùng `useOpenAttention` (không kèm tên khoản): màn này mở nhiều
+            nhất trong app, và bắt nó chờ thêm sáu câu truy vấn tên cho một dòng
+            tóm tắt là đánh đổi sai. */}
         {(attention ?? []).length > 0 ? (
           <>
-            <SectionHeader title={t.money.sectionAttention} />
+            <SectionHeader
+              title={t.money.sectionAttention}
+              action={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.common.see}
+                  hitSlop={8}
+                  onPress={() => router.push('/(app)/money/attention')}
+                >
+                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
+                </Pressable>
+              }
+            />
             {(attention ?? []).map((a) => (
-              <View
+              <Pressable
                 key={a.id}
-                className="min-h-touch flex-row items-center gap-2 border-b border-line py-3"
+                accessibilityRole="button"
+                accessibilityLabel={a.note ?? t.attention.title}
+                onPress={() => router.push('/(app)/money/attention')}
+                className="min-h-touch flex-row items-center gap-2 border-b border-line py-3 active:bg-soft"
               >
-                <Text className="text-body text-warn">▸</Text>
+                <Text className="text-body text-attention">▸</Text>
                 <Text numberOfLines={2} className="flex-1 text-body text-ink">
                   {a.note ?? t.attention.title}
                 </Text>
-              </View>
+                <Text className="text-body text-subtle">›</Text>
+              </Pressable>
             ))}
           </>
         ) : null}
@@ -281,7 +307,7 @@ function GroupRow({
     <>
       <Text className="flex-1 text-body text-ink">{label}</Text>
       <MoneyText amount={amount} short withSymbol size="heading" />
-      {onPress ? <Text className="text-body text-line-strong">›</Text> : null}
+      {onPress ? <Text className="text-body text-subtle">›</Text> : null}
     </>
   );
 
@@ -296,7 +322,7 @@ function GroupRow({
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className={`${box} active:bg-subtle`}
+      className={`${box} active:bg-soft`}
     >
       {body}
     </Pressable>
@@ -318,8 +344,8 @@ function progressPct(current: number, target: number): number {
 function ProgressBar({ value, total }: { value: number; total: number }) {
   const pct = progressPct(value, total);
   return (
-    <View className="mt-2 h-2 overflow-hidden rounded-full bg-subtle">
-      <View className="h-full rounded-full bg-iris-500" style={{ width: `${pct}%` }} />
+    <View className="mt-2 h-2 overflow-hidden rounded-full bg-soft">
+      <View className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
     </View>
   );
 }

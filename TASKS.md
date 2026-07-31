@@ -334,38 +334,184 @@ Nghĩa là cây thư mục `app/` phản chiếu **cây URL**, không phản chi
 hai thứ đó không nhất thiết giống nhau. Đây là giới hạn của công cụ, không phải lựa chọn kiến
 trúc. Thứ tối đa làm được là ép mỗi file xuống một dòng, và đã làm.
 
-## G8 · Bước 6 — Giấy tờ + upload
+## G8 · Bước 6 — Giấy tờ + upload — **xong code, chưa nghiệm thu**
 
 **Không có máy quét tài liệu** (đã chốt) — chỉ chọn file và upload.
 
-- [ ] `docs/index.tsx` — **chỉ tải thumbnail**, không bao giờ tải bản gốc
-- [ ] `docs/[id].tsx` — **vị trí bản giấy là trường quan trọng nhất**. Bỏ máy quét làm ma sát
-      chụp ảnh cao hơn, nên đường "chỉ ghi chỗ để giấy, chưa cần ảnh" càng phải mượt.
-      Giấy tờ **không có file nào vẫn là bản ghi đầy đủ**, không hiện như thiếu sót
-- [ ] `(modals)/doc-form.tsx` — hỏi đúng ba trường trước: tên · ngày hết hạn · bản giấy để đâu
-- [ ] Upload 3 pha — file **không bao giờ đi qua server của mình**
-- [ ] Hàng đợi persist, chịu được: chọn 8 ảnh rồi khoá máy đi làm việc khác
-- [ ] Edge `presign-upload` · `confirm-upload`
+- [x] `docs/index.tsx` — **chỉ tải thumbnail**, không bao giờ tải bản gốc. Repository ép điều
+      này ở tầng dưới (câu select của `list` cố ý không lấy `r2_key`); `useFileUrls(…, 'thumb')`
+      là vế còn lại. Chỉ ký thumbnail **trang đầu** mỗi giấy tờ — hợp đồng 6 trang chỉ hiện một
+      ô, năm chữ ký kia không ai nhìn tới
+- [x] `docs/[id].tsx` — **vị trí bản giấy là trường quan trọng nhất**: đứng riêng, chữ `title2`,
+      trên mảng màu lớn DUY NHẤT của màn hình. Chưa ghi thì nó là **nút mời ghi**, không phải ô
+      trống — ô trống nói "bạn thiếu dữ liệu", nút nói "chạm vào đây thì xong".
+      Giấy tờ **không có file nào vẫn là bản ghi đầy đủ**: không badge, không "0 file", chỉ một
+      dòng nhỏ nói biết chỗ để giấy đã đủ dùng
+- [x] `(modals)/doc-form.tsx` — hỏi đúng ba trường trước: tên · ngày hết hạn · bản giấy để đâu.
+      **Không** mở bộ chọn file trước như `05 §7.3`: bỏ máy quét làm thứ tự đó vô nghĩa (bắt
+      người dùng đi tìm ảnh cho một bản ghi chưa tồn tại). Lưu xong đi **thẳng** vào chi tiết —
+      đó mới là nơi đính file
+- [x] Upload 3 pha — file **không bao giờ đi qua server của mình**. `presign` ghi hàng
+      `document_files` TRƯỚC khi PUT: mất mạng giữa chừng để lại rác có hạn (cron dọn sau 24h),
+      còn ghi sau thì file nằm trên R2 mà không ai biết để dọn
+- [x] Hàng đợi persist, chịu được: chọn 8 ảnh rồi khoá máy đi làm việc khác. Chạy **tuần tự**
+      một file một lúc; ghi trạng thái `uploaded` **trước** pha 3 nên app bị giết đúng lúc đó
+      thì lần mở sau chỉ phải gọi confirm, không tải lại cả file
+- [x] Edge `presign-upload` · `confirm-upload` · **`sign-download`** (không có trong danh sách
+      gốc nhưng bắt buộc: bucket không công khai, nên mọi thumbnail đều phải ký mới hiện được)
 
-## G9 · Bước 7–8 — Nợ · Cần trao đổi · Cài đặt · Gói dịch vụ
+### R2 chưa có key — phần còn lại chạy bình thường
 
-- [ ] `money/debts.tsx` + `debt/[id].tsx` + form
-- [ ] `money/attention.tsx` — **không có luồng bình luận**; cờ tự hết hiệu lực sau 14 ngày.
-      *Gắn* cờ đã chạy từ G7 (nút trên `asset/[id]` và `payment/[id]`, mục `CẦN TRAO ĐỔI` hiện
-      trên màn Tiền). Còn thiếu: màn danh sách đầy đủ và nút `[Đã rõ]` để **đóng** cờ
-- [ ] `settings/` — `index` · `household` · `invite` · `subscription`
+Ba Edge đọc `R2_ACCOUNT_ID` · `R2_ACCESS_KEY_ID` · `R2_SECRET_ACCESS_KEY` · `R2_BUCKET` từ env.
+Thiếu chúng thì trả `503 storage_not_configured` — **nói thẳng là chưa cấu hình**, không giả vờ
+là lỗi mạng hay lỗi quota. Nửa "ghi thông tin + vị trí bản giấy" không đụng tới R2 và chạy đầy
+đủ ngay bây giờ; đó cũng là đường chính (05 §7.2), không phải đường lui.
+
+Ký SigV4 **viết tay** bằng Web Crypto (~60 dòng) thay vì kéo SDK S3. Hai chỗ R2 khác S3 và đều
+làm chữ ký sai một cách khó đoán: region **luôn** là `auto`, và bucket nằm trong **path** chứ
+không phải subdomain.
+
+### Ba thứ phát hiện trong G8
+
+- [x] **`notes` của giấy tờ rơi mất cả hai đầu.** Cột `documents.notes` có, `DocumentInput` có,
+      form ghi xuống — nhưng `FamilyDocument` không khai trường đó và `toDocument` không đọc nó.
+      Nghĩa là ghi chú người dùng gõ vào **lưu được xuống DB nhưng không bao giờ đọc lại lên**.
+      Bốn thực thể khác đều có `notes`, nên đây là chỗ sót từ G2 chứ không phải quyết định
+- [x] **URL đã ký không được vào cache đĩa.** Chữ ký sống 15 phút, cache persist sống 7 ngày.
+      Ghi xuống đĩa thì lần mở app sau khôi phục một loạt URL đã chết và màn hình hiện **đúng số
+      ô ảnh, đúng bố cục, chỉ mọi ảnh đều vỡ** — không có lỗi nào để nhìn thấy vì truy vấn đã
+      "thành công". Key mang sẵn đoạn `'signed-url'` để `shouldDehydrateQuery` loại ra
+- [x] **`functions.invoke` KHÔNG ném khi server trả 4xx** — nó trả `error` với thân response
+      chưa đọc. Không mở thân ra thì `quota_exceeded` và `premium_required` (hai thứ có câu chữ
+      riêng và đường đi riêng) đều rơi xuống `unknown`, và người dùng nhận "Chưa làm được. Thử
+      lại giúp mình nhé" cho một việc thử lại bao nhiêu lần cũng không xong
+
+### Còn nợ của G8
+
+- [ ] Nghiệm thu F6 cần R2 key thật + máy thật (`expo-image-picker` và `UploadTask` đều không
+      chạy trong bản export)
+- [ ] Bộ lọc **Theo người** / **Theo loại** (`05 §7.1`) — cần một lớp chọn thứ hai và chỉ có
+      nghĩa khi nhà đã có vài chục giấy tờ
+- [ ] Thumbnail cho PDF — cần `react-native-pdf-thumbnail` (module native, phải có EAS dev
+      build). PDF hiện ô giữ chỗ chữ "PDF"; bản gốc vẫn mở được bình thường
+
+## G8b · Đồng bộ token với `design.md` — **xong**
+
+Phát hiện lúc dựng G8: `tailwind.config.js` ghi "nguồn sự thật là design.md" nhưng giá trị bên
+dưới là của một **bản design.md cũ hơn** (iris/jade/amber, trung tính ấm). Bản trên đĩa dùng
+brand chàm `#6257F6`, trung tính **lạnh**, và bộ ngữ nghĩa `positive`/`attention`/`critical`.
+
+Sửa ngay thay vì để lại: G8 thêm ~600 dòng `className`, và mỗi màn viết theo bảng cũ là một màn
+phải sửa lại lần nữa.
+
+- [x] `tailwind.config.js` dịch **nguyên văn** `design.md §17–18`. Không giữ token nào design.md
+      đã bỏ — một token tồn tại mà không có trong design.md là token không ai rà được
+- [x] 54 file đổi tên token. **`subtle` đổi NGHĨA** (nền → **màu chữ**), nên `bg-subtle` →
+      `bg-soft` phải chạy **trước** `text-tertiary` → `text-subtle`. Đổi nhầm thứ tự cho ra một
+      màn hình chữ gần như vô hình trên nền trắng — và nó vẫn biên dịch bình thường
+- [x] Hex cứng trong prop React Native (`placeholderTextColor`, `tabBarActiveTintColor`,
+      `headerTintColor`) — Tailwind không với tới được, phải đổi tay
+- [x] **CTA chính đổi sang ĐEN** (`design.md §5.2`, §10.1). Đây là chỗ đổi tên máy móc cho ra
+      kết quả sai: `bg-iris` → `bg-brand` biên dịch được nhưng vi phạm *"brand must not compete
+      with the primary CTA"*. Cả `Button` primary lẫn `FAB` giờ dùng `action`, bo `999px` theo §8
+- [x] **Bỏ bảng màu-theo-module** (`task`/`event`/`finance`/`document`). `design.md §5.4` nói
+      thẳng: màu ngữ nghĩa không được dùng làm màu trang trí theo module. Ngày âm và dấu ◆ của
+      sự kiện chuyển sang `brand` vì chúng là **ngữ cảnh thời gian** — đúng vai trò của brand (§5.3)
+- [x] **Avatar còn hai sắc trung tính** thay vì bốn màu tươi băm theo tên. `design.md §5.5`:
+      không gán màu cho thành viên theo giới tính — và với một nhà đúng hai người thì bảng bốn
+      màu **luôn** cho ra "một màu của vợ, một màu của chồng", đúng thứ ràng buộc "hai người
+      ngang nhau" cấm
+
+## G9 · Bước 7 — Nợ · Cần trao đổi · Cron — **xong code, chưa nghiệm thu**
+
+Gói dịch vụ **tách khỏi G9** (đã chốt) — xem G10 bên dưới.
+
+- [x] `money/debts.tsx` + `debt/[id].tsx` + `debt-form`. Dòng "Đang nợ" trên màn Tiền giờ có
+      đích; đúng như ghi chú G7 dự kiến, chỉ đổi **đích** chứ không đổi hình dạng — `GroupRow`
+      vốn đã vẽ mũi tên khi có `onPress`, nên bốn dòng vẫn là bốn dòng giống nhau
+- [x] **Không có nút `[Đã trả]` ở màn chi tiết nợ.** `settle_payment` chốt một **kỳ trả cụ
+      thể**, nên chỗ đúng để bấm là chi tiết KỲ TRẢ — nơi G7 đã đặt dòng xác nhận *"Dư nợ sẽ
+      còn 172.000.000 ₫"* hiện ra trước khi bấm. Một nút ở màn nợ sẽ phải hỏi lại "trả kỳ nào",
+      tức là bắt người dùng chọn một thứ họ vừa đi qua
+- [x] **Dư nợ chỉ hỏi một lần, lúc tạo** (02 §7) — ép ở **tầng type**:
+      `DebtPatch = Partial<Omit<DebtInput, 'remainingAmount'>>`, nên một ô nhập dư nợ ở chế độ
+      sửa sẽ không biên dịch được. Form sửa thay ô đó bằng một dòng nói dư nợ tự giảm thế nào:
+      ẩn hẳn thì người dùng đi tìm, nói ra thì họ biết phải làm gì thay thế
+- [x] `money/attention.tsx` — **không có luồng bình luận**; nút `[Đã rõ]` đóng cờ.
+      `resolutionNote` ở lại **tuỳ chọn**: bắt gõ một câu trước khi đóng là dựng lại đúng thứ
+      vừa tránh. Hai người đã nói chuyện xong rồi mới bấm nút này
+- [x] Sáu Edge cron còn thiếu theo `schema §14` (nhiều hơn "3 cron" bản kế hoạch ghi):
+      `spawn-debt-installments` · `expire-attention-items` · `nudge-snapshot-update` ·
+      `autosnapshot-monthly` · `sweep-orphan-uploads` · `purge-soft-deleted`
+
+### `progressPct` + `debtPaidAmount` xuống `packages/domain` — **9 test mới → 177**
+
+`progressPct` từng là hàm cục bộ trong `money-overview-screen`. Chi tiết nợ cần đúng logic đó,
+và chép sang là hai đường code cùng tính một thứ. Cả hai hàm đều có ca biên thật:
+
+- mẫu số 0 → chia cho 0 ra `Infinity`, và `width: Infinity%` là style không hợp lệ.
+  React Native **bỏ qua im lặng**, thanh vẽ rỗng trông y hệt 0% — bug này không bao giờ tự lộ
+- `debtPaidAmount` trả **`null` khi chưa nhập gốc**, không phải 0. Trả 0 sẽ nói với người dùng
+  rằng họ chưa trả đồng nào cho một khoản họ đã trả hai năm
+- `remaining > principal` xảy ra thật (nhập gốc chưa gồm lãi) → "đã trả" ra **âm**, và số âm đó
+  đi thẳng vào `progressPct` rồi vào `width`
+
+### Ba thứ phát hiện trong G9
+
+- [x] **`nudge-snapshot-update` phải chạy SAU `build-reminders`, không phải trước.**
+      `build-reminders` xoá sạch mọi nhắc nhở tương lai chưa gửi của một nhà rồi dựng lại từ
+      đầu. Hàng do nudge ghi có `fire_at` cùng ngày — nằm đúng trong khoảng bị xoá. Chạy nudge
+      lúc 04:00 thì **vòng lặp thói quen chính của cả sản phẩm** im lặng không bao giờ bắn.
+      Đã ghi bảng thứ tự đầy đủ vào `SETUP-CLOUD.md`
+- [x] **`upcoming_payments` KHÔNG có unique constraint chặn trùng** (khác `task_instances`, nơi
+      `unique (task_id, due_date)` cho phép `upsert ignoreDuplicates`). Nghĩa là
+      `spawn-debt-installments` không có lưới an toàn nào ở tầng DB: chạy hai lần sẽ sinh hai kỳ
+      trả giống hệt, và `finance_metrics` cộng `dueNext30d` từ đó — màn Tiền nói nhà mình cần
+      chuẩn bị **gấp đôi** số tiền thật. Phải tự kiểm trước mỗi lần ghi
+- [x] **`entity_type` enum không có `'household'`.** Lời nhắc cập nhật tình hình nói về **cả
+      nhà**, không thuộc bản ghi nào. Tạm dùng `entity_type = 'asset'` với
+      `entity_id = household_id` (không trùng id tài sản nào). Đây là chỗ chật, nên sửa bằng
+      migration thêm `'household'` vào enum khi có dịp đụng lại schema — đã ghi lý do tại chỗ
+
+### Một quyết định về kiểu, ngược với hướng "gọn"
+
+- [x] `attention-repository` tra tên khoản bằng **`switch` bảy nhánh**, không bằng bảng tra
+      `{table, column}`. Bảng tra gọn hơn để đọc, nhưng tên bảng/cột lúc đó là **chuỗi động** và
+      `database.types.ts` không kiểm được chuỗi động: `.from(t.table)` mất sạch kiểu, và đổi tên
+      một cột trong migration sẽ **không** làm typecheck đỏ — nó chỉ hỏng lúc chạy, ở một màn
+      phụ, dưới dạng một dòng thiếu tên
+
+### Còn nợ của G9
+
+- [ ] Nghiệm thu F7 (gắn cờ → push → `CẦN CHÚ Ý` → `[Đã rõ]`) cần tầng push thật
+- [ ] Nghiệm thu cron cần deploy lên cloud — không có `functions serve` (không Docker), và
+      **Deno chưa cài trên máy này** nên Edge Function không có cổng typecheck cục bộ nào. Đã
+      đối chiếu tay mọi import `@family-organizer/domain` và mọi tên cột với `0001_init.sql`
+- [ ] `money/goals` + `goal/[id]` (`05 §6.6` là **P1**) — mục MỤC TIÊU trên màn Tiền vẫn chỉ
+      đọc, chưa có form tạo. `debt/[id]` đã có mục "Thay đổi gần nhất"; `goal/[id]` còn thiếu
+
+## G10 · Gói dịch vụ — **chưa làm, chờ EAS build**
+
+Tách khỏi G9 vì nó là thứ **duy nhất** trong hai bước 7–8 có phụ thuộc bên ngoài: RevenueCat
+cần EAS dev build + sản phẩm đã khai trên App Store/Play mới mua thử được — cùng ràng buộc đang
+giữ Google/Apple Sign-in ở G3.
+
+- [ ] `settings/subscription.tsx` — đọc `households.subscription_status`
 - [ ] `(modals)/paywall.tsx` — nói **cụ thể đang bị chặn gì**, không doạ.
-      Nguồn sự thật của quyền là `households.subscription_status`, không phải SDK RevenueCat
-- [ ] Edge `spawn-debt-installments` · `revenuecat-webhook` · 3 cron
+      Nguồn sự thật của quyền là `households.subscription_status`, **không phải** SDK RevenueCat
+- [ ] Edge `revenuecat-webhook`
+- [ ] Quyền thuộc household: người kia được dùng ngay, không phải mua lại (F10)
+
+Ba màn `settings/` còn lại (`index` · `household` · `invite`) **đã xong từ G5**.
 
 ---
 
 ## Kiểm chứng — chạy trước mỗi lần duyệt
 
 ```bash
-pnpm --filter @nhaminh/domain test        # cổng G1 — 160 test
-pnpm --filter @nhaminh/mobile typecheck
-pnpm --filter @nhaminh/mobile lint        # chặn literal tiếng Việt trong JSX
+pnpm --filter @family-organizer/domain test        # cổng G1 — 177 test
+pnpm --filter @family-organizer/mobile typecheck
+pnpm --filter @family-organizer/mobile lint        # chặn literal tiếng Việt trong JSX
 ```
 
 **Backend chạy trên Supabase Cloud** — không có stack Docker local (xem
@@ -394,10 +540,10 @@ vùng chạm ≥ 44px · trạng thái không chỉ dùng màu · hai thành vi�
 | F3 | Chạm ô tròn → xong tức thì, một chạm, không màn trung gian | ✅ G4 |
 | F4 | Thông báo 09:00 mở **thẳng** modal Cập nhật tình hình | G7 — modal xong, mở từ thẻ trạng thái. Phần *thông báo* cần tầng push (`expo-notifications` + Edge `nudge-snapshot-update`) → **G9** |
 | F5 | Nhập `15/8 âm` → xem trước đúng → việc gắn `eventId` hiện trên Nhà mình đúng tuần | G6 — xem trước **đã kiểm** (6 ca thật); phần `eventId` → Nhà mình cần cloud để nghiệm thu |
-| F6 | Chọn 2 ảnh → upload chạy nền, rời màn hình được | G8 |
-| F7 | Gắn cờ → push → `CẦN CHÚ Ý` → `[Đã rõ]` đóng cờ | G9 |
+| F6 | Chọn 2 ảnh → upload chạy nền, rời màn hình được | G8 — code xong, **chưa nghiệm thu**: cần R2 key + máy thật (`expo-image-picker` và `UploadTask` không chạy trong bản export) |
+| F7 | Gắn cờ → push → `CẦN CHÚ Ý` → `[Đã rõ]` đóng cờ | G9 — màn danh sách + `[Đã rõ]` xong, cờ tự hết hạn đã có cron. Phần *push* cần tầng thông báo → **còn nợ** |
 | F8 | `[Đã trả]` → xác nhận dư nợ mới → một transaction | G7 — màn hình xong, dòng xác nhận hiện **trước khi bấm**. Tầng DB ✅ G2; nghiệm thu đầu-cuối cần cloud + một khoản nợ thật |
-| F10 | Mua → webhook → mở khoá cho **cả hai** | G9 |
+| F10 | Mua → webhook → mở khoá cho **cả hai** | G10 — chờ EAS build + sản phẩm khai trên store |
 
 ## Không làm ở MVP (`04 §9`)
 

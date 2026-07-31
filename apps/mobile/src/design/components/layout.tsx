@@ -18,7 +18,7 @@ export interface ScreenProps extends ViewProps {
 }
 
 export function Screen({ children, scroll = false, surface = 'white', className, ...rest }: ScreenProps) {
-  const bg = surface === 'white' ? 'bg-white' : 'bg-page';
+  const bg = surface === 'white' ? 'bg-white' : 'bg-canvas';
   const body = scroll ? (
     <ScrollView
       className="flex-1"
@@ -47,8 +47,8 @@ export function Card({ children, emphasis = 'none', className, ...rest }: CardPr
   return (
     <View
       className={[
-        'rounded-card border bg-white p-4',
-        emphasis === 'brand' ? 'border-iris-100' : 'border-line',
+        'rounded-status border bg-white p-4',
+        emphasis === 'brand' ? 'border-brand-soft' : 'border-line',
         className,
       ]
         .filter(Boolean)

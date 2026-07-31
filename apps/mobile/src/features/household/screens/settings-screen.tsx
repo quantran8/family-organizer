@@ -61,7 +61,7 @@ export function SettingsScreen() {
           onChangeText={setDisplayName}
           onBlur={saveDisplayName}
           placeholder={t.setup.displayNamePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.settings.displayName}
           maxLength={50}
           className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
@@ -87,7 +87,7 @@ export function SettingsScreen() {
       </View>
 
       {signOut.isError ? (
-        <Text className="mt-3 text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="mt-3 text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-8" />

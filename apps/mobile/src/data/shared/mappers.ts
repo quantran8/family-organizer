@@ -26,7 +26,7 @@ import type {
   Task,
   TaskInstance,
   UpcomingPayment,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 
 import type {
   AssetRow,
@@ -290,6 +290,7 @@ export function toDocument(
     remindLeadDays: r.remind_lead_days,
     physicalLocation: r.physical_location,
     externalLink: r.external_link,
+    notes: r.notes,
     renewalCost: numOrNull(r.renewal_cost),
     eventId: r.event_id,
     debtId: r.debt_id,

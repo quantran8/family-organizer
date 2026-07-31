@@ -6,7 +6,7 @@
  * phiên, và một lượt round-trip cho mỗi lần tạo bản ghi là lãng phí thấy rõ.
  */
 
-import { AppErrorException, type UUID } from '@nhaminh/domain';
+import { AppErrorException, type UUID } from '@family-organizer/domain';
 
 import { supabase } from '@/lib/supabase';
 import { unwrap } from './errors';

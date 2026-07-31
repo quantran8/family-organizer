@@ -25,7 +25,7 @@ import {
   weekdayOf,
   type Task,
   type UUID,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -167,7 +167,7 @@ function TodayHeader({ today, householdName }: { today: string; householdName: s
 
   return (
     <View className="flex-row items-center gap-4 pt-2">
-      <View className="h-14 w-14 items-center justify-center rounded-icon bg-subtle">
+      <View className="h-14 w-14 items-center justify-center rounded-icon bg-soft">
         <Text className="text-heading font-semibold text-ink" style={{ fontVariant: ['tabular-nums'] }}>
           {c.day}
         </Text>
@@ -178,7 +178,7 @@ function TodayHeader({ today, householdName }: { today: string; householdName: s
 
       <View className="flex-1">
         <Text className="text-title1 font-semibold text-ink">{householdName}</Text>
-        <Text className="text-caption text-tertiary">
+        <Text className="text-caption text-subtle">
           {`${weekdayName(weekdayOf(today))} · ${t.event.calendarLunar} ${lunar.day}/${lunar.month}`}
         </Text>
       </View>
@@ -264,7 +264,7 @@ function FinanceCard({ today, onPress }: { today: string; onPress: () => void })
       <Card>
         <StatusPill status={status} />
         <Text className="mt-2 text-body text-ink">{financeReasonText(reason)}</Text>
-        <Text className="mt-1 text-caption text-tertiary">
+        <Text className="mt-1 text-caption text-subtle">
           {metrics.lastUpdatedOn
             ? lastUpdatedText(formatDueLabel(metrics.lastUpdatedOn, today))
             : t.financeStatus.neverUpdated}

@@ -6,7 +6,7 @@
  * cùng một khoản — thứ phá niềm tin nhanh nhất trong một app về tiền chung.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { financeAffectedKeys, queryKeys } from './keys';

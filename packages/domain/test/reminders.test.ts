@@ -50,6 +50,7 @@ function doc(over: Partial<FamilyDocument> = {}): FamilyDocument {
     remindLeadDays: DEFAULT_LEAD_DAYS.document,
     physicalLocation: null,
     externalLink: null,
+    notes: null,
     renewalCost: null,
     eventId: null,
     debtId: null,

@@ -14,7 +14,7 @@
  */
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { isAppErrorException } from '@nhaminh/domain';
+import { isAppErrorException } from '@family-organizer/domain';
 import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
@@ -57,7 +57,7 @@ export function SignInScreen() {
 
         <View className="my-6 flex-row items-center gap-3">
           <View className="h-px flex-1 bg-line" />
-          <Text className="text-caption text-tertiary">{t.auth.or}</Text>
+          <Text className="text-caption text-subtle">{t.auth.or}</Text>
           <View className="h-px flex-1 bg-line" />
         </View>
 
@@ -102,13 +102,13 @@ export function SignInScreen() {
         />
 
         {signIn.isError ? (
-          <Text className="mb-3 text-caption text-danger">{signInErrorText(signIn.error, t)}</Text>
+          <Text className="mb-3 text-caption text-critical">{signInErrorText(signIn.error, t)}</Text>
         ) : null}
 
         <Button label={t.common.continue} loading={signIn.isPending} onPress={onSubmit} />
 
         <Link href="/(auth)/forgot-password" asChild>
-          <Text className="mt-5 self-center text-label font-medium text-iris-500">
+          <Text className="mt-5 self-center text-label font-medium text-brand">
             {t.auth.forgotPassword}
           </Text>
         </Link>

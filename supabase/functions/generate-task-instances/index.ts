@@ -16,7 +16,7 @@
  * Cron: mỗi ngày. Cũng gọi được thẳng để vật hoá ngay sau khi tạo việc lặp mới.
  */
 
-import { expandRecurrence, type ISODate, type Recurrence } from '@nhaminh/domain';
+import { expandRecurrence, type ISODate, type Recurrence } from '@family-organizer/domain';
 
 import { jsonResponse, serviceClient, todayInVN } from '../_shared/client.ts';
 

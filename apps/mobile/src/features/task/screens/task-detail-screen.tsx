@@ -10,7 +10,7 @@
  * — dữ liệu cần cho chính giả thuyết đang validate.
  */
 
-import { formatDueLabel, type ISODate, type RecurFreq, type UUID } from '@nhaminh/domain';
+import { formatDueLabel, type ISODate, type RecurFreq, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
@@ -132,7 +132,7 @@ export function TaskDetailScreen() {
       </View>
 
       {task.dueDate ? (
-        <Text className="ml-9 mt-1 text-caption text-tertiary">
+        <Text className="ml-9 mt-1 text-caption text-subtle">
           {dueLabelText(formatDueLabel(task.dueDate, today))}
         </Text>
       ) : null}
@@ -195,7 +195,7 @@ export function TaskDetailScreen() {
           onChangeText={setNotes}
           onBlur={saveNotes}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.task.fieldNotes}
           multiline
           numberOfLines={3}
@@ -232,13 +232,13 @@ function RecentDone({ taskId }: { taskId: UUID }) {
       {isPending ? (
         <ListSkeleton rows={2} />
       ) : (instances ?? []).length === 0 ? (
-        <Text className="text-body text-tertiary">{t.task.noRecentDone}</Text>
+        <Text className="text-body text-subtle">{t.task.noRecentDone}</Text>
       ) : (
         (instances ?? []).map((inst, i) => (
           <View key={inst.id}>
             {i > 0 ? <Divider /> : null}
             <View className="min-h-touch flex-row items-center gap-3 py-3">
-              <Text className="text-caption text-ok">✓</Text>
+              <Text className="text-caption text-positive">✓</Text>
               <Text className="text-body text-ink">{fullSolarDate(inst.dueDate)}</Text>
             </View>
           </View>

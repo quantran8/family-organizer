@@ -70,7 +70,7 @@ export function QuickAddScreen() {
         value={title}
         onChangeText={setTitle}
         placeholder={t.task.fieldTitlePlaceholder}
-        placeholderTextColor="#96968F"
+        placeholderTextColor="#A4A4AD"
         accessibilityLabel={t.task.fieldTitle}
         returnKeyType="done"
         onSubmitEditing={save}
@@ -79,13 +79,14 @@ export function QuickAddScreen() {
       />
 
       {createTask.isError ? (
-        <Text className="mt-2 text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="mt-2 text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       {/* Đường sang các loại khác. `replace` chứ không `push`: sheet thêm nhanh
           không phải một bước người dùng muốn quay lại sau khi đã sang form đầy đủ.
           Thứ tự theo tần suất thêm, không theo thứ tự tab: việc → sự kiện →
-          khoản sắp trả → khoản tiền. Giấy tờ lên ở G8. */}
+          khoản sắp trả → khoản tiền → giấy tờ. Giấy tờ đứng cuối vì nó là thứ
+          thêm thưa nhất — vài lần một năm, không phải vài lần một tuần. */}
       <View className="mt-6 flex-row flex-wrap gap-2">
         <QuickLink
           label={t.quickAdd.task}
@@ -103,6 +104,10 @@ export function QuickAddScreen() {
           label={t.quickAdd.asset}
           onPress={() => router.replace('/(modals)/asset-form')}
         />
+        <QuickLink
+          label={t.quickAdd.doc}
+          onPress={() => router.replace('/(modals)/doc-form')}
+        />
       </View>
     </Sheet>
   );
@@ -115,7 +120,7 @@ function QuickLink({ label, onPress }: { label: string; onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className="min-h-touch justify-center rounded-full border border-line px-4 active:bg-subtle"
+      className="min-h-touch justify-center rounded-full border border-line px-4 active:bg-soft"
     >
       <Text className="text-label font-medium text-ink">{label}</Text>
     </Pressable>

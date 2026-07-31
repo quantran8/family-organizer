@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeFinanceStatus, explainFinanceStatus } from '../src/finance/status.js';
 import { inferLiquidity } from '../src/finance/liquidity.js';
+import { debtPaidAmount, progressPct } from '../src/finance/progress.js';
 import { ASSET_KINDS, type Liquidity } from '../src/types/base.js';
 import type { FinanceMetrics } from '../src/types/views.js';
 
@@ -143,5 +144,67 @@ describe('inferLiquidity — phủ hết AssetKind (03 §9)', () => {
 
   it('không bỏ sót loại nào', () => {
     expect(ASSET_KINDS).toHaveLength(Object.keys(expected).length);
+  });
+});
+
+/**
+ * Tiến độ — G9.
+ *
+ * Ba ca biên không kiểm được trong JSX, và cả ba đều xảy ra thật.
+ */
+describe('progressPct', () => {
+  it('kẹp 0–100 và làm tròn', () => {
+    expect(progressPct(0, 100)).toBe(0);
+    expect(progressPct(40, 100)).toBe(40);
+    expect(progressPct(1, 3)).toBe(33);
+  });
+
+  // Góp vượt mục tiêu: thanh phải ĐẦY, không tràn ra ngoài khung.
+  it('vượt mục tiêu vẫn là 100, không hơn', () => {
+    expect(progressPct(150, 100)).toBe(100);
+  });
+
+  // Mục tiêu chưa đặt số. Chia cho 0 ra Infinity, và `width: Infinity%` là một
+  // thuộc tính style không hợp lệ — React Native bỏ qua im lặng, thanh vẽ rỗng
+  // trông y hệt 0% nên bug này không bao giờ tự lộ ra.
+  it('mẫu số 0 hoặc âm ra 0, không phải Infinity hay NaN', () => {
+    expect(progressPct(50, 0)).toBe(0);
+    expect(progressPct(50, -100)).toBe(0);
+  });
+
+  it('current âm vẫn kẹp về 0', () => {
+    expect(progressPct(-10, 100)).toBe(0);
+  });
+});
+
+describe('debtPaidAmount', () => {
+  it('gốc trừ dư nợ', () => {
+    expect(debtPaidAmount(500_000_000, 320_000_000)).toBe(180_000_000);
+  });
+
+  it('vừa vay xong, chưa trả đồng nào', () => {
+    expect(debtPaidAmount(500_000_000, 500_000_000)).toBe(0);
+  });
+
+  it('trả xong', () => {
+    expect(debtPaidAmount(500_000_000, 0)).toBe(500_000_000);
+  });
+
+  /**
+   * Chưa nhập gốc thì KHÔNG BIẾT đã trả bao nhiêu — phải trả `null` để UI ẩn
+   * hẳn thanh tiến độ. Trả 0 sẽ nói với người dùng rằng họ chưa trả đồng nào
+   * cho một khoản họ đã trả hai năm.
+   */
+  it('chưa nhập gốc ra null, KHÔNG phải 0', () => {
+    expect(debtPaidAmount(null, 320_000_000)).toBeNull();
+    expect(debtPaidAmount(0, 320_000_000)).toBeNull();
+  });
+
+  /**
+   * Dư nợ lớn hơn gốc: xảy ra thật khi người dùng nhập gốc chưa gồm lãi. Kẹp
+   * sàn ở 0 — một con số âm ở đây đi thẳng vào `progressPct` rồi vào `width`.
+   */
+  it('dư nợ lớn hơn gốc thì kẹp về 0, không ra số âm', () => {
+    expect(debtPaidAmount(300_000_000, 320_000_000)).toBe(0);
   });
 });

@@ -64,7 +64,7 @@ export function ResetPasswordScreen() {
         />
 
         {update.isError ? (
-          <Text className="mb-3 text-caption text-danger">{t.error.unknown}</Text>
+          <Text className="mb-3 text-caption text-critical">{t.error.unknown}</Text>
         ) : null}
 
         <Button label={t.auth.resetSave} loading={update.isPending} onPress={onSubmit} />

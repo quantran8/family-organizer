@@ -97,7 +97,7 @@ export function JoinScreen() {
 
         {/* Hiện mã ở dạng ĐỌC, không phải ô nhập: nó là thông tin xác nhận
             ("đúng lời mời này"), không phải thứ B phải làm gì với nó. */}
-        <View className="mb-6 mt-4 self-start rounded-control bg-subtle px-4 py-2">
+        <View className="mb-6 mt-4 self-start rounded-control bg-soft px-4 py-2">
           <Text
             className="text-title2 font-semibold tracking-[4px] text-ink"
             style={{ fontVariant: ['tabular-nums'] }}
@@ -126,10 +126,10 @@ export function JoinScreen() {
         />
 
         {errors.code ? (
-          <Text className="mb-3 text-caption text-danger">{errors.code.message}</Text>
+          <Text className="mb-3 text-caption text-critical">{errors.code.message}</Text>
         ) : null}
         {redeem.isError ? (
-          <Text className="mb-3 text-caption text-danger">{t.error.inviteInvalid}</Text>
+          <Text className="mb-3 text-caption text-critical">{t.error.inviteInvalid}</Text>
         ) : null}
 
         <Button

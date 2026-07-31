@@ -24,9 +24,9 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#7457E8',
-        tabBarInactiveTintColor: '#96968F',
-        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#EAEAE5' },
+        tabBarActiveTintColor: '#6257F6',
+        tabBarInactiveTintColor: '#A4A4AD',
+        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#ECECF0' },
         tabBarLabelStyle: { fontSize: 11, fontFamily: 'BeVietnamPro_500Medium' },
       }}
     >

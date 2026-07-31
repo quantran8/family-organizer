@@ -41,7 +41,7 @@ export function Checkbox({ checked, onToggle, disabled = false }: CheckboxProps)
       <View
         className={[
           'h-6 w-6 items-center justify-center rounded-full border-2',
-          checked ? 'border-iris-500 bg-iris-500' : 'border-line-strong bg-white',
+          checked ? 'border-brand bg-brand' : 'border-subtle bg-white',
         ].join(' ')}
       >
         {checked ? <Text className="text-caption font-semibold text-white">✓</Text> : null}

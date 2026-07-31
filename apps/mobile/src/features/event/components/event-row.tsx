@@ -14,7 +14,7 @@
  * ô trống hay dấu gạch ở chỗ đáng lẽ là ngày âm.
  */
 
-import { formatLunarLabel, type FamilyEvent } from '@nhaminh/domain';
+import { formatLunarLabel, type FamilyEvent } from '@family-organizer/domain';
 import { Pressable, Text, View } from 'react-native';
 
 import { shortSolarDate, useT, weekdayShort } from '@/i18n';
@@ -43,10 +43,11 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
       accessibilityRole="button"
       accessibilityLabel={event.title}
       onPress={onPress}
-      className="min-h-touch flex-row items-start gap-3 py-3 active:bg-subtle"
+      className="min-h-touch flex-row items-start gap-3 py-3 active:bg-soft"
     >
-      {/* Dấu ◆ nhận diện "đây là sự kiện", cùng màu module sự kiện. */}
-      <Text className="mt-0.5 text-caption text-event">◆</Text>
+      {/* Dấu ◆ nhận diện "đây là sự kiện". Màu brand vì nó là ngữ cảnh thời
+          gian (design.md §5.3), không phải một màu module riêng. */}
+      <Text className="mt-0.5 text-caption text-brand">◆</Text>
 
       <View className="flex-1">
         <View className="flex-row items-start justify-between gap-3">
@@ -56,7 +57,7 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
 
           <View className="items-end">
             {lunar ? (
-              <Text className="text-caption font-medium text-event">
+              <Text className="text-caption font-medium text-brand-deep">
                 {`${lunar.lunarDay}/${lunar.lunarMonth}${lunar.isLeapMonth ? ' N' : ''} ${t.event.lunarSuffix}`}
               </Text>
             ) : null}
@@ -67,7 +68,7 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
             ) : (
               // Sự kiện âm lịch vừa tạo, Edge chưa tính xong. Nói thẳng thay vì
               // để trống — chỗ trống ở đúng vị trí ngày trông như dữ liệu hỏng.
-              <Text className="text-caption text-tertiary">{t.event.pendingDate}</Text>
+              <Text className="text-caption text-subtle">{t.event.pendingDate}</Text>
             )}
           </View>
         </View>
@@ -75,7 +76,7 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
         {subParts.length > 0 || event.estimatedCost !== null ? (
           <View className="mt-0.5 flex-row items-center gap-2">
             {subParts.length > 0 ? (
-              <Text className="text-caption text-tertiary">{subParts.join(' · ')}</Text>
+              <Text className="text-caption text-subtle">{subParts.join(' · ')}</Text>
             ) : null}
             {event.estimatedCost !== null ? (
               <MoneyText amount={event.estimatedCost} size="caption" tone="muted" short />

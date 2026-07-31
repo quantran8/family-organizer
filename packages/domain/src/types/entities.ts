@@ -165,6 +165,12 @@ export interface FamilyDocument {
   /** Trường quan trọng nhất trên màn chi tiết — 05 §7.2. */
   physicalLocation: string | null;
   externalLink: string | null;
+  /**
+   * Thiếu ở G2 (cột `documents.notes` có, `DocumentInput` có, mapper cũng ghi
+   * xuống — chỉ entity là không khai). Bốn thực thể khác đều có `notes`, nên
+   * đây là một chỗ sót chứ không phải một quyết định.
+   */
+  notes: string | null;
   renewalCost: number | null;
   eventId: UUID | null;
   debtId: UUID | null;

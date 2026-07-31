@@ -1,7 +1,7 @@
 {
   "imports": {
-    "@nhaminh/domain": "../packages/domain/src/index.ts",
-    "@nhaminh/domain/": "../packages/domain/src/",
+    "@family-organizer/domain": "../packages/domain/src/index.ts",
+    "@family-organizer/domain/": "../packages/domain/src/",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }
 }

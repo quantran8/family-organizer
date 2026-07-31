@@ -2,7 +2,7 @@
  * zod schema cho form Sự kiện — màn cần cẩn thận nhất (05 §5.5).
  */
 
-import { EVENT_KINDS, FAMILY_SIDES } from '@nhaminh/domain';
+import { EVENT_KINDS, FAMILY_SIDES } from '@family-organizer/domain';
 import { z } from 'zod';
 
 import {

@@ -6,7 +6,7 @@
  * tâm provider nào.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 import type { Session } from '@supabase/supabase-js';
 
 export interface HouseholdSummary {

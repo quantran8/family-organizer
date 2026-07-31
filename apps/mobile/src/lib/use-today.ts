@@ -10,7 +10,7 @@
  * một lần tới 00:00 UTC+7 kế tiếp thay vì đếm mỗi phút.
  */
 
-import type { ISODate } from '@nhaminh/domain';
+import type { ISODate } from '@family-organizer/domain';
 import { useEffect, useState } from 'react';
 
 import { todayInVN } from './today';

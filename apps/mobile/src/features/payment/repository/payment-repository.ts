@@ -7,7 +7,7 @@ import type { UpcomingPaymentRow } from '@/lib/database.types';
 import { unwrap, unwrapMaybe, unwrapVoid } from '@/data/shared/errors';
 import { fromRecurrence, toPayment } from '@/data/shared/mappers';
 import { currentProfileId } from '@/data/shared/session';
-import { addDays } from '@nhaminh/domain';
+import { addDays } from '@family-organizer/domain';
 
 import type { PaymentInput, PaymentRepository } from './payment-repository.interface';
 

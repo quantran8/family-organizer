@@ -41,7 +41,7 @@ export function ForgotPasswordScreen() {
 
         {reset.isSuccess ? (
           <>
-            <Text className="mb-6 text-body text-ok">{t.auth.forgotSent}</Text>
+            <Text className="mb-6 text-body text-positive">{t.auth.forgotSent}</Text>
             <Button label={t.common.back} variant="secondary" onPress={() => router.back()} />
           </>
         ) : (

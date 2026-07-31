@@ -25,7 +25,7 @@
  * phải biết sự kiện thuộc loại lịch nào.
  */
 
-import { nextLunarOccurrence, type ISODate } from '@nhaminh/domain';
+import { nextLunarOccurrence, type ISODate } from '@family-organizer/domain';
 
 import { jsonResponse, serviceClient, todayInVN } from '../_shared/client.ts';
 

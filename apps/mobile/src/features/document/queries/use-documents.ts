@@ -6,7 +6,7 @@
  * gốc trên máy.
  */
 
-import { canUpload, type CanUploadResult, type ISODate, type UUID } from '@nhaminh/domain';
+import { canUpload, type CanUploadResult, type ISODate, type UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateHomeFeed } from '@/data/queries/invalidate';
@@ -27,11 +27,19 @@ export function useDocuments(filter: DocumentFilter, today: ISODate) {
   });
 }
 
-export function useDocument(id: UUID) {
+/**
+ * Nhận `null` — cùng lý do với `useAsset` / `usePayment` / `useDebt` ở G7b.
+ *
+ * `document-form` dùng chung cho tạo mới lẫn sửa. Thiếu `enabled` thì mỗi lần
+ * mở form tạo mới bắn một query với id rỗng, Postgres từ chối vì không phải
+ * uuid hợp lệ, và màn hình hiện lỗi cho một thứ người dùng chưa hề làm.
+ */
+export function useDocument(id: UUID | null) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.documents.detail(hh, id),
-    queryFn: () => documentRepository.get(hh, id),
+    queryKey: queryKeys.documents.detail(hh, id ?? ('' as UUID)),
+    queryFn: () => documentRepository.get(hh, id as UUID),
+    enabled: id !== null,
   });
 }
 

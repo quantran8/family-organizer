@@ -20,7 +20,7 @@ import {
   previousLunarOccurrence,
   weekdayOf,
   type UUID,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Pressable, Text, View } from 'react-native';
 
@@ -34,6 +34,7 @@ import {
   Screen,
   SectionHeader,
 } from '@/design/components';
+import { useDocumentsByEvent } from '@/features/document/queries/use-documents';
 import { useDeleteEvent, useEvent } from '@/features/event/queries/use-events';
 import { usePaymentsByEvent } from '@/features/payment/queries/use-payments';
 import { useSetTaskDone, useTasksByEvent } from '@/features/task/queries/use-tasks';
@@ -50,6 +51,7 @@ export function EventDetailScreen() {
   const { data: event, isPending, isError, refetch } = useEvent(eventId);
   const { data: tasks } = useTasksByEvent(eventId);
   const { data: payments } = usePaymentsByEvent(eventId);
+  const { data: eventDocs } = useDocumentsByEvent(eventId);
   const setDone = useSetTaskDone();
   const remove = useDeleteEvent();
 
@@ -111,17 +113,17 @@ export function EventDetailScreen() {
             {`${weekdayName(weekdayOf(solar))} ${parseISODate(solar).day}/${parseISODate(solar).month}/${parseISODate(solar).year}`}
           </Text>
         ) : (
-          <Text className="text-body text-tertiary">{t.event.pendingDate}</Text>
+          <Text className="text-body text-subtle">{t.event.pendingDate}</Text>
         )}
         {lunar ? (
-          <Text className="text-body font-medium text-event">
+          <Text className="text-body font-medium text-brand-deep">
             {`${lunar.lunarDay}/${lunar.lunarMonth}${lunar.isLeapMonth ? ' nhuận' : ''} ${t.event.lunarSuffix}`}
           </Text>
         ) : null}
       </View>
 
       <View className="mt-1 flex-row flex-wrap items-center gap-2">
-        <Text className="text-caption text-tertiary">
+        <Text className="text-caption text-subtle">
           {[event.side ? t.familySide[event.side] : null, event.location]
             .filter(Boolean)
             .join(' · ')}
@@ -129,7 +131,7 @@ export function EventDetailScreen() {
       </View>
 
       {lastYear ? (
-        <Text className="mt-1 text-caption text-tertiary">
+        <Text className="mt-1 text-caption text-subtle">
           {f(t.event.lastYear, { date: fullSolarDate(lastYear) })}
         </Text>
       ) : null}
@@ -141,7 +143,7 @@ export function EventDetailScreen() {
       {/* ── VIỆC CẦN CHUẨN BỊ ── */}
       <SectionHeader title={t.event.sectionTasks} />
       {(tasks ?? []).length === 0 ? (
-        <Text className="text-body text-tertiary">{t.event.noneYet}</Text>
+        <Text className="text-body text-subtle">{t.event.noneYet}</Text>
       ) : (
         (tasks ?? []).map((task, i) => (
           <View key={task.id}>
@@ -158,7 +160,7 @@ export function EventDetailScreen() {
                 className="flex-1"
               >
                 <Text
-                  className={`text-body ${task.status === 'done' ? 'text-tertiary line-through' : 'text-ink'}`}
+                  className={`text-body ${task.status === 'done' ? 'text-subtle line-through' : 'text-ink'}`}
                 >
                   {task.title}
                 </Text>
@@ -171,7 +173,7 @@ export function EventDetailScreen() {
       {/* ── CHI PHÍ ── */}
       <SectionHeader title={t.event.sectionCosts} />
       {(payments ?? []).length === 0 ? (
-        <Text className="text-body text-tertiary">{t.event.noneYet}</Text>
+        <Text className="text-body text-subtle">{t.event.noneYet}</Text>
       ) : (
         (payments ?? []).map((p, i) => (
           <View key={p.id}>
@@ -184,18 +186,32 @@ export function EventDetailScreen() {
         ))
       )}
 
-      {/* ── GIẤY TỜ ──
-          Danh sách giấy tờ gắn sự kiện lên ở G8 cùng tầng upload. Mục vẫn có
-          mặt để cấu trúc màn hình ổn định — người dùng học được "sự kiện gom cả
-          giấy tờ" ngay từ bây giờ, không phải học lại khi G8 xong. */}
+      {/* ── GIẤY TỜ ── Mục này có mặt từ G6 (khi đó còn rỗng) để cấu trúc màn
+          hình ổn định; G8 điền nội dung thật vào. */}
       <SectionHeader title={t.event.sectionDocs} />
-      <Text className="text-body text-tertiary">{t.event.noneYet}</Text>
+      {(eventDocs ?? []).length === 0 ? (
+        <Text className="text-body text-subtle">{t.event.noneYet}</Text>
+      ) : (
+        (eventDocs ?? []).map((d) => (
+          <Pressable
+            key={d.id}
+            accessibilityRole="button"
+            accessibilityLabel={d.title}
+            onPress={() => router.push({ pathname: '/(app)/docs/[id]', params: { id: d.id } })}
+            className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-soft"
+          >
+            <Text numberOfLines={1} className="flex-1 text-body text-ink">
+              {d.title}
+            </Text>
+            <Text className="text-body text-subtle">›</Text>
+          </Pressable>
+        ))
+      )}
 
       {/*
         Ba nút tạo bản ghi ĐÃ GẮN SẴN eventId.
-        "Thêm việc" từ G6, "Thêm khoản" mở khoá ở G7 cùng form khoản sắp trả.
-        "Gắn giấy tờ" còn tắt, chờ tầng upload ở G8: giấu nó rồi thêm lại sau sẽ
-        đổi hình dạng màn hình mà người dùng đã quen.
+        "Thêm việc" từ G6, "Thêm khoản" mở khoá ở G7 cùng form khoản sắp trả,
+        "Gắn giấy tờ" mở khoá ở G8 cùng form giấy tờ.
       */}
       <View className="mt-8 gap-3">
         <Button
@@ -212,7 +228,13 @@ export function EventDetailScreen() {
             router.push({ pathname: '/(modals)/payment-form', params: { eventId } })
           }
         />
-        <Button label={t.event.attachDoc} variant="secondary" disabled />
+        <Button
+          label={t.event.attachDoc}
+          variant="secondary"
+          onPress={() =>
+            router.push({ pathname: '/(modals)/doc-form', params: { eventId } })
+          }
+        />
       </View>
 
       <View className="mt-10">

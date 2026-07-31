@@ -27,7 +27,7 @@
  * thành một hành vi bị ghi nhận, và nó là ràng buộc sản phẩm, không phải văn phong.
  */
 
-import { computeFinanceStatus, type FinanceMetrics } from '@nhaminh/domain';
+import { computeFinanceStatus, type FinanceMetrics } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
@@ -203,7 +203,7 @@ export function SnapshotUpdateScreen() {
           value={note}
           onChangeText={setNote}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.common.note}
           multiline
           numberOfLines={2}
@@ -214,7 +214,7 @@ export function SnapshotUpdateScreen() {
       </Field>
 
       {createSnapshot.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

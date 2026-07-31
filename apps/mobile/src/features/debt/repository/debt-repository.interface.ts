@@ -8,7 +8,7 @@
  * phải ở đây.
  */
 
-import type { Debt, ISODate, Recurrence, UUID } from '@nhaminh/domain';
+import type { Debt, ISODate, Recurrence, UUID } from '@family-organizer/domain';
 
 export interface DebtInput {
   name: string;

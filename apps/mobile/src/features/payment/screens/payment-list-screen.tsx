@@ -14,7 +14,7 @@
  * ngày đến hạn, trung thực hơn một state riêng.
  */
 
-import { formatDueLabel, type UpcomingPayment } from '@nhaminh/domain';
+import { formatDueLabel, type UpcomingPayment } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -137,16 +137,16 @@ function PaymentRow({
       accessibilityRole="button"
       accessibilityLabel={payment.name}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-subtle"
+      className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-soft"
     >
       <View className="flex-1">
         <Text
           numberOfLines={1}
-          className={`text-body ${payment.state === 'paid' ? 'text-tertiary' : 'text-ink'}`}
+          className={`text-body ${payment.state === 'paid' ? 'text-subtle' : 'text-ink'}`}
         >
           {payment.name}
         </Text>
-        <Text className={`mt-0.5 text-caption ${isOverdue ? 'text-danger' : 'text-tertiary'}`}>
+        <Text className={`mt-0.5 text-caption ${isOverdue ? 'text-critical' : 'text-subtle'}`}>
           {due
             ? dueLabelText(due)
             : // Khoản chỉ biết tháng ("học phí tháng 9") — hiện tháng, không bịa ra ngày.
@@ -161,7 +161,7 @@ function PaymentRow({
         size="body"
         tone={payment.state === 'paid' ? 'muted' : 'default'}
       />
-      <Text className="text-body text-line-strong">›</Text>
+      <Text className="text-body text-subtle">›</Text>
     </Pressable>
   );
 }

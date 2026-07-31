@@ -2,7 +2,7 @@
  * zod schema cho form Tài sản.
  */
 
-import { ASSET_KINDS, LIQUIDITIES } from '@nhaminh/domain';
+import { ASSET_KINDS, LIQUIDITIES } from '@family-organizer/domain';
 import { z } from 'zod';
 
 import { isoDate, money, optionalText, requiredText, uuid } from '@/data/schemas/common';

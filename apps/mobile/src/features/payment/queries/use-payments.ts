@@ -2,7 +2,7 @@
  * Hook đọc/ghi Khoản sắp phải trả.
  */
 
-import type { ISODate, UpcomingPayment, UUID } from '@nhaminh/domain';
+import type { ISODate, UpcomingPayment, UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateFinance } from '@/data/queries/invalidate';

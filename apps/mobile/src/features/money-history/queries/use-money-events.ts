@@ -11,8 +11,8 @@
  * như một mẩu ngữ cảnh ("Chồng cập nhật"), không bao giờ là một chiều để gộp.
  */
 
-import type { ISODate, MoneyEntityType, MoneyEvent, UUID } from '@nhaminh/domain';
-import { groupEventsByDay } from '@nhaminh/domain';
+import type { ISODate, MoneyEntityType, MoneyEvent, UUID } from '@family-organizer/domain';
+import { groupEventsByDay } from '@family-organizer/domain';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';

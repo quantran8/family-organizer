@@ -9,7 +9,7 @@
  * household từ biến toàn cục.
  */
 
-import type { FinanceMetrics, HomeFeedItem, Household, ISODate, UUID } from '@nhaminh/domain';
+import type { FinanceMetrics, HomeFeedItem, Household, ISODate, UUID } from '@family-organizer/domain';
 
 export interface HouseholdPatch {
   name?: string;

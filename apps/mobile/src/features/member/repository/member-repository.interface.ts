@@ -5,7 +5,7 @@
  * profile_id = null (schema §1). Đó là lý do members tách khỏi profiles.
  */
 
-import type { ISODate, Member, MemberRole, UUID } from '@nhaminh/domain';
+import type { ISODate, Member, MemberRole, UUID } from '@family-organizer/domain';
 
 export interface MemberInput {
   displayName: string;

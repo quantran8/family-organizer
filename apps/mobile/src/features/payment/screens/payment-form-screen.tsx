@@ -22,7 +22,7 @@
  * nợ của một khoản nợ không liên quan.
  */
 
-import type { ISODate, UUID } from '@nhaminh/domain';
+import type { ISODate, UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
@@ -152,7 +152,7 @@ export function PaymentFormScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.common.note}
           multiline
           numberOfLines={2}
@@ -163,7 +163,7 @@ export function PaymentFormScreen() {
       </Field>
 
       {createPayment.isError || updatePayment.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

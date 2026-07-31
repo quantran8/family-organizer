@@ -12,7 +12,7 @@
  * như một mục còn thiếu — trong khi họ là bản ghi đầy đủ.
  */
 
-import type { MemberRole } from '@nhaminh/domain';
+import type { MemberRole } from '@family-organizer/domain';
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
@@ -86,7 +86,7 @@ export function HouseholdSettingsScreen() {
           onChangeText={setName}
           onBlur={saveName}
           placeholder={t.app.name}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.settings.householdName}
           maxLength={60}
           className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
@@ -103,21 +103,21 @@ export function HouseholdSettingsScreen() {
             <View className="min-h-touch flex-row items-center gap-3 py-3">
               <MemberAvatar name={m.displayName} />
               <Text className="flex-1 text-body text-ink">{m.displayName}</Text>
-              <Text className="text-caption text-tertiary">{t.memberRole[m.role]}</Text>
+              <Text className="text-caption text-subtle">{t.memberRole[m.role]}</Text>
             </View>
           </View>
         ))
       )}
 
       <SectionHeader title={t.settings.addMember} />
-      <Text className="mb-3 text-caption text-tertiary">{t.settings.addMemberHint}</Text>
+      <Text className="mb-3 text-caption text-subtle">{t.settings.addMemberHint}</Text>
 
       <Field label={t.settings.displayName}>
         <TextInput
           value={newName}
           onChangeText={setNewName}
           placeholder={t.setup.displayNamePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.settings.displayName}
           maxLength={50}
           returnKeyType="done"
@@ -143,7 +143,7 @@ export function HouseholdSettingsScreen() {
       />
 
       {createMember.isError || updateHousehold.isError ? (
-        <Text className="mt-3 text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="mt-3 text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-8" />

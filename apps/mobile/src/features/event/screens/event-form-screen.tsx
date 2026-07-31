@@ -16,8 +16,8 @@
  * trước chỉ hiển thị, không có đường nào từ nó xuống DB.
  */
 
-import type { CalendarType, EventKind, FamilySide, ISODate } from '@nhaminh/domain';
-import { EVENT_KINDS, FAMILY_SIDES } from '@nhaminh/domain';
+import type { CalendarType, EventKind, FamilySide, ISODate } from '@family-organizer/domain';
+import { EVENT_KINDS, FAMILY_SIDES } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
@@ -221,7 +221,7 @@ export function EventFormScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.common.note}
           multiline
           numberOfLines={3}
@@ -232,7 +232,7 @@ export function EventFormScreen() {
       </Field>
 
       {createEvent.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

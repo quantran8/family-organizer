@@ -96,7 +96,7 @@ export const AmountInput = forwardRef<TextInput, AmountInputProps>(function Amou
         'flex-row items-center rounded-control border bg-white px-4',
         // Vùng chạm ≥ 44px — mức sàn không thương lượng (design.md §14).
         'min-h-touch',
-        hasError ? 'border-danger' : 'border-line',
+        hasError ? 'border-critical' : 'border-line',
         className,
       ]
         .filter(Boolean)
@@ -115,7 +115,7 @@ export const AmountInput = forwardRef<TextInput, AmountInputProps>(function Amou
           fontSize: fontSizeFor(toDigits(text).length),
         }}
         className="flex-1 py-3 text-ink"
-        placeholderTextColor="#96968F"
+        placeholderTextColor="#A4A4AD"
         {...rest}
       />
       {showSymbol && currency === 'VND' ? (

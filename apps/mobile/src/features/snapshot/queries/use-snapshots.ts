@@ -2,8 +2,8 @@
  * Hook Ảnh chụp tổng — vòng lặp thói quen của app.
  */
 
-import type { MoneySnapshot } from '@nhaminh/domain';
-import { withDiffs } from '@nhaminh/domain';
+import type { MoneySnapshot } from '@family-organizer/domain';
+import { withDiffs } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateFinance } from '@/data/queries/invalidate';

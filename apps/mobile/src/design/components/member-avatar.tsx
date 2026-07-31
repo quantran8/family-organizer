@@ -12,8 +12,16 @@ import { Text, View } from 'react-native';
 
 import { useT } from '@/i18n';
 
-/** Bảng màu trung tính ấm, không trùng màu trạng thái để không đọc nhầm. */
-const TONES = ['bg-iris-100', 'bg-task-soft', 'bg-event-soft', 'bg-document-soft'] as const;
+/**
+ * Nền avatar — TRUNG TÍNH, cố ý chỉ có hai sắc rất nhạt.
+ *
+ * design.md §5.5: *không gán màu cho thành viên theo giới tính.* Một bảng bốn
+ * màu tươi băm theo tên nghe như vô hại, nhưng với một nhà đúng hai người thì
+ * nó luôn cho ra "một màu của vợ, một màu của chồng" — và ràng buộc lớn nhất
+ * của cả sản phẩm là **hai thành viên được thể hiện ngang nhau**. Nhạt và gần
+ * giống nhau là đúng ý đồ: avatar để phân biệt, không phải để gán danh tính.
+ */
+const TONES = ['bg-soft', 'bg-brand-soft'] as const;
 
 function toneFor(name: string): string {
   let sum = 0;

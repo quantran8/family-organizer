@@ -2,14 +2,19 @@
  * Hiện thực DocumentRepository.
  */
 
-import { addDays } from '@nhaminh/domain';
+import { addDays, AppErrorException, type AppError, type UUID } from '@family-organizer/domain';
 
-import { unwrap, unwrapMaybe, unwrapVoid } from '@/data/shared/errors';
+import { toAppError, unwrap, unwrapMaybe, unwrapVoid } from '@/data/shared/errors';
 import { toDocument } from '@/data/shared/mappers';
 import { currentProfileId } from '@/data/shared/session';
 import type { DocumentFileRow, DocumentRow } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
-import type { DocumentInput, DocumentRepository } from './document-repository.interface';
+import type {
+  DocumentInput,
+  DocumentRepository,
+  PresignRequest,
+  PresignResult,
+} from './document-repository.interface';
 
 /** Sắp hết hạn = trong 30 ngày tới (05 §7.1). */
 const EXPIRING_WINDOW_DAYS = 30;
@@ -50,6 +55,60 @@ type FileForList = Pick<
 >;
 type DocWithFileList = DocumentRow & { document_files: FileForList[] };
 type DocWithFullFiles = DocumentRow & { document_files: DocumentFileRow[] };
+
+/**
+ * Thân lỗi mà ba Edge Function upload trả về.
+ *
+ * Chúng cố ý trả `kind` của `AppError` chứ không dựng câu chữ riêng: app đã có
+ * đủ câu cho từng `kind` ở `i18n.error`, và một câu thứ hai viết trong Edge
+ * Function là một câu không ai rà được bằng lần grep vào `vi.ts`.
+ */
+interface EdgeErrorBody {
+  error?: string;
+  detail?: AppError;
+}
+
+/**
+ * Gọi Edge Function và dịch lỗi thành `AppError` — cùng hợp đồng với `unwrap`.
+ *
+ * `functions.invoke` KHÔNG ném khi server trả 4xx: nó trả về `error` là một
+ * `FunctionsHttpError` với thân response chưa đọc. Không mở thân ra thì
+ * `quota_exceeded` và `premium_required` — hai thứ app có câu chữ riêng và có
+ * đường đi riêng (một cái mời xoá bớt file, một cái mở paywall) — đều rơi
+ * xuống `unknown` và người dùng nhận "Chưa làm được. Thử lại giúp mình nhé"
+ * cho một việc thử lại bao nhiêu lần cũng không xong.
+ */
+async function invokeEdge<T>(name: string, body: Record<string, unknown>): Promise<T> {
+  try {
+    const { data, error } = await supabase.functions.invoke<T>(name, { body });
+    if (error) {
+      // `context` là Response gốc. Đọc được thì lấy đúng `kind` server gửi.
+      const res = (error as { context?: Response }).context;
+      if (res) {
+        const parsed = (await res.json().catch(() => null)) as EdgeErrorBody | null;
+        if (parsed?.detail) throw new AppErrorException(parsed.detail);
+        if (parsed?.error === 'auth') throw new AppErrorException({ kind: 'auth' });
+        if (parsed?.error === 'not_found') throw new AppErrorException({ kind: 'not_found' });
+        if (parsed?.error === 'premium_required') {
+          throw new AppErrorException({ kind: 'premium_required', feature: 'document_files' });
+        }
+        if (parsed?.error) {
+          // `storage_not_configured`, `file_too_large`, `unsupported_type`,
+          // `upload_incomplete` — không có `kind` riêng trong `AppError`, và
+          // thêm bốn kind cho bốn ca hiếm sẽ bắt mọi chỗ `switch` phải xử lý
+          // chúng. Giữ nguyên chuỗi trong `message` để log còn đọc được.
+          throw new AppErrorException({ kind: 'conflict', message: parsed.error });
+        }
+      }
+      throw new AppErrorException(toAppError(error));
+    }
+    if (data === null) throw new AppErrorException({ kind: 'unknown', cause: null });
+    return data;
+  } catch (e) {
+    if (e instanceof AppErrorException) throw e;
+    throw new AppErrorException(toAppError(e));
+  }
+}
 
 export const documentRepository: DocumentRepository = {
   async list(hh, filter, today) {
@@ -180,6 +239,26 @@ export const documentRepository: DocumentRepository = {
    * đúng ngay cả khi trigger vừa lỡ một nhịp. Chỉ đếm file ĐÃ CONFIRM — file
    * pending có thể chưa bao giờ lên tới R2.
    */
+  async presignUpload(req: PresignRequest) {
+    return invokeEdge<PresignResult>('presign-upload', req);
+  },
+
+  async confirmUpload(documentFileId) {
+    await invokeEdge<{ confirmed: boolean }>('confirm-upload', { documentFileId });
+  },
+
+  async signDownloads(fileIds, kind) {
+    // Không có id nào thì không gọi mạng. Màn chi tiết của một giấy tờ chưa có
+    // file nào rơi vào đây mỗi lần mở, và đó là ca thường gặp chứ không hiếm —
+    // "chỉ ghi chỗ để giấy" là đường chính (05 §7.2).
+    if (fileIds.length === 0) return {};
+    const res = await invokeEdge<{ urls: Record<UUID, string> }>('sign-download', {
+      fileIds,
+      kind,
+    });
+    return res.urls ?? {};
+  },
+
   async storageUsedBytes(hh) {
     const rows = await unwrap<{ size_bytes: number }[]>(
       supabase

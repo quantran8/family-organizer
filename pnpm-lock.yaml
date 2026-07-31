@@ -16,7 +16,7 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.83.0(react@19.2.3))
-      '@nhaminh/domain':
+      '@family-organizer/domain':
         specifier: workspace:*
         version: link:../../packages/domain
       '@react-native-async-storage/async-storage':

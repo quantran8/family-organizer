@@ -15,7 +15,7 @@
  * quay ra quay vào ba lần.
  */
 
-import { daysBetween, type Asset, type Liquidity, type UUID } from '@nhaminh/domain';
+import { daysBetween, type Asset, type Liquidity, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -129,7 +129,7 @@ export function AssetListScreen() {
               <Text className="mb-1 text-label font-semibold text-muted">{t.liquidity[g]}</Text>
 
               {rows.length === 0 ? (
-                <Text className="py-3 text-body text-tertiary">{t.event.noneYet}</Text>
+                <Text className="py-3 text-body text-subtle">{t.event.noneYet}</Text>
               ) : (
                 rows.map((a) => (
                   <AssetRow
@@ -190,14 +190,14 @@ function AssetRow({
       accessibilityRole="button"
       accessibilityLabel={asset.name}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-subtle"
+      className="min-h-touch flex-row items-center gap-3 border-b border-line py-3 active:bg-soft"
     >
       <View className="flex-1">
         <Text numberOfLines={1} className="text-body text-ink">
           {asset.name}
         </Text>
         {sub !== '' ? (
-          <Text numberOfLines={1} className="mt-0.5 text-caption text-tertiary">
+          <Text numberOfLines={1} className="mt-0.5 text-caption text-subtle">
             {sub}
           </Text>
         ) : null}
@@ -208,13 +208,13 @@ function AssetRow({
         {/* Chỉ hiện khi số liệu đã cũ. Hiện ngày cập nhật trên MỌI dòng biến
             danh sách thành một bảng kiểm tra ai chăm cập nhật hơn ai. */}
         {staleDays > STALE_DAYS ? (
-          <Text className="mt-0.5 text-micro text-tertiary">
+          <Text className="mt-0.5 text-micro text-subtle">
             {f(t.asset.staleValue, { label: f(t.dueLabel.daysAgo, { days: staleDays }) })}
           </Text>
         ) : null}
       </View>
 
-      <Text className="text-body text-line-strong">›</Text>
+      <Text className="text-body text-subtle">›</Text>
     </Pressable>
   );
 }

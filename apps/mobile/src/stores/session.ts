@@ -8,7 +8,7 @@
  * hook được phép biết ngữ cảnh, repository thì không.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 

@@ -16,7 +16,7 @@
  * xoá lịch sử.
  */
 
-import { describeMoneyEvent, formatDueLabel, type UUID } from '@nhaminh/domain';
+import { describeMoneyEvent, formatDueLabel, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
@@ -97,7 +97,7 @@ export function AssetDetailScreen() {
         <MoneyText amount={asset.currentValue} size="display" />
         {/* Độ mới của con số, bằng nhãn TRUNG TÍNH: "40 ngày trước", không phải
             "Quá hạn 40 ngày" — người dùng chưa hứa sẽ cập nhật nó bao giờ. */}
-        <Text className="mt-1 text-caption text-tertiary">
+        <Text className="mt-1 text-caption text-subtle">
           {f(t.asset.staleValue, { label: agoLabelText(formatDueLabel(asset.asOfDate, today)) })}
         </Text>
       </View>
@@ -105,7 +105,7 @@ export function AssetDetailScreen() {
       {/* Loại · nơi giữ · người giữ.
           Người giữ là NGỮ CẢNH ngang hàng với "ngân hàng nào" (ràng buộc #1) —
           nó trả lời "tiền đang ở đâu", không phải "ai chịu trách nhiệm". */}
-      <View className="mt-6 rounded-card border border-line">
+      <View className="mt-6 rounded-status border border-line">
         <InfoRow label={t.asset.fieldKind} value={t.assetKind[asset.assetKind]} />
         {asset.institution ? (
           <InfoRow label={t.asset.fieldInstitution} value={asset.institution} />
@@ -162,7 +162,7 @@ export function AssetDetailScreen() {
           không phải bằng cách viết lại lịch sử. */}
       <SectionHeader title={t.money.recentChanges} />
       {(events ?? []).length === 0 ? (
-        <Text className="text-body text-tertiary">{t.event.noneYet}</Text>
+        <Text className="text-body text-subtle">{t.event.noneYet}</Text>
       ) : (
         (events ?? []).map((e, i) => {
           const shape = describeMoneyEvent(e);
@@ -172,7 +172,7 @@ export function AssetDetailScreen() {
               <View className="min-h-touch flex-row items-center gap-3 py-3">
                 <View className="flex-1">
                   <Text className="text-body text-ink">{moneyEventText(shape, currency)}</Text>
-                  <Text className="mt-0.5 text-caption text-tertiary">
+                  <Text className="mt-0.5 text-caption text-subtle">
                     {[
                       fullSolarDate(e.occurredOn),
                       e.actorDisplayName
@@ -235,7 +235,7 @@ function InfoRow({
       <Text className="flex-1 text-body text-muted">{label}</Text>
       <Text
         numberOfLines={1}
-        className={`max-w-[55%] text-body ${onPress ? 'text-iris-500' : 'text-ink'}`}
+        className={`max-w-[55%] text-body ${onPress ? 'text-brand' : 'text-ink'}`}
         onPress={onPress}
         // Dòng "Đổi cách phân loại" là một nút thật — khai vai trò để trình đọc
         // màn hình không đọc nó thành một giá trị tĩnh.

@@ -2,7 +2,7 @@
  * Hiện thực InviteRepository.
  */
 
-import { AppErrorException } from '@nhaminh/domain';
+import { AppErrorException } from '@family-organizer/domain';
 
 import { throwAppError, unwrap, unwrapMaybe } from '@/data/shared/errors';
 import { currentProfileId } from '@/data/shared/session';

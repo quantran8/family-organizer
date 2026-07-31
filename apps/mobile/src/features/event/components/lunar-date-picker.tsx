@@ -15,7 +15,7 @@
  * năm nào tháng chạp thiếu thì rơi về 29. Chặn ở đây sẽ bắt họ nhớ sai đi.
  */
 
-import { nextLunarOccurrence, weekdayOf } from '@nhaminh/domain';
+import { nextLunarOccurrence, weekdayOf } from '@family-organizer/domain';
 import { Pressable, Text, View } from 'react-native';
 
 import { lunarPreviewText, useT } from '@/i18n';
@@ -79,7 +79,7 @@ export function LunarDatePicker({
       >
         <View
           className={`h-6 w-6 items-center justify-center rounded-[6px] border-2 ${
-            isLeapMonth ? 'border-iris-500 bg-iris-500' : 'border-line-strong bg-white'
+            isLeapMonth ? 'border-brand bg-brand' : 'border-subtle bg-white'
           }`}
         >
           {isLeapMonth ? (
@@ -124,8 +124,13 @@ function LunarPreview({
   }
 
   return (
-    <View className="rounded-control bg-event-soft px-4 py-3">
-      <Text className="text-body text-event">
+    // Ngày âm là NGỮ CẢNH THỜI GIAN, và đó chính là vai trò của màu brand
+    // (design.md §5.3). Trước đây dùng một "màu module sự kiện" riêng — thứ
+    // design.md §5.4 nói thẳng là không được làm: màu ngữ nghĩa không phải màu
+    // trang trí theo module, và một bảng màu-theo-module thứ hai chạy song song
+    // với bảng ngữ nghĩa làm không màu nào còn nghĩa cố định.
+    <View className="rounded-control bg-brand-soft px-4 py-3">
+      <Text className="text-body text-brand-deep">
         {lunarPreviewText(solar, weekdayOf(solar))}
       </Text>
     </View>

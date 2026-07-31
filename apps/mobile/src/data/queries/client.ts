@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { QueryClient } from '@tanstack/react-query';
 
+import { EPHEMERAL_KEY_SEGMENT } from '@/data/queries/keys';
 import { isAuthError } from '@/data/shared/errors';
 
 /** Dữ liệu gia đình không đổi từng giây. Một phút là đủ tươi. */
@@ -51,7 +52,7 @@ export function createQueryClient(): QueryClient {
 
 export const queryPersister = createAsyncStoragePersister({
   storage: AsyncStorage,
-  key: 'nhaminh.query-cache',
+  key: 'family-organizer.query-cache',
   throttleTime: 2_000,
 });
 
@@ -66,11 +67,19 @@ export const persistOptions = {
   buster: 'v1',
   dehydrateOptions: {
     /**
-     * CHỈ persist query đã thành công. Query lỗi hoặc đang chạy mà ghi xuống
-     * đĩa thì lần mở sau sẽ khôi phục lại đúng trạng thái lỗi đó, và người dùng
-     * thấy màn lỗi trước cả khi có cơ hội thử lại.
+     * Hai điều kiện, cả hai đều bắt buộc.
+     *
+     * 1. CHỈ persist query đã thành công. Query lỗi hoặc đang chạy mà ghi xuống
+     *    đĩa thì lần mở sau sẽ khôi phục lại đúng trạng thái lỗi đó, và người
+     *    dùng thấy màn lỗi trước cả khi có cơ hội thử lại.
+     *
+     * 2. KHÔNG persist URL đã ký (`documents.fileUrls`). Chữ ký R2 sống 15
+     *    phút, cache đĩa sống 7 ngày — khôi phục nó nghĩa là một màn hình đầy
+     *    ảnh vỡ mà truy vấn vẫn báo "thành công", nên không có gì kích hoạt việc
+     *    tải lại. Đây là lý do key đó mang sẵn một đoạn để nhận ra ở đây.
      */
-    shouldDehydrateQuery: (query: { state: { status: string } }) =>
-      query.state.status === 'success',
+    shouldDehydrateQuery: (query: { state: { status: string }; queryKey: readonly unknown[] }) =>
+      query.state.status === 'success' &&
+      !query.queryKey.includes(EPHEMERAL_KEY_SEGMENT),
   },
 } as const;

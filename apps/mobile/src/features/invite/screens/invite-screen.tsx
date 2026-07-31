@@ -71,7 +71,7 @@ export function InviteScreen() {
     <Screen scroll>
       <Text className="mt-2 text-body text-muted">{t.settings.inviteBody}</Text>
 
-      <View className="my-8 items-center rounded-card border border-iris-100 bg-iris-50 py-8">
+      <View className="my-8 items-center rounded-status border border-brand-soft bg-brand-soft py-8">
         {isPending || !code ? (
           <Skeleton className="h-10 w-48" />
         ) : (
@@ -97,13 +97,13 @@ export function InviteScreen() {
           onPress={copy}
           className="min-h-touch items-center justify-center"
         >
-          <Text className="text-label font-medium text-iris-500">
+          <Text className="text-label font-medium text-brand">
             {copied ? t.settings.inviteCopied : t.settings.inviteCopy}
           </Text>
         </Pressable>
       </View>
 
-      <Text className="mt-8 text-caption text-tertiary">{t.settings.inviteExpiry}</Text>
+      <Text className="mt-8 text-caption text-subtle">{t.settings.inviteExpiry}</Text>
     </Screen>
   );
 }

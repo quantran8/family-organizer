@@ -12,7 +12,7 @@
  * (05 §Quy ước điều hướng).
  */
 
-import type { ISODate, RecurFreq, Recurrence, UUID } from '@nhaminh/domain';
+import type { ISODate, RecurFreq, Recurrence, UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
@@ -159,7 +159,7 @@ export function TaskFormScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.task.fieldNotes}
           multiline
           numberOfLines={3}
@@ -170,7 +170,7 @@ export function TaskFormScreen() {
       </Field>
 
       {createTask.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

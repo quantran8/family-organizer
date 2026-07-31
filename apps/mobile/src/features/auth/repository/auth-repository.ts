@@ -2,7 +2,7 @@
  * Hiện thực AuthRepository.
  */
 
-import { AppErrorException } from '@nhaminh/domain';
+import { AppErrorException } from '@family-organizer/domain';
 import type { AuthError } from '@supabase/supabase-js';
 
 import { throwAppError } from '@/data/shared/errors';

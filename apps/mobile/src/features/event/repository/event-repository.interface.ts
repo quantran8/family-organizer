@@ -14,7 +14,7 @@ import type {
   ISODate,
   Recurrence,
   UUID,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 
 /**
  * CỐ Ý KHÔNG có `nextOccurrenceDate` — trường chỉ đọc, chỉ Edge

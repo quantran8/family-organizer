@@ -16,7 +16,7 @@
  * phán xét hộ. Muốn nhấn thì truyền `tone` tường minh.
  */
 
-import { formatMoney, formatMoneyShort } from '@nhaminh/domain';
+import { formatMoney, formatMoneyShort } from '@family-organizer/domain';
 import { Text, type TextProps } from 'react-native';
 
 import { useCurrency } from '@/design/use-currency';
@@ -26,9 +26,9 @@ export type MoneyTone = 'default' | 'muted' | 'ok' | 'warn' | 'danger';
 const TONE_CLASS: Record<MoneyTone, string> = {
   default: 'text-ink',
   muted: 'text-muted',
-  ok: 'text-ok',
-  warn: 'text-warn',
-  danger: 'text-danger',
+  ok: 'text-positive',
+  warn: 'text-attention',
+  danger: 'text-critical',
 };
 
 export type MoneySize = 'display' | 'title1' | 'title2' | 'heading' | 'body' | 'label' | 'caption';

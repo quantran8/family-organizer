@@ -10,7 +10,7 @@
  * lại giá trị).
  */
 
-import type { ISODate, MoneyEntityType, MoneyEvent, UUID } from '@nhaminh/domain';
+import type { ISODate, MoneyEntityType, MoneyEvent, UUID } from '@family-organizer/domain';
 
 export interface MoneyEventRepository {
   timeline(

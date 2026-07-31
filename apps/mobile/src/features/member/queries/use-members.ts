@@ -6,7 +6,7 @@
  * "giỗ ông nội" cần ông nội là một member để gắn, dù ông không dùng app.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';

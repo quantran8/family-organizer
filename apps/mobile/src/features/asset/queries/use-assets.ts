@@ -6,7 +6,7 @@
  * phần còn lại. Ở đây thà đợi 300ms còn hơn hiện sai một khoảnh khắc.
  */
 
-import type { ISODate, UUID } from '@nhaminh/domain';
+import type { ISODate, UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateFinance } from '@/data/queries/invalidate';

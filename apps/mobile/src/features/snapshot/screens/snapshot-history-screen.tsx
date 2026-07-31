@@ -27,7 +27,7 @@
  * **Chỉ đọc.** Không nút nào sửa hay xoá một mốc.
  */
 
-import { formatMoneyShort } from '@nhaminh/domain';
+import { formatMoneyShort } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -96,7 +96,7 @@ export function SnapshotHistoryScreen() {
               {/* Mốc do cron cuối tháng tự chốt, không phải ai nhập. Nói rõ để
                   người dùng không đi tìm xem "hôm đó mình có mở app không". */}
               {!snapshot.isManual ? (
-                <Text className="text-micro text-tertiary">{t.money.historyAuto}</Text>
+                <Text className="text-micro text-subtle">{t.money.historyAuto}</Text>
               ) : null}
             </View>
 

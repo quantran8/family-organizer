@@ -23,7 +23,7 @@
  * những "thay đổi" vốn chỉ là sửa lỗi chính tả.
  */
 
-import { ASSET_KINDS, inferLiquidity, LIQUIDITIES, type AssetKind, type Liquidity, type UUID } from '@nhaminh/domain';
+import { ASSET_KINDS, inferLiquidity, LIQUIDITIES, type AssetKind, type Liquidity, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
@@ -185,9 +185,9 @@ export function AssetFormScreen() {
           onPress={() => setShowLiquidity(true)}
           className="mb-4 min-h-touch justify-center"
         >
-          <Text className="text-caption text-tertiary">
+          <Text className="text-caption text-subtle">
             {`${t.liquidity[liquidity]} · `}
-            <Text className="text-iris-500">{t.asset.changeLiquidity}</Text>
+            <Text className="text-brand">{t.asset.changeLiquidity}</Text>
           </Text>
         </Pressable>
       )}
@@ -219,7 +219,7 @@ export function AssetFormScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.common.note}
           multiline
           numberOfLines={2}
@@ -230,7 +230,7 @@ export function AssetFormScreen() {
       </Field>
 
       {createAsset.isError || updateAsset.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

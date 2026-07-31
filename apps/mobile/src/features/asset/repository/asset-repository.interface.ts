@@ -4,7 +4,7 @@
  * Tài sản trả lời "tiền đang nằm ở đâu" — bảng lõi của wedge (schema §5.1).
  */
 
-import type { Asset, AssetKind, ISODate, Liquidity, UUID } from '@nhaminh/domain';
+import type { Asset, AssetKind, ISODate, Liquidity, UUID } from '@family-organizer/domain';
 
 export interface AssetInput {
   name: string;

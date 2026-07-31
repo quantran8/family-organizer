@@ -64,7 +64,7 @@ export function ErrorState({ message, retryLabel, onRetry }: ErrorStateProps) {
  * làm màn hình giật.
  */
 export function Skeleton({ className }: { className?: string }) {
-  return <View className={['rounded-control bg-subtle', className].filter(Boolean).join(' ')} />;
+  return <View className={['rounded-control bg-soft', className].filter(Boolean).join(' ')} />;
 }
 
 /** Skeleton hình một danh sách — dùng khi chưa có gì trong cache. */

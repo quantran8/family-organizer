@@ -31,7 +31,7 @@ export default function PlanLayout() {
           headerBackTitle: '',
           headerShadowVisible: false,
           headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: '#181817',
+          headerTintColor: '#101014',
         }}
       />
       <Stack.Screen
@@ -42,7 +42,7 @@ export default function PlanLayout() {
           headerBackTitle: '',
           headerShadowVisible: false,
           headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: '#181817',
+          headerTintColor: '#101014',
         }}
       />
     </Stack>

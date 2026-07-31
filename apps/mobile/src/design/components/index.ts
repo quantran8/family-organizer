@@ -7,7 +7,7 @@
  * ── RANH GIỚI: cái gì được nằm ở đây ──
  *
  * Primitive **không biết gì về nghiệp vụ**. Nó nhận giá trị nguyên thuỷ và trả
- * về hình khối; nó không import type thực thể từ `@nhaminh/domain`, không đọc
+ * về hình khối; nó không import type thực thể từ `@family-organizer/domain`, không đọc
  * bảng chữ của một feature cụ thể.
  *
  * Component biết về một thực thể (`FamilyEvent`, `Task`, một khoản tài sản)

@@ -7,7 +7,7 @@
  * thành một thao tác phải đợi — và người ta sẽ thôi dùng nó.
  */
 
-import type { ISODate, Task, UUID } from '@nhaminh/domain';
+import type { ISODate, Task, UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';

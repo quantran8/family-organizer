@@ -2,7 +2,7 @@
  * Hook đọc/ghi Mục tiêu tài chính chung.
  */
 
-import type { ISODate, UUID } from '@nhaminh/domain';
+import type { ISODate, UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { invalidateFinance } from '@/data/queries/invalidate';

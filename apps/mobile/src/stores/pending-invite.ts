@@ -46,7 +46,7 @@ export const usePendingInvite = create<PendingInviteState>()(
       clear: () => set({ code: null, savedAt: null }),
     }),
     {
-      name: 'nhaminh.pending-invite',
+      name: 'family-organizer.pending-invite',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

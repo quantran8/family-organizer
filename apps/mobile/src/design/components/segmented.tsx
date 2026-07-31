@@ -20,7 +20,7 @@ export interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ options, value, onChange }: SegmentedProps<T>) {
   return (
-    <View className="flex-row rounded-control bg-subtle p-1">
+    <View className="flex-row rounded-control bg-soft p-1">
       {options.map((o) => {
         const active = o.value === value;
         return (

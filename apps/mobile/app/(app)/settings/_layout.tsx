@@ -23,7 +23,7 @@ export default function SettingsLayout() {
         headerShown: true,
         headerShadowVisible: false,
         headerStyle: { backgroundColor: '#FFFFFF' },
-        headerTintColor: '#181817',
+        headerTintColor: '#101014',
         headerTitleStyle: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 16 },
         headerBackTitle: '',
         contentStyle: { backgroundColor: '#FFFFFF' },

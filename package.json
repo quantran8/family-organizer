@@ -4,13 +4,13 @@
   "private": true,
   "description": "Nhà mình — nơi hai người cùng nhớ việc nhà, sự kiện hai bên, khoản tiền và giấy tờ quan trọng",
   "scripts": {
-    "test": "pnpm --filter @nhaminh/domain test",
+    "test": "pnpm --filter @family-organizer/domain test",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "mobile": "pnpm --filter @nhaminh/mobile start",
+    "mobile": "pnpm --filter @family-organizer/mobile start",
     "db:push": "supabase db push",
     "db:pull": "supabase db pull",
-    "fn:deploy": "supabase functions deploy --import-map supabase/import_map.json generate-task-instances build-reminders refresh-lunar-dates"
+    "fn:deploy": "supabase functions deploy --import-map supabase/import_map.json generate-task-instances build-reminders refresh-lunar-dates presign-upload confirm-upload sign-download spawn-debt-installments expire-attention-items nudge-snapshot-update autosnapshot-monthly sweep-orphan-uploads purge-soft-deleted"
   },
   "engines": {
     "node": ">=20"

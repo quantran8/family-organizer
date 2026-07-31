@@ -16,7 +16,7 @@
  * gian lệch một nhịp so với thực tế.
  */
 
-import type { ISODate, UUID } from '@nhaminh/domain';
+import type { ISODate, UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
@@ -127,7 +127,7 @@ export function UpdateAssetValueScreen() {
           value={note}
           onChangeText={setNote}
           placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.common.note}
           multiline
           numberOfLines={2}
@@ -138,7 +138,7 @@ export function UpdateAssetValueScreen() {
       </Field>
 
       {updateValue.isError ? (
-        <Text className="text-caption text-danger">{t.error.unknown}</Text>
+        <Text className="text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
 
       <View className="h-4" />

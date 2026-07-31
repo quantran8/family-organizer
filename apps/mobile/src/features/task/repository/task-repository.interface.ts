@@ -6,7 +6,7 @@
  * dự án".
  */
 
-import type { ISODate, Recurrence, Task, TaskInstance, UUID } from '@nhaminh/domain';
+import type { ISODate, Recurrence, Task, TaskInstance, UUID } from '@family-organizer/domain';
 
 export interface TaskInput {
   title: string;

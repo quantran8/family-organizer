@@ -48,7 +48,7 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: false,
-      bundleIdentifier: 'com.nhaminh.app',
+      bundleIdentifier: 'com.familyorganizer.app',
       infoPlist: {
         NSPhotoLibraryUsageDescription: 'Chọn ảnh giấy tờ để lưu vào nhà mình.',
         NSCameraUsageDescription: 'Chụp ảnh giấy tờ để lưu vào nhà mình.',
@@ -56,7 +56,7 @@ module.exports = {
       },
     },
     android: {
-      package: 'com.nhaminh.app',
+      package: 'com.familyorganizer.app',
       adaptiveIcon: {
         backgroundColor: '#FFFFFF',
         foregroundImage: './assets/android-icon-foreground.png',

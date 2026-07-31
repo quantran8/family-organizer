@@ -16,9 +16,15 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type PlanTab = 'task' | 'event';
 
+/** Cùng union với `DocumentFilter` ở repository — khai lại để store không phụ
+ *  thuộc vào tầng dữ liệu chỉ vì một union ba chuỗi. */
+export type DocFilter = 'all' | 'expiring' | 'no_expiry';
+
 interface UIPrefsState {
   planTab: PlanTab;
   setPlanTab: (tab: PlanTab) => void;
+  docFilter: DocFilter;
+  setDocFilter: (filter: DocFilter) => void;
 }
 
 export const useUIPrefs = create<UIPrefsState>()(
@@ -27,9 +33,15 @@ export const useUIPrefs = create<UIPrefsState>()(
       // Mặc định là Việc: nó là vòng lặp hằng ngày (F3), sự kiện thì thưa hơn.
       planTab: 'task',
       setPlanTab: (planTab) => set({ planTab }),
+
+      // Mặc định "Tất cả", KHÔNG phải "Sắp hết hạn": nhà mới dùng app chưa có
+      // giấy tờ nào sắp hết hạn, và mở tab ra thấy trống rỗng trong khi mình
+      // vừa lưu ba giấy tờ trông như app làm mất dữ liệu.
+      docFilter: 'all',
+      setDocFilter: (docFilter) => set({ docFilter }),
     }),
     {
-      name: 'nhaminh.ui-prefs',
+      name: 'family-organizer.ui-prefs',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

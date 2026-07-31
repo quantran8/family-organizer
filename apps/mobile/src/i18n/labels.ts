@@ -1,5 +1,5 @@
 /**
- * Cầu nối: shape từ @nhaminh/domain → câu tiếng Việt.
+ * Cầu nối: shape từ @family-organizer/domain → câu tiếng Việt.
  *
  * Domain trả về NGUYÊN LIỆU có tham số (mã lý do, kiểu nhãn), không trả chuỗi
  * hiển thị — nó là hàm thuần chạy ở cả Hermes lẫn Deno và không biết gì về UI.
@@ -14,7 +14,7 @@ import {
   type FinanceStatus,
   type LunarLabel,
   type MoneyEventShape,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 
 import { interpolate, vi } from './vi';
 

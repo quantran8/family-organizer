@@ -18,7 +18,7 @@
  * update — đoán sai một con số nợ tệ hơn nhiều so với đợi nó.
  */
 
-import { formatDueLabel, type ISODate, type UUID } from '@nhaminh/domain';
+import { formatDueLabel, type ISODate, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -123,7 +123,7 @@ export function PaymentDetailScreen() {
         <MoneyText amount={payment.amount} size="display" tone={isPaid ? 'muted' : 'default'} />
         <Text
           className={`mt-1 text-caption ${
-            due?.kind === 'overdue_days' && !isPaid ? 'text-danger' : 'text-tertiary'
+            due?.kind === 'overdue_days' && !isPaid ? 'text-critical' : 'text-subtle'
           }`}
         >
           {isPaid
@@ -140,7 +140,7 @@ export function PaymentDetailScreen() {
           bấm gì — người dùng cần biết điều này lúc đang cân nhắc, không phải
           lúc đã ở trong hộp thoại xác nhận. */}
       {debt && debtAfter !== null && !isPaid ? (
-        <View className="mt-4 rounded-card border border-iris-100 bg-white p-4">
+        <View className="mt-4 rounded-status border border-brand-soft bg-white p-4">
           <Text className="text-body text-ink">
             {f(t.payment.debtAfter, {
               name: debt.name,
@@ -168,7 +168,7 @@ export function PaymentDetailScreen() {
             từ ý định tới xong phải ngắn nhất có thể. Một route riêng còn phải
             tải lại `payment` và `debt` chỉ để hiện một dòng xác nhận đã có sẵn. */}
         {settling ? (
-          <View className="rounded-card border border-line p-4">
+          <View className="rounded-status border border-line p-4">
             <Field label={t.payment.markPaidDate}>
               <DatePicker value={paidOn} onChange={(d) => setPaidOn(d ?? today)} today={today} />
             </Field>
@@ -183,7 +183,7 @@ export function PaymentDetailScreen() {
             ) : null}
 
             {settle.isError ? (
-              <Text className="mb-3 text-caption text-danger">{t.error.unknown}</Text>
+              <Text className="mb-3 text-caption text-critical">{t.error.unknown}</Text>
             ) : null}
 
             <View className="gap-3">

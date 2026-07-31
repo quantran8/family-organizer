@@ -6,7 +6,7 @@
  * query vẫn đúng nếu sau này chạy qua API server tự viết.
  */
 
-import type { HomeFeedItem } from '@nhaminh/domain';
+import type { HomeFeedItem } from '@family-organizer/domain';
 
 import { unwrap, unwrapMaybe } from '@/data/shared/errors';
 import { toFinanceMetrics, toHomeFeedItem, toHousehold } from '@/data/shared/mappers';

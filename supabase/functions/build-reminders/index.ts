@@ -27,7 +27,7 @@ import {
   type ReminderDraft,
   type TaskInstance,
   type UpcomingPayment,
-} from '@nhaminh/domain';
+} from '@family-organizer/domain';
 
 import { jsonResponse, serviceClient, todayInVN } from '../_shared/client.ts';
 

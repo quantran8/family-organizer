@@ -51,28 +51,28 @@ export function TaskRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 bg-white py-3 active:bg-subtle"
+      className="min-h-touch flex-row items-center gap-3 bg-white py-3 active:bg-soft"
     >
       <Checkbox checked={done} onToggle={onToggle} />
 
       <View className="flex-1">
         <Text
           numberOfLines={2}
-          className={`text-body ${done ? 'text-tertiary line-through' : 'text-ink'}`}
+          className={`text-body ${done ? 'text-subtle line-through' : 'text-ink'}`}
         >
           {title}
         </Text>
       </View>
 
-      {repeats ? <Text className="text-caption text-tertiary">↻</Text> : null}
+      {repeats ? <Text className="text-caption text-subtle">↻</Text> : null}
 
       {assigneeName ? (
-        <View className="rounded-full bg-subtle px-2 py-1">
+        <View className="rounded-full bg-soft px-2 py-1">
           <Text className="text-micro font-medium text-muted">{assigneeName}</Text>
         </View>
       ) : null}
 
-      {meta ? <Text className="text-caption text-tertiary">{meta}</Text> : null}
+      {meta ? <Text className="text-caption text-subtle">{meta}</Text> : null}
     </Pressable>
   );
 
@@ -107,8 +107,8 @@ function SwipeAction({
   tone: 'neutral' | 'danger';
   onPress: () => void;
 }) {
-  const box = tone === 'danger' ? 'bg-danger-soft' : 'bg-subtle';
-  const text = tone === 'danger' ? 'text-danger' : 'text-muted';
+  const box = tone === 'danger' ? 'bg-critical-soft' : 'bg-soft';
+  const text = tone === 'danger' ? 'text-critical' : 'text-muted';
   return (
     <Pressable
       accessibilityRole="button"

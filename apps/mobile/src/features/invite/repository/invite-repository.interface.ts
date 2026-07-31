@@ -5,7 +5,7 @@
  * là lý do luồng này được dựng ở bước 3, trước cả tính năng khác biệt nhất.
  */
 
-import type { UUID } from '@nhaminh/domain';
+import type { UUID } from '@family-organizer/domain';
 
 export interface InviteRepository {
   /** Mã đang mở của household, tạo mới nếu chưa có. */

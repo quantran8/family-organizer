@@ -13,7 +13,7 @@
  * vào UTC+7 và `new Date()` phân giải theo múi giờ máy (xem date/civil.ts).
  */
 
-import { addDays, compareISODate, parseISODate, weekdayOf, type ISODate } from '@nhaminh/domain';
+import { addDays, compareISODate, parseISODate, weekdayOf, type ISODate } from '@family-organizer/domain';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -108,7 +108,7 @@ export function DatePicker({ value, onChange, today }: DatePickerProps) {
             }
           }}
           placeholder="2026-12-31"
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.task.fieldDueDate}
           keyboardType="numbers-and-punctuation"
           maxLength={10}
@@ -118,13 +118,13 @@ export function DatePicker({ value, onChange, today }: DatePickerProps) {
 
       {/* Nhãn xác nhận: chip đang sáng đã nói "cái nào", dòng này nói "ngày mấy". */}
       {value !== null ? (
-        <Text className="text-caption text-tertiary">
+        <Text className="text-caption text-subtle">
           {`${weekdayShort(weekdayOf(value))} ${parseISODate(value).day}/${parseISODate(value).month}/${parseISODate(value).year}`}
         </Text>
       ) : null}
 
       {value !== null && compareISODate(value, today) < 0 ? (
-        <Text className="text-caption text-warn">{t.task.groupOverdue}</Text>
+        <Text className="text-caption text-attention">{t.task.groupOverdue}</Text>
       ) : null}
     </View>
   );
@@ -146,10 +146,10 @@ function Chip({
       accessibilityLabel={label}
       onPress={onPress}
       className={`min-h-touch justify-center rounded-full border px-4 ${
-        active ? 'border-iris-500 bg-iris-50' : 'border-line bg-white active:bg-subtle'
+        active ? 'border-brand bg-brand-soft' : 'border-line bg-white active:bg-soft'
       }`}
     >
-      <Text className={`text-label font-medium ${active ? 'text-iris-600' : 'text-ink'}`}>
+      <Text className={`text-label font-medium ${active ? 'text-brand-deep' : 'text-ink'}`}>
         {label}
       </Text>
     </Pressable>

@@ -30,21 +30,21 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           ref={ref}
           className={[
             'min-h-touch rounded-control border bg-white px-4 py-3 text-body text-ink',
-            error ? 'border-danger' : 'border-line',
+            error ? 'border-critical' : 'border-line',
             className,
           ]
             .filter(Boolean)
             .join(' ')}
-          placeholderTextColor="#96968F"
+          placeholderTextColor="#A4A4AD"
           accessibilityLabel={label}
           {...rest}
         />
       )}
 
       {error ? (
-        <Text className="mt-1.5 text-caption text-danger">{error}</Text>
+        <Text className="mt-1.5 text-caption text-critical">{error}</Text>
       ) : hint ? (
-        <Text className="mt-1.5 text-caption text-tertiary">{hint}</Text>
+        <Text className="mt-1.5 text-caption text-subtle">{hint}</Text>
       ) : null}
     </View>
   );

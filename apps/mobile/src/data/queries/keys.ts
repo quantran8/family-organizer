@@ -12,7 +12,7 @@
  * Đây là lý do dùng hàm trả mảng thay vì hằng chuỗi ghép tay.
  */
 
-import type { ISODate, MoneyEntityType, UUID } from '@nhaminh/domain';
+import type { ISODate, MoneyEntityType, UUID } from '@family-organizer/domain';
 
 import type { DocumentFilter } from '@/features/document/repository';
 import type { PaymentWindow } from '@/features/payment/repository';
@@ -107,6 +107,13 @@ export const queryKeys = {
   attention: {
     all: (id: UUID) => [...hh(id), 'attention'] as const,
     open: (id: UUID) => [...hh(id), 'attention', 'open'] as const,
+    /**
+     * Cùng dữ liệu nhưng KÈM tên khoản (G9) — key riêng vì hình dạng khác.
+     *
+     * Dùng chung key với `open` thì màn Tiền và màn Cần trao đổi đọc trúng
+     * cache của nhau, và bên thiếu `entityName` render ra dòng trống.
+     */
+    openWithEntities: (id: UUID) => [...hh(id), 'attention', 'open-with-entities'] as const,
   },
 
   documents: {
@@ -115,8 +122,22 @@ export const queryKeys = {
     detail: (id: UUID, docId: UUID) => [...hh(id), 'documents', 'detail', docId] as const,
     byEvent: (id: UUID, eventId: UUID) => [...hh(id), 'documents', 'by-event', eventId] as const,
     storageUsed: (id: UUID) => [...hh(id), 'documents', 'storage-used'] as const,
+    /**
+     * URL đã ký cho thumbnail / bản gốc.
+     *
+     * Đoạn `'signed-url'` KHÔNG phải để đọc cho vui — `client.ts` dùng đúng
+     * chuỗi này để loại nhóm key khỏi cache đĩa. Chữ ký sống 15 phút, còn cache
+     * đĩa sống 7 ngày: ghi xuống đĩa thì lần mở app sau khôi phục một loạt URL
+     * đã chết, và màn hình hiện đúng số ô ảnh với đúng bố cục, chỉ mọi ảnh đều
+     * vỡ — không có lỗi nào để nhìn thấy vì truy vấn đã "thành công".
+     */
+    fileUrls: (id: UUID, kind: 'thumb' | 'original', fileIds: readonly UUID[]) =>
+      [...hh(id), 'documents', 'signed-url', kind, fileIds.join(',')] as const,
   },
 } as const;
+
+/** Nhóm key không bao giờ được ghi xuống đĩa — xem `documents.fileUrls`. */
+export const EPHEMERAL_KEY_SEGMENT = 'signed-url';
 
 /** Toàn bộ cache của một nhà — gọi khi đăng xuất hoặc đổi nhà. */
 export const householdScope = hh;

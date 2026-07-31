@@ -57,7 +57,7 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
       >
         {/* Thanh nắm: dấu hiệu thị giác duy nhất cho biết vuốt xuống là đóng được. */}
         <View className="items-center pt-3">
-          <View className="h-1 w-9 rounded-full bg-line-strong" />
+          <View className="h-1 w-9 rounded-full bg-subtle" />
         </View>
 
         <View className="flex-row items-center justify-between px-4 py-4">

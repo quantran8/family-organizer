@@ -9,7 +9,7 @@
  * từng khoản. Hai tầng lịch sử khác nhau, cần cả hai.
  */
 
-import type { FinanceStatus, ISODate, MoneySnapshot, UUID } from '@nhaminh/domain';
+import type { FinanceStatus, ISODate, MoneySnapshot, UUID } from '@family-organizer/domain';
 
 export interface SnapshotInput {
   asOfDate: ISODate;

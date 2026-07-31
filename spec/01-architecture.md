@@ -115,7 +115,7 @@ File route dài hơn 1 dòng (trừ `app/index.tsx`) là một màn hình đang 
 
 ### `design/components/` chỉ chứa primitive
 
-Primitive **không biết gì về nghiệp vụ**: nhận giá trị nguyên thuỷ, không import type thực thể từ `@nhaminh/domain`. Component biết về một thực thể (`FamilyEvent`, một khoản tài sản) thuộc về `features/<feat>/components/`.
+Primitive **không biết gì về nghiệp vụ**: nhận giá trị nguyên thuỷ, không import type thực thể từ `@family-organizer/domain`. Component biết về một thực thể (`FamilyEvent`, một khoản tài sản) thuộc về `features/<feat>/components/`.
 
 Phép thử khi phân vân: *feature thứ hai có dùng nó không?* Không → nó thuộc feature đó. `StatusPill` ở lại `design/` vì cả `home` lẫn `money` đều dùng; `EventRow` thì không.
 
