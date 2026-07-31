@@ -10,15 +10,37 @@ import { clearProfileCache } from '@/data/shared/session';
 import { supabase } from '@/lib/supabase';
 import type { AuthRepository } from './auth-repository.interface';
 
+/**
+ * `kind: 'auth'` cho sai thông tin đăng nhập, KHÔNG phải `'conflict'`.
+ *
+ * Bản trước dùng `'conflict'` trong khi màn hình lại kiểm tra `'auth'` để chọn
+ * câu "Email hoặc mật khẩu chưa đúng." — nên câu đó chưa bao giờ hiện, người
+ * gõ sai mật khẩu chỉ nhận được "Chưa làm được. Thử lại giúp mình nhé.".
+ * `'conflict'` nghĩa là hai người cùng sửa một bản ghi; nó không mô tả việc này.
+ *
+ * `'auth'` không mang `message` (02 §6) — không cần: màn hình chọn câu theo
+ * `kind`, và chuỗi hiển thị thuộc về `vi.ts` chứ không phải repository.
+ */
 function mapAuthError(e: AuthError): never {
   // Không nói rõ email hay mật khẩu sai — chỉ nói "chưa đúng".
   if (e.message.toLowerCase().includes('invalid login credentials')) {
-    throw new AppErrorException({ kind: 'conflict', message: 'invalid_credentials' });
+    throw new AppErrorException({ kind: 'auth' });
   }
   if (e.status === 401 || e.status === 403) {
     throw new AppErrorException({ kind: 'auth' });
   }
   throw new AppErrorException({ kind: 'unknown', cause: e });
+}
+
+/** Supabase báo email trùng bằng vài câu khác nhau tuỳ phiên bản. */
+function isEmailTaken(e: AuthError): boolean {
+  const m = e.message.toLowerCase();
+  return (
+    e.code === 'user_already_exists' ||
+    m.includes('already registered') ||
+    m.includes('already been registered') ||
+    m.includes('user already exists')
+  );
 }
 
 export const authRepository: AuthRepository = {
@@ -32,27 +54,35 @@ export const authRepository: AuthRepository = {
     return () => data.subscription.unsubscribe();
   },
 
+  async signInWithPassword(email, password) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) mapAuthError(error);
+  },
+
   /**
-   * Một nút [Tiếp tục] duy nhất cho email + mật khẩu.
+   * Tạo tài khoản mới.
    *
-   * Không tách "Đăng nhập" / "Đăng ký" thành hai màn: email chưa tồn tại thì
-   * tự chuyển sang signUp. Người dùng không phải tự biết mình đã có tài khoản
-   * hay chưa — đó là thứ app biết được, không phải họ.
+   * `needsVerification` đọc từ `session`, KHÔNG phải từ `user`: khi bật xác
+   * minh email, Supabase vẫn trả về một `user` đầy đủ nhưng `session` là null.
+   * Lấy `user` làm dấu hiệu thành công sẽ cho ra một app tưởng mình đã đăng
+   * nhập trong khi mọi truy vấn sau đó đều bị RLS chặn.
    */
-  async signInOrSignUpWithPassword(email, password) {
-    const trimmed = email.trim().toLowerCase();
-    const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password });
-    if (!error) return;
-
-    const isUnknownAccount = error.message.toLowerCase().includes('invalid login credentials');
-    if (!isUnknownAccount) mapAuthError(error);
-
-    const { error: signUpError } = await supabase.auth.signUp({ email: trimmed, password });
-    if (signUpError) {
-      // Email ĐÃ tồn tại nhưng mật khẩu sai → signUp cũng lỗi. Lúc này mới
-      // chắc chắn là sai mật khẩu.
+  async signUpWithPassword(email, password) {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      console.log('signUpWithPassword error', error);
+      if (isEmailTaken(error)) {
+        throw new AppErrorException({ kind: 'conflict', message: 'email_taken' });
+      }
       mapAuthError(error);
     }
+    return { needsVerification: data.session === null };
   },
 
   async resetPassword(email, redirectTo) {

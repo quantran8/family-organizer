@@ -29,18 +29,19 @@ import {
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
   Card,
   EmptyState,
-  FAB,
   ListSkeleton,
   MemberAvatar,
   StatusPill,
   UndoToast,
   useUndo,
 } from '@/design/components';
+import { AddFab } from '@/features/home/components';
 import { useFinanceMetrics } from '@/features/household/queries/use-household';
 import { useMe, useMembers } from '@/features/member/queries/use-members';
 import { TaskRow } from '@/features/task/components';
@@ -108,7 +109,11 @@ export function HomeScreen() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    // `edges={['top']}`: đây là tab gốc, `headerShown: false` nên không có
+    // header nào đứng giữa nội dung và notch. Cạnh dưới KHÔNG khai — tab bar đã
+    // nằm ở đó và Expo Router tự chừa home indicator; khai thêm sẽ đội nội dung
+    // lên một khoảng trống thừa ngay phía trên tab bar.
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-24"
@@ -139,16 +144,14 @@ export function HomeScreen() {
             <EmptyState
               title={t.home.emptyTitle}
               body={t.home.emptyBody}
-              actionLabel={t.home.emptyAddTask}
-              onAction={() => router.push('/(modals)/quick-add')}
             />
           </View>
         ) : null}
       </ScrollView>
 
       <UndoToast pending={undo.pending} onUndo={undo.undo} />
-      <FAB onPress={() => router.push('/(modals)/quick-add')} />
-    </View>
+      <AddFab />
+    </SafeAreaView>
   );
 }
 

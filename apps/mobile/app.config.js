@@ -38,7 +38,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 module.exports = {
   expo: {
-    name: 'Nhà mình',
+    // `name` vừa là tên người dùng thấy, vừa là nguồn duy nhất sinh ra tên thư
+    // mục/scheme Xcode khi prebuild (không khoá config nào override được —
+    // `ios.scheme` không có tác dụng ở đây). Giữ ASCII, không dấu, không khoảng
+    // trắng: Expo bỏ dấu bằng cách xoá luôn nguyên âm có dấu, nên 'Nhà mình'
+    // từng ra thư mục `ios/Nhmnh/`.
+    name: 'Homi',
     slug: 'nha-minh',
     version: '0.1.0',
     orientation: 'portrait',
@@ -48,15 +53,31 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: false,
-      bundleIdentifier: 'com.familyorganizer.app',
+      bundleIdentifier: 'com.visiongroup.homi',
+      // TẠM ĐẶT RỖNG để build được cho simulator khi máy chưa có certificate
+      // Apple Development hợp lệ. Comment plugin `expo-notifications` ở dưới là
+      // KHÔNG ĐỦ: `aps-environment` và `com.apple.developer.applesignin` do
+      // autolinking của package trong `dependencies` sinh ra, không phải do
+      // danh sách `plugins`. Đặt rỗng ở đây là chốt chặn cuối cùng.
+      // BẬT LẠI: xoá dòng này (xem ghi chú ở `plugins`).
+      entitlements: {},
       infoPlist: {
+        // Tên hiện dưới icon. Đặt tường minh để không phụ thuộc vào `name` —
+        // nếu sau này `name` phải đổi cho hợp lệ với Xcode thì tên người dùng
+        // thấy vẫn giữ nguyên.
+        CFBundleDisplayName: 'Homi',
         NSPhotoLibraryUsageDescription: 'Chọn ảnh giấy tờ để lưu vào nhà mình.',
         NSCameraUsageDescription: 'Chụp ảnh giấy tờ để lưu vào nhà mình.',
         CFBundleAllowMixedLocalizations: true,
       },
     },
     android: {
-      package: 'com.familyorganizer.app',
+      // LƯU Ý: Android lấy tên hiển thị thẳng từ `name` (ghi vào `app_name`
+      // trong strings.xml) và không có khoá config nào tách ra như
+      // `CFBundleDisplayName` của iOS. Hiện `name` đã là 'Homi' nên Android ra
+      // đúng tên; nếu sau này `name` phải đổi thì cần một config plugin
+      // `withStringsXml` để đặt lại `app_name`.
+      package: 'com.visiongroup.homi',
       adaptiveIcon: {
         backgroundColor: '#FFFFFF',
         foregroundImage: './assets/android-icon-foreground.png',
@@ -93,13 +114,27 @@ module.exports = {
           cameraPermission: 'Chụp ảnh giấy tờ để lưu vào nhà mình.',
         },
       ],
-      [
-        'expo-notifications',
-        {
-          icon: './assets/icon.png',
-          color: '#7457E8',
-        },
-      ],
+      // TẠM TẮT — push notification và Sign in with Apple.
+      //
+      // Vì sao: hai thứ này sinh ra entitlement `aps-environment` và
+      // `com.apple.developer.applesignin`. Expo bắt buộc phải ký (code sign)
+      // khi có `applesignin`, KỂ CẢ khi chỉ build cho simulator — nên máy chưa
+      // có certificate Apple Development hợp lệ thì `expo run:ios` chết ngay ở
+      // bước ký, chưa kịp build.
+      //
+      // Gỡ được an toàn vì hiện chưa có code nào import `expo-notifications`
+      // hay `expo-apple-authentication` (đăng nhập đang dùng email/password).
+      //
+      // BẬT LẠI: bỏ comment khối dưới, bỏ comment `ios.entitlements` ở trên,
+      // rồi `expo prebuild --clean`. Cần certificate Apple Development hợp lệ
+      // (Xcode → Settings → Accounts → Manage Certificates → + ).
+      // [
+      //   'expo-notifications',
+      //   {
+      //     icon: './assets/icon.png',
+      //     color: '#7457E8',
+      //   },
+      // ],
     ],
     experiments: {
       typedRoutes: true,

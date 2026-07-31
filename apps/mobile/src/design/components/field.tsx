@@ -15,30 +15,57 @@ export interface FieldProps extends TextInputProps {
   hint?: string;
   /** Thay ô nhập mặc định bằng thứ khác (bộ chọn ngày, AmountInput…). */
   children?: ReactNode;
+  /**
+   * Nút nằm TRONG ô, sát mép phải — hiện/ẩn mật khẩu, xoá nội dung.
+   *
+   * Ô nhập được chừa `pr-14` khi có nút, nếu không chữ dài sẽ chạy xuống dưới
+   * nút và bị che mất phần đuôi.
+   */
+  trailing?: ReactNode;
+  /** Nhãn phụ bên phải nhãn chính — "Quên mật khẩu?". */
+  action?: ReactNode;
 }
 
 export const Field = forwardRef<TextInput, FieldProps>(function Field(
-  { label, error, hint, children, className, ...rest },
+  { label, error, hint, children, trailing, action, className, ...rest },
   ref,
 ) {
   return (
     <View className="mb-4">
-      <Text className="mb-1.5 text-label font-medium text-muted">{label}</Text>
+      {/*
+        `min-h-touch` CHỈ khi có `action`: nút phụ cần vùng chạm 44px, nhưng ép
+        chiều cao đó lên mọi nhãn sẽ nới rộng khoảng cách ở toàn bộ form đang có.
+      */}
+      <View
+        className={[
+          'mb-1.5 flex-row items-center justify-between',
+          action ? 'min-h-touch' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <Text className="text-label font-medium text-muted">{label}</Text>
+        {action}
+      </View>
 
       {children ?? (
-        <TextInput
-          ref={ref}
-          className={[
-            'min-h-touch rounded-control border bg-white px-4 py-3 text-body text-ink',
-            error ? 'border-critical' : 'border-line',
-            className,
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          placeholderTextColor="#A4A4AD"
-          accessibilityLabel={label}
-          {...rest}
-        />
+        <View className="relative justify-center">
+          <TextInput
+            ref={ref}
+            className={[
+              'min-h-touch rounded-control border bg-white py-3 pl-4 text-body text-ink',
+              trailing ? 'pr-14' : 'pr-4',
+              error ? 'border-critical' : 'border-line',
+              className,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            placeholderTextColor="#A4A4AD"
+            accessibilityLabel={label}
+            {...rest}
+          />
+          {trailing ? <View className="absolute right-1 self-end">{trailing}</View> : null}
+        </View>
       )}
 
       {error ? (

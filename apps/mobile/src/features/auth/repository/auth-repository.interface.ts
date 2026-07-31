@@ -20,13 +20,22 @@ export interface AuthRepository {
   onAuthStateChange(cb: (session: Session | null) => void): () => void;
 
   /**
-   * MỘT nút [Tiếp tục] duy nhất cho email + mật khẩu.
+   * Đăng nhập bằng email + mật khẩu.
    *
-   * Không tách "Đăng nhập" / "Đăng ký" thành hai màn: email chưa tồn tại thì
-   * tự chuyển sang đăng ký. Người dùng không phải tự biết mình đã có tài khoản
-   * hay chưa — đó là thứ app biết được, không phải họ.
+   * Email chưa tồn tại và mật khẩu sai đều trả về CÙNG một lỗi
+   * (`invalid_credentials`) — phân biệt hai cái ở đây là cho bất cứ ai gõ thử
+   * một địa chỉ biết được ai có tài khoản.
    */
-  signInOrSignUpWithPassword(email: string, password: string): Promise<void>;
+  signInWithPassword(email: string, password: string): Promise<void>;
+
+  /**
+   * Tạo tài khoản mới.
+   *
+   * Trả về `needsVerification` để màn Đăng ký biết nên báo "kiểm tra hộp thư"
+   * hay đi thẳng vào app: bật xác minh email ở Supabase thì `signUp` KHÔNG tạo
+   * phiên, và điều hướng như đã đăng nhập sẽ đưa người dùng vào một màn trống.
+   */
+  signUpWithPassword(email: string, password: string): Promise<{ needsVerification: boolean }>;
   resetPassword(email: string, redirectTo: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   signInWithIdToken(provider: 'google' | 'apple', idToken: string, nonce?: string): Promise<void>;

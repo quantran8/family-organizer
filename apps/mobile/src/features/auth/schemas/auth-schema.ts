@@ -13,6 +13,27 @@ export const signInSchema = z.object({
 });
 export type SignInValues = z.infer<typeof signInSchema>;
 
+/**
+ * Đăng ký — thêm ô nhập lại mật khẩu.
+ *
+ * Ô nhập lại có mặt vì đăng ký là lần DUY NHẤT người dùng gõ một mật khẩu chưa
+ * từng tồn tại: gõ nhầm ở đây thì không có gì để đối chiếu, và họ chỉ phát hiện
+ * ở lần đăng nhập sau — lúc đó phải đi qua email đặt lại mật khẩu. Màn Đăng
+ * nhập KHÔNG cần ô này vì mật khẩu sai ở đó báo lỗi ngay.
+ *
+ * Lỗi gắn vào `confirmPassword` (`path`), không phải gốc form — nếu không,
+ * thông báo hiện lơ lửng ở đâu đó thay vì ngay dưới ô gõ sai.
+ */
+export const signUpSchema = signInSchema
+  .extend({
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: t.error.passwordMismatch,
+    path: ['confirmPassword'],
+  });
+export type SignUpValues = z.infer<typeof signUpSchema>;
+
 export const forgotPasswordSchema = signInSchema.pick({ email: true });
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 

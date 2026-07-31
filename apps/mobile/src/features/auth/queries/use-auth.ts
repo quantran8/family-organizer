@@ -73,15 +73,24 @@ export function useMyHouseholds() {
   });
 }
 
-/**
- * MỘT nút `[Tiếp tục]` duy nhất: email chưa tồn tại thì tự chuyển sang đăng ký.
- * Người dùng không phải tự biết mình đã có tài khoản hay chưa — đó là thứ app
- * biết được, không phải họ.
- */
 export function useSignInWithPassword() {
   return useMutation({
     mutationFn: (v: { email: string; password: string }) =>
-      authRepository.signInOrSignUpWithPassword(v.email, v.password),
+      authRepository.signInWithPassword(v.email, v.password),
+  });
+}
+
+/**
+ * Đăng ký.
+ *
+ * Không tự điều hướng ở đây: bật xác minh email thì `signUp` không tạo phiên,
+ * nên màn Đăng ký cần đọc `needsVerification` để chọn giữa "kiểm tra hộp thư"
+ * và để gate ở `app/_layout.tsx` đưa đi tiếp.
+ */
+export function useSignUpWithPassword() {
+  return useMutation({
+    mutationFn: (v: { email: string; password: string }) =>
+      authRepository.signUpWithPassword(v.email, v.password),
   });
 }
 

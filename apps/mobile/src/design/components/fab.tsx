@@ -20,10 +20,25 @@ export interface FABProps {
   onPress: () => void;
   /** Đẩy lên khi có tab bar bên dưới. */
   bottomOffset?: number;
+  /**
+   * Ẩn hẳn khi `FabMenu` đang mở.
+   *
+   * Menu KHÔNG nở ra cạnh nút — nó là chính cái nút này giãn ra (xem
+   * `fab-menu.tsx`). Nên trong lúc đó nút thật phải biến mất, nếu không sẽ có
+   * hai vật đen tròn chồng nhau ở cùng một góc màn hình và ảo giác "một hình
+   * biến dạng" vỡ ngay lập tức.
+   *
+   * Không animate việc ẩn: khung của menu đã vẽ đúng hình dạng nút ở khung hình
+   * đầu tiên, nên đổi chỗ tức thì là thứ mắt không bắt được.
+   */
+  hidden?: boolean;
 }
 
-export function FAB({ onPress, bottomOffset = 24 }: FABProps) {
+export function FAB({ onPress, bottomOffset = 24, hidden = false }: FABProps) {
   const { t } = useT();
+
+  if (hidden) return null;
+
   return (
     <Pressable
       accessibilityRole="button"

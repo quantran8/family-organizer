@@ -59,15 +59,15 @@ export function AuthGate() {
   // một việc chưa kịp bắt đầu.
   useResumeUploads(isReady && session !== null && effectiveHouseholdId !== null);
 
+  const path: string[] = segments;
+  const inAuth = path[0] === '(auth)';
+  const atRoot = path.length === 0;
+  const inJoin = path[1] === 'join';
+
   useEffect(() => {
     if (!isReady) return;
     // Chờ biết có nhà hay không rồi mới điều hướng — điều hướng sớm sẽ đẩy
     // người đã có nhà sang màn setup rồi mới giật ngược lại.
-
-    const path: string[] = segments;
-    const inAuth = path[0] === '(auth)';
-    const atRoot = path.length === 0;
-    const inJoin = path[1] === 'join';
 
     if (!session) {
       if (!inAuth) router.replace('/(auth)/sign-in');
@@ -88,7 +88,7 @@ export function AuthGate() {
       return;
     }
     if (inAuth || atRoot) router.replace('/(app)/home');
-  }, [isReady, session, effectiveHouseholdId, segments, router]);
+  }, [isReady, session, effectiveHouseholdId, inAuth, atRoot, inJoin, router]);
 
   useEffect(() => {
     if (isReady) {
@@ -97,6 +97,30 @@ export function AuthGate() {
       });
     }
   }, [isReady]);
+
+  /**
+   * Được phép render `<Slot />` chưa?
+   *
+   * `useEffect` điều hướng chạy SAU khi cây con đã render xong một lần. Nên nếu
+   * ở đây render vô điều kiện, người mở app thẳng vào `/(app)/home` sẽ dựng
+   * `HomeScreen` → `useTasks()` → `useHouseholdId()` NÉM, trước khi effect kịp
+   * đẩy họ sang `(auth)/setup`. Đó không phải lỗi của `useHouseholdId` — nó
+   * đang báo đúng: có màn hình lọt ra ngoài gate.
+   *
+   * Hai khoảng hở đều thật:
+   *   - chưa xong khôi phục phiên / `my_households` còn pending → chưa biết có nhà
+   *   - có phiên nhưng chưa có nhà (vừa đăng ký xong) → `(app)` không được dựng
+   *
+   * Quy về đúng một câu hỏi: **đã có nhà chưa**. Chưa có (dù chưa đăng nhập hay
+   * đã đăng nhập mà chưa lập/tham gia) thì chỉ `(auth)` được dựng; có rồi thì
+   * `(auth)` và route rỗng là hai chỗ effect sắp rời đi, nên cũng không dựng.
+   */
+  const hasHousehold = session !== null && effectiveHouseholdId !== null;
+  const canRender = isReady && (hasHousehold ? !inAuth && !atRoot : inAuth);
+
+  // Splash vẫn đang phủ kín màn hình lúc `isReady` còn false, nên `null` ở đây
+  // không tạo ra một khoảnh khắc trắng — nó chỉ ngăn cây con dựng quá sớm.
+  if (!canRender) return null;
 
   return <Slot />;
 }

@@ -28,7 +28,6 @@ import { RefreshControl, SectionList, Text, View } from 'react-native';
 import {
   EmptyState,
   ErrorState,
-  FAB,
   ListSkeleton,
   Screen,
   Segmented,
@@ -37,6 +36,7 @@ import {
 } from '@/design/components';
 import { EventRow } from '@/features/event/components';
 import { useEvents } from '@/features/event/queries/use-events';
+import { AddFab } from '@/features/home/components';
 import { useMembers } from '@/features/member/queries/use-members';
 import { TaskRow } from '@/features/task/components';
 import {
@@ -128,10 +128,13 @@ function TaskList() {
             title={t.task.emptyTitle}
             body={t.task.emptyBody}
             actionLabel={t.task.emptyAction}
-            onAction={() => router.push('/(modals)/quick-add')}
+            // Thẳng tới form việc, KHÔNG qua menu [+]: người dùng đang đứng ở
+            // tab Việc và vừa chạm một nút ghi rõ "Thêm việc" — hỏi lại họ muốn
+            // thêm loại gì là hỏi một câu họ vừa trả lời.
+            onAction={() => router.push('/(modals)/task-form')}
           />
         </View>
-        <FAB onPress={() => router.push('/(modals)/quick-add')} />
+        <AddFab />
       </>
     );
   }
@@ -174,7 +177,7 @@ function TaskList() {
       />
 
       <UndoToast pending={undo.pending} onUndo={undo.undo} />
-      <FAB onPress={() => router.push('/(modals)/quick-add')} />
+      <AddFab />
     </>
   );
 }
@@ -227,7 +230,7 @@ function EventList() {
             onAction={() => router.push('/(modals)/event-form')}
           />
         </View>
-        <FAB onPress={() => router.push('/(modals)/event-form')} />
+        <AddFab />
       </>
     );
   }
@@ -253,7 +256,7 @@ function EventList() {
           />
         )}
       />
-      <FAB onPress={() => router.push('/(modals)/event-form')} />
+      <AddFab />
     </>
   );
 }

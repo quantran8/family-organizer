@@ -44,11 +44,13 @@ export { ChipSelect, type ChipOption, type ChipSelectProps } from './chip-select
 export { DatePicker, type DatePickerProps } from './date-picker';
 export { DateTile, type DateTileProps } from './date-tile';
 export { FAB, type FABProps } from './fab';
+export { FabMenu, type FabMenuItem, type FabMenuProps } from './fab-menu';
 export { Field, type FieldProps } from './field';
 export { Card, Divider, Row, Screen, SectionHeader } from './layout';
 export type { CardProps, RowProps, ScreenProps, SectionHeaderProps } from './layout';
 export { MemberAvatar, type MemberAvatarProps } from './member-avatar';
 export { NavRow, type NavRowProps } from './nav-row';
+export { PasswordToggle, type PasswordToggleProps } from './password-toggle';
 export { MoneyText, type MoneySize, type MoneyTextProps, type MoneyTone } from './money-text';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './segmented';
 export { Sheet, type SheetProps } from './sheet';

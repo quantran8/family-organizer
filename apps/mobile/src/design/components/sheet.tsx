@@ -2,9 +2,15 @@
  * Sheet — vỏ nội dung cho các route trong `(modals)/` (04 §6, 05 §Quy ước điều hướng).
  *
  * Không tự dựng overlay và animation: `(modals)/_layout.tsx` đã đặt
- * `presentation: 'modal'`, nên hệ điều hành lo phần trượt lên và cử chỉ vuốt
- * xuống. Một overlay tự vẽ chồng lên đó sẽ có hai lớp nền và cử chỉ vuốt không
- * còn đóng được. Ở đây chỉ còn: thanh nắm, tiêu đề, nút đóng, và tránh bàn phím.
+ * `presentation: 'formSheet'`, nên hệ điều hành lo phần trượt lên, cử chỉ vuốt
+ * xuống, VÀ thanh nắm (`sheetGrabberVisible`). Một overlay tự vẽ chồng lên đó sẽ
+ * có hai lớp nền và cử chỉ vuốt không còn đóng được. Ở đây chỉ còn: tiêu đề,
+ * nút đóng, và tránh bàn phím.
+ *
+ * KHÔNG `flex-1` ở gốc: `sheetAllowedDetents: 'fitToContents'` đo chiều cao
+ * nội dung để quyết định sheet cao bao nhiêu, mà `flex-1` nghĩa là "chiếm hết
+ * chỗ cha cho" — đo một thứ co giãn vô định thì ra chiều cao vô định. Sheet co
+ * theo nội dung, và nội dung dài thì `scroll` lo phần còn lại.
  *
  * `SheetActions` ghim ở đáy chứ không cuộn cùng nội dung — nút chính của một
  * sheet phải luôn với tới được, kể cả khi bàn phím đang che nửa màn hình.
@@ -37,30 +43,28 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
   const { t } = useT();
 
   const body = scroll ? (
+    // `bounces={false}`: sheet đã vuốt-xuống-để-đóng, nên nội dung nảy thêm một
+    // nhịp nữa làm hai cử chỉ tranh nhau và người dùng không biết mình đang kéo
+    // cái gì. `maxHeight` chặn sheet cao quá màn hình khi nội dung dài.
     <ScrollView
-      className="flex-1"
+      style={{ maxHeight: '100%' }}
       contentContainerClassName="px-4 pb-6"
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
+      bounces={false}
     >
       {children}
     </ScrollView>
   ) : (
-    <View className="flex-1 px-4">{children}</View>
+    <View className="px-4">{children}</View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['bottom']}>
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Thanh nắm: dấu hiệu thị giác duy nhất cho biết vuốt xuống là đóng được. */}
-        <View className="items-center pt-3">
-          <View className="h-1 w-9 rounded-full bg-subtle" />
-        </View>
-
-        <View className="flex-row items-center justify-between px-4 py-4">
+    <SafeAreaView className="bg-white" edges={['bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Thanh nắm do hệ điều hành vẽ — xem `(modals)/_layout.tsx`. Vẽ thêm
+            một cái ở đây là hai thanh nắm chồng nhau. */}
+        <View className="flex-row items-center justify-between px-4 pb-4 pt-6">
           <Text className="text-title2 font-semibold text-ink">{title}</Text>
           <Pressable
             accessibilityRole="button"

@@ -77,13 +77,39 @@ export const vi = {
   },
 
   auth: {
-    google: 'Tiếp tục với Google',
-    apple: 'Tiếp tục với Apple',
+    // Hai nút nằm cạnh nhau chỉ đủ chỗ cho tên nhà cung cấp. "Tiếp tục với" đã
+    // nằm trong ngữ cảnh (ngay dưới dòng "hoặc"), và logo nói phần còn lại.
+    google: 'Google',
+    apple: 'Apple',
     or: 'hoặc',
     email: 'Email',
     emailPlaceholder: 'ban@email.com',
     password: 'Mật khẩu',
     passwordPlaceholder: 'Ít nhất 8 ký tự',
+
+    // ── Đăng nhập ──
+    signInEyebrow: 'Chào mừng trở lại',
+    signInTitle: 'Đăng nhập',
+    signInBody: 'Tiếp tục quản lý những điều quan trọng của nhà mình.',
+    signInSubmit: 'Đăng nhập',
+    noAccount: 'Chưa có tài khoản?',
+    goSignUp: 'Đăng ký',
+
+    // ── Đăng ký ──
+    signUpEyebrow: 'Bắt đầu cùng nhau',
+    signUpTitle: 'Tạo tài khoản',
+    signUpBody: 'Chỉ mất một phút để tạo không gian chung cho nhà mình.',
+    signUpSubmit: 'Tạo tài khoản',
+    confirmPassword: 'Nhập lại mật khẩu',
+    confirmPasswordPlaceholder: 'Nhập lại mật khẩu',
+    haveAccount: 'Đã có tài khoản?',
+    goSignIn: 'Đăng nhập',
+    signUpCheckInbox: 'Đã tạo tài khoản. Kiểm tra hộp thư để xác minh email.',
+
+    // Hiện/ẩn mật khẩu — nhãn cho trình đọc màn hình.
+    showPassword: 'Hiện mật khẩu',
+    hidePassword: 'Ẩn mật khẩu',
+
     forgotPassword: 'Quên mật khẩu?',
     forgotTitle: 'Đặt lại mật khẩu',
     forgotBody: 'Nhập email của bạn, chúng tôi sẽ gửi đường dẫn đặt lại mật khẩu.',
@@ -633,6 +659,11 @@ export const vi = {
     invalidCredentials: 'Email hoặc mật khẩu chưa đúng.',
     emailInvalid: 'Email chưa đúng định dạng.',
     passwordTooShort: 'Mật khẩu cần ít nhất 8 ký tự.',
+    passwordMismatch: 'Mật khẩu nhập lại chưa khớp.',
+    // Màn Đăng ký nói RÕ là email đã có — khác màn Đăng nhập. Ở đây người dùng
+    // đang tự khai một email của chính mình, nên không lộ thêm gì; im lặng thì
+    // họ không biết phải sang màn Đăng nhập.
+    emailTaken: 'Email này đã có tài khoản. Đăng nhập để tiếp tục.',
     inviteInvalid: 'Mã mời không đúng hoặc đã hết hạn.',
     required: 'Chưa nhập {field}',
   },

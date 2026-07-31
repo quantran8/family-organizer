@@ -38,6 +38,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
@@ -101,18 +102,18 @@ export function DocumentListScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
         {header}
         <View className="px-4">
           <ListSkeleton rows={5} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (isError) {
     return (
-      <View className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
         {header}
         <View className="px-4">
           <ErrorState
@@ -121,14 +122,14 @@ export function DocumentListScreen() {
             onRetry={() => void refetch()}
           />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   const rows = docs ?? [];
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       {header}
 
       {rows.length === 0 ? (
@@ -166,7 +167,7 @@ export function DocumentListScreen() {
       )}
 
       <Toast />
-    </View>
+    </SafeAreaView>
   );
 }
 

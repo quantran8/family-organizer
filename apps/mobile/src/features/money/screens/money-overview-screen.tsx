@@ -19,12 +19,12 @@
 import { computeFinanceStatus, explainFinanceStatus, formatDueLabel } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
   Card,
   EmptyState,
-  FAB,
   ListSkeleton,
   MoneyText,
   SectionHeader,
@@ -33,6 +33,7 @@ import {
 } from '@/design/components';
 import { useOpenAttention } from '@/features/attention/queries/use-attention';
 import { useGoals } from '@/features/goal/queries/use-goals';
+import { AddFab } from '@/features/home/components';
 import { useFinanceMetrics } from '@/features/household/queries/use-household';
 import { usePayments } from '@/features/payment/queries/use-payments';
 import { dueLabelText, financeReasonText, lastUpdatedText, useT } from '@/i18n';
@@ -53,7 +54,9 @@ export function MoneyOverviewScreen() {
   const status = metrics ? computeFinanceStatus(metrics, today) : null;
 
   return (
-    <View className="flex-1 bg-white">
+    // Tab gốc, `headerShown: false` — không có header nào che notch. Cạnh dưới
+    // để tab bar lo, xem chú thích cùng chỗ ở `home-screen`.
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-24"
@@ -280,8 +283,8 @@ export function MoneyOverviewScreen() {
 
       {/* Xác nhận từ modal vừa đóng — "Đã cập nhật" sau nghi thức. */}
       <Toast />
-      <FAB onPress={() => router.push('/(modals)/quick-add')} />
-    </View>
+      <AddFab />
+    </SafeAreaView>
   );
 }
 
