@@ -10,10 +10,19 @@
 --      undo, và retention 30 ngày.
 --   4. Ngày âm là canonical; ngày dương (next_occurrence_date) là cache do
 --      tầng app / edge function tính và ghi xuống.
+--   5. Mọi con số tiền do người dùng nhập là SỐ KHAI, không phải số đo. Bảng
+--      nào có giá trị tiền thì phải có as_of_date + ai khai. UI không được
+--      hiển thị số tổng nào thiếu nhãn thời gian.  (concept v2 §7.6)
+--
+-- Phiên bản: v2.1 — đã hợp nhất concept v2, hai module bản địa, addendum v2.1.
+-- Tài liệu đi kèm: 02-data-contract, 03-business-logic, 05-screens-and-flows,
+--                  07-local-modules, 08-addendum-v2.1.
 -- =============================================================================
 
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_cron";
+-- Tìm contact theo tên khi nhập nhanh 100 phong bì (sổ mừng cưới).
+create extension if not exists "pg_trgm";
 
 -- =============================================================================
 -- 0. ENUMS
@@ -25,10 +34,17 @@ create type recur_freq      as enum ('none', 'daily', 'weekly', 'monthly', 'year
 
 create type member_role     as enum ('owner', 'partner', 'child', 'relative');
 
--- Bên gia đình liên quan (đặc thù VN: nội / ngoại)
---   paternal = bên nội, maternal = bên ngoại,
---   both     = cả hai bên, own = gia đình nhỏ của hai vợ chồng
-create type family_side     as enum ('paternal', 'maternal', 'both', 'own');
+-- Bên gia đình liên quan.
+-- TRỤC LÀ "NHÀ AI", KHÔNG PHẢI "NỘI/NGOẠI". Bản trước dùng paternal/maternal
+-- trong DB nhưng husband/wife ở TS và "Nhà chồng/Nhà vợ" ở UI — ba nơi ba
+-- nghĩa. Hai trục đó không ánh xạ được: "bên nội của vợ" tồn tại và không có
+-- chỗ. Thống nhất theo thứ người dùng thật sự nghĩ.
+create type family_side     as enum (
+  'husband_family',   -- nhà chồng
+  'wife_family',      -- nhà vợ
+  'both',
+  'own'               -- gia đình nhỏ của hai vợ chồng
+);
 
 create type task_status      as enum ('todo', 'done');
 
@@ -75,8 +91,26 @@ create type doc_type         as enum (
 
 create type entity_type      as enum (
   'task', 'event', 'document',
-  'asset', 'debt', 'goal', 'upcoming_payment'
+  'asset', 'debt', 'goal', 'upcoming_payment',
+  'shopping_item'
 );
+
+-- --- Nhập liệu bằng AI (06 §6) ---
+create type ingest_source   as enum ('screenshot', 'photo', 'text');
+create type ingest_status   as enum ('pending', 'confirmed', 'discarded');
+
+-- --- Sổ mừng cưới (07 §3) ---
+create type contact_side    as enum ('husband_family', 'wife_family', 'shared', 'other');
+create type gift_direction  as enum ('received', 'given');
+create type gift_occasion   as enum (
+  'wedding', 'engagement', 'funeral', 'death_anniversary',
+  'full_month', 'birthday', 'housewarming', 'other'
+);
+
+-- --- Hồ sơ con (07 §4) ---
+-- CỐ Ý KHÔNG có 'skipped' hay 'postponed': app không bao giờ gợi ý hoãn, bỏ,
+-- hay đổi thứ tự mũi tiêm. Xem 07 §4.2.
+create type dose_status     as enum ('planned', 'done', 'overdue');
 
 -- Loại thay đổi ghi vào money_events. Ngôn ngữ trung tính, không phán xét.
 create type money_event_type  as enum (
@@ -132,10 +166,27 @@ create table households (
   -- cần bảng exchange_rates + quy đổi tại thời điểm -> để sau, có nhu cầu thật.
   currency              char(3) not null default 'VND',
 
-  -- Nhịp nhắc cập nhật snapshot (7 hoặc 30 ngày). Vòng lặp thói quen chính
-  -- của module tài chính. "Lâu chưa cập nhật" suy ra = interval * 3.
-  snapshot_interval_days smallint not null default 7
-    check (snapshot_interval_days in (7, 30)),
+  -- Ngưỡng hai người tự chốt lúc onboarding. null = "tự quyết".
+  --
+  -- KHÔNG PHẢI VALIDATION. Cố ý không có check constraint, không trigger,
+  -- không chặn. Nó chỉ làm hai việc: (1) dòng gợi ý dưới ô nhập tiền,
+  -- (2) đầu vào của shouldAskForRefresh().
+  --
+  -- Vì sao tồn tại: chỉ người dùng mới quyết được khoản nào đáng ghi. Nhưng
+  -- nếu mỗi người có một ngưỡng riêng trong đầu, hai người sẽ ĐỌC SAI SỰ IM
+  -- LẶNG CỦA NHAU — chồng thấy vợ không ghi gì và kết luận vợ không tiêu
+  -- khoản nào lớn, trong khi vợ đã chi 4tr và thấy chưa tới ngưỡng của mình.
+  --
+  -- Nếu biến nó thành ràng buộc, nó thành quy định của app áp lên gia đình.
+  -- Nó phải giữ nguyên nghĩa: một quy ước hai người tự chốt, app lưu kết quả.
+  record_threshold_amount numeric(14,2),
+
+  -- Trial kết thúc theo CỘT MỐC, không theo ngày: 30 ngày có thể trôi qua mà
+  -- không có hạn nào tới, khi đó người dùng chưa từng nhìn thấy sản phẩm hoạt
+  -- động. trial_hard_cap_at là trần cứng 90 ngày.
+  trial_milestones      jsonb not null default
+    '{"reminderAcknowledged": false, "eventWithCostCompleted": false}'::jsonb,
+  trial_hard_cap_at     timestamptz,
 
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
@@ -149,9 +200,18 @@ create table members (
   household_id  uuid not null references households(id) on delete cascade,
   profile_id    uuid references profiles(id) on delete set null,
   display_name  text not null,          -- "Vợ", "Chồng", "Bé An"
+  -- 'child' và 'relative' là ĐỐI TƯỢNG ĐƯỢC GHI NHẬN, không phải người dùng
+  -- app. Không có luồng mời cho hai role này. Household thực tế = 2 người lớn:
+  -- ông bà không quen công nghệ, người giúp việc không thuộc gia đình.
   role          member_role not null default 'partner',
-  birthday      date,
+  birthday      date,                    -- bắt buộc với child: sinh lịch tiêm
   is_active     boolean not null default true,
+
+  -- Hồ sơ con (07 §4.4). Ba trường phẳng, không cần bảng riêng.
+  school_name         text,
+  school_class        text,
+  health_insurance_no text,
+
   joined_at     timestamptz not null default now(),
   deleted_at    timestamptz,
 
@@ -214,6 +274,14 @@ create table tasks (
 
   title           text not null,
   notes           text,
+
+  -- MẶC ĐỊNH null. Việc không gán ai là VIỆC CỦA NHÀ; gán tên là hành động
+  -- phụ, có ý thức.
+  --
+  -- BẤT KỲ THÀNH VIÊN NÀO CŨNG ĐỔI ĐƯỢC, BẤT CỨ LÚC NÀO, không cần xác nhận
+  -- và không sinh thông báo. Không có bước "nhận việc": việc đã tồn tại thì
+  -- cần được hoàn thành, chỉ người làm là biến số. Chính quyền sửa tự do này
+  -- khiến cái tên trên việc là một THOẢ THUẬN chứ không phải một MỆNH LỆNH.
   assignee_id     uuid references members(id) on delete set null,
 
   -- Lịch
@@ -231,6 +299,8 @@ create table tasks (
   -- Chỉ dùng cho việc KHÔNG lặp. Việc lặp -> xem task_instances.
   status          task_status not null default 'todo',
   completed_at    timestamptz,
+  -- Ghi để hoàn tác. KHÔNG BAO GIỜ hiển thị trên UI và KHÔNG BAO GIỜ tổng hợp.
+  -- "Tuần này anh xong 4/7" là bảng điểm giữa hai vợ chồng. Xem 03 §9.
   completed_by    uuid references members(id) on delete set null,
 
   created_by      uuid not null references profiles(id) on delete cascade,
@@ -271,6 +341,46 @@ create index task_instances_lookup_idx
 
 
 -- =============================================================================
+-- 3b. SHOPPING ITEMS — DANH SÁCH MUA SẮM CHUNG
+-- =============================================================================
+-- Bề mặt DUY NHẤT trong sản phẩm có tần suất HẰNG NGÀY và TỰ NHIÊN HAI CHIỀU:
+-- cả hai cùng thêm, cả hai cùng dùng, không ai nhắc ai. Thêm "nước mắm" vào
+-- list khác hoàn toàn với giao "đi mua nước mắm".
+--
+-- Với một sản phẩm mà mọi module còn lại đều tần suất thấp, đây là thứ giữ
+-- icon app khỏi trôi khỏi màn hình chính.
+--
+-- CỐ Ý THIẾU TRƯỜNG: không quantity, không price, không category, không store,
+-- không assignee. Thêm bất kỳ thứ nào trong số đó là biến danh sách thành
+-- việc được giao, và mất đúng lý do module này tồn tại.
+
+create table shopping_items (
+  id            uuid primary key default gen_random_uuid(),
+  household_id  uuid not null references households(id) on delete cascade,
+
+  title         text not null,
+  note          text,
+
+  is_done       boolean not null default false,
+  added_by      uuid references members(id) on delete set null,
+  -- Ghi để hoàn tác. KHÔNG BAO GIỜ hiển thị, KHÔNG BAO GIỜ tổng hợp.
+  -- "Ai mua nhiều hơn" là bảng điểm giữa hai vợ chồng.
+  done_by       uuid references members(id) on delete set null,
+  done_at       timestamptz,
+
+  created_by    uuid not null references profiles(id) on delete cascade,
+  created_at    timestamptz not null default now(),
+  deleted_at    timestamptz
+);
+
+create index shopping_open_idx on shopping_items (household_id, created_at)
+  where deleted_at is null and is_done = false;
+-- Mục đã tick biến mất khỏi danh sách chính sau 24h (cron), giữ 30 ngày.
+create index shopping_cleanup_idx on shopping_items (done_at)
+  where is_done = true and deleted_at is null;
+
+
+-- =============================================================================
 -- 4. EVENTS — SỰ KIỆN GIA ĐÌNH
 -- =============================================================================
 
@@ -280,7 +390,7 @@ create table events (
 
   title                 text not null,
   kind                  event_kind not null default 'other',
-  side                  family_side,           -- paternal(nội) / maternal(ngoại) / both
+  side                  family_side,           -- nhà chồng / nhà vợ / cả hai / own
   location              text,
   notes                 text,
 
@@ -327,6 +437,48 @@ create index events_household_next_idx on events (household_id, next_occurrence_
   where deleted_at is null;
 create index events_side_idx on events (household_id, side) where deleted_at is null;
 
+
+-- -----------------------------------------------------------------------------
+-- 4b. EVENT OCCURRENCES — TRÍ NHỚ NĂM NGOÁI
+-- -----------------------------------------------------------------------------
+-- Subscription không sống bằng tính năng, nó sống bằng CÁI MẤT ĐI KHI HUỶ.
+-- Sau 12 tháng app tự nói được: "Tết năm ngoái nhà mình chi 28 triệu — năm nay
+-- bắt đầu chuẩn bị từ tháng 11."
+--
+-- Không code tính năng mới, chỉ là dữ liệu cũ được dùng lại đúng lúc. Nhưng
+-- LỊCH SỬ KHÔNG BACKFILL ĐƯỢC: phải ghi từ ngày đầu cho MỌI household, kể cả
+-- free. Paywall đặt ở chỗ ĐỌC dữ liệu quá 12 tháng, không ở chỗ ghi.
+--
+-- occurred_on do cron ghi (cùng lượt refresh-lunar-dates, khi mốc trôi qua).
+-- actual_cost do người dùng điền, hỏi MỘT LẦN và bỏ qua được.
+
+create table event_occurrences (
+  id            uuid primary key default gen_random_uuid(),
+  event_id      uuid not null references events(id) on delete cascade,
+  household_id  uuid not null references households(id) on delete cascade,
+
+  occurred_on   date not null,
+  actual_cost   numeric(14,2),
+  notes         text,
+
+  -- true sau khi đã hỏi, dù người dùng có trả lời hay không.
+  -- Hỏi lại lần hai về một chuyện đã qua là phiền, không phải chu đáo.
+  cost_asked    boolean not null default false,
+
+  created_at    timestamptz not null default now(),
+
+  unique (event_id, occurred_on)
+);
+
+create index event_occurrences_lookup_idx
+  on event_occurrences (household_id, event_id, occurred_on desc);
+create index event_occurrences_unasked_idx
+  on event_occurrences (household_id) where cost_asked = false;
+
+comment on table event_occurrences is
+  'NƠI DUY NHẤT app hỏi về một con số đã qua, và nó tồn tại chỉ để nuôi trí '
+  'nhớ năm sau. Không dùng cho bất kỳ phép tổng hợp chi tiêu nào.';
+
 -- =============================================================================
 -- 5. MONEY — TÌNH HÌNH TÀI CHÍNH GIA ĐÌNH
 -- =============================================================================
@@ -363,7 +515,15 @@ create table assets (
   holder_member_id  uuid references members(id) on delete set null,
 
   institution       text,                      -- tên bank / nơi giữ
-  as_of_date        date not null default current_date,   -- "cập nhật gần nhất"
+
+  -- NGÀY KHAI, không phải ngày đo. current_value là thứ MỘT NGƯỜI ĐÃ NÓI RA
+  -- TẠI MỘT THỜI ĐIỂM, không phải sự thật hiện tại. Nếu UI hiển thị trần trụi,
+  -- hai người sẽ cùng tin vào một thứ có thể đã sai — tệ hơn không có app, vì
+  -- trước đây ít nhất họ biết là mình không biết.
+  -- Mọi UI hiện current_value PHẢI hiện kèm hai cột này qua formatDeclaredAt().
+  as_of_date        date not null default current_date,
+  updated_by_member_id uuid references members(id) on delete set null,
+
   notes             text,
   is_closed         boolean not null default false,
 
@@ -478,6 +638,20 @@ create index payments_event_idx on upcoming_payments (event_id)
 -- -----------------------------------------------------------------------------
 -- Giải thích cho người không giữ tiền: vì sao tiền không phải để tiêu ngay.
 -- Không phân loại, không mức ưu tiên — hai thứ đó không đổi hành vi nào.
+--
+-- MỤC TIÊU NHÌN VỀ PHÍA TRƯỚC, cùng hướng với trái tim sản phẩm: "cần 800tr,
+-- đang có 320tr" là một câu về tương lai, không cần giả định đã-ghi-đủ nào.
+--
+-- BA RANH GIỚI (08 §2.3):
+--   1. Mục tiêu KHÔNG chảy vào upcoming_needs. Nghĩa vụ khác nguyện vọng:
+--      học phí tháng 9 là thứ PHẢI trả, góp quỹ mua nhà là thứ MUỐN làm.
+--      Trộn hai loại làm con số "cần chuẩn bị" mất nghĩa.
+--   2. Không có tiến độ theo thời gian, không có lời khuyên. Không "mỗi tháng
+--      cần góp 20 triệu", không "bạn đang chậm kế hoạch". App không biết thu
+--      nhập, không biết hoàn cảnh; một lời nhắc như thế với cặp đang chật vật
+--      là sự tàn nhẫn được tự động hoá. Chỉ hiện: đã có / mục tiêu / còn thiếu.
+--   3. Không có đóng góp theo người. "Anh góp 200tr, em góp 120tr" là bảng
+--      điểm ở dạng TRÔNG GIỐNG MINH BẠCH — và vì thế là dạng nguy hiểm nhất.
 
 create table goals (
   id                uuid primary key default gen_random_uuid(),
@@ -485,7 +659,12 @@ create table goals (
 
   name              text not null,             -- "Mua nhà", "Quỹ dự phòng"
   target_amount     numeric(14,2) not null check (target_amount > 0),
+
+  -- SỐ KHAI, y hệt assets.current_value. Chịu cùng ràng buộc nhãn thời gian.
   current_amount    numeric(14,2) not null default 0,
+  as_of_date        date not null default current_date,
+  updated_by_member_id uuid references members(id) on delete set null,
+
   target_date       date,
   notes             text,
   is_archived       boolean not null default false,   -- hoàn thành / dừng / huỷ
@@ -603,9 +782,14 @@ create index attention_open_idx on attention_items (household_id, created_at des
 -- Khác money_events: đây là TỔNG của cả nhà theo thời điểm, không phải
 -- lịch sử từng khoản. Hai tầng lịch sử khác nhau, cần cả hai.
 --
--- Đây cũng là VÒNG LẶP THÓI QUEN của app:
---   reminder hằng tuần -> nhập nhanh 4 con số -> ghi 1 snapshot.
--- Vòng lặp duy nhất trong toàn sản phẩm có nhịp rõ ràng.
+-- ĐỔI VAI Ở v2: đây KHÔNG còn là vòng lặp thói quen. Nghi thức cập nhật định
+-- kỳ đã bị bỏ — đó là nghi thức kế toán, mà chỉ người dùng mới quyết được
+-- khoản nào đáng ghi (concept v2 §7.6). Người dùng KHÔNG BAO GIỜ nhìn thấy
+-- hành động tạo snapshot.
+--
+-- Giờ nó là LỊCH SỬ DẪN XUẤT do cron ghi hằng tháng, phục vụ trí nhớ năm
+-- ngoái. Thay cho nhắc định kỳ: nhãn thời gian trên mọi số khai + hỏi theo
+-- ngữ cảnh (shouldAskForRefresh, 03 §1b).
 
 create table money_snapshots (
   id                    uuid primary key default gen_random_uuid(),
@@ -620,12 +804,9 @@ create table money_snapshots (
   total_debt            numeric(14,2) not null default 0,
 
   status                finance_status not null default 'no_data',
-
-  -- true  = user tự nhập trong flow cập nhật tuần
-  -- false = cron tự tổng hợp cuối tháng, để lịch sử không trống nếu user lười
-  is_manual             boolean not null default true,
   note                  text,
 
+  -- Luôn null ở v2: snapshot do cron ghi, không có người tạo.
   created_by            uuid references profiles(id) on delete set null,
   created_at            timestamptz not null default now(),
 
@@ -735,6 +916,217 @@ for each row execute function sync_storage_used();
 
 
 -- =============================================================================
+-- 7. INGEST DRAFTS — NHẬP LIỆU BẰNG AI
+-- =============================================================================
+-- NÚT THẮT SỐNG CÒN. Thông tin sinh ra ở Zalo và ở ảnh chụp giấy tờ; app nằm
+-- ở HẠ NGUỒN. Nếu phải mở app gõ tay thì dữ liệu không vào, và mọi module đều
+-- rỗng — kể cả những module đã build xong.
+--
+-- Vì AI tốn chi phí thật để chạy, đây cũng là PAYWALL TỰ NHIÊN VÀ DỄ HIỂU:
+-- người dùng hiểu ngay tại sao phải trả. Free 5 lần/tháng để cảm nhận được
+-- giá trị trước khi bị chặn.
+
+create table ingest_drafts (
+  id                   uuid primary key default gen_random_uuid(),
+  household_id         uuid not null references households(id) on delete cascade,
+  created_by           uuid not null references profiles(id) on delete cascade,
+
+  source               ingest_source not null,
+  raw_text             text,
+  image_path           text,
+
+  suggested_entity_type entity_type,
+  parsed               jsonb,
+
+  status               ingest_status not null default 'pending',
+  created_entity_id    uuid,
+
+  created_at           timestamptz not null default now(),
+  -- Nháp chưa xác nhận tự dọn sau 7 ngày.
+  expires_at           timestamptz not null default (now() + interval '7 days')
+);
+
+create index ingest_pending_idx on ingest_drafts (household_id, created_at desc)
+  where status = 'pending';
+-- Đếm quota free 5 lần/tháng.
+create index ingest_quota_idx on ingest_drafts (household_id, created_at);
+
+comment on column ingest_drafts.parsed is
+  'Output của AI. KHÔNG ĐƯỢC TIN: phải chạy qua zod schema của entity tương '
+  'ứng ở client trước khi đổ vào form, và NGƯỜI DÙNG LUÔN XÁC NHẬN trước khi '
+  'ghi. Không bao giờ tự tạo bản ghi từ AI — một ngày giỗ sai do AI đoán sẽ '
+  'phá niềm tin ở đúng tính năng khác biệt nhất.';
+
+
+-- =============================================================================
+-- 7b. SỔ MỪNG CƯỚI
+-- =============================================================================
+-- Nỗi đau: nhà chú Ba mừng đám cưới mình 2 triệu năm 2023; giờ con chú Ba
+-- cưới, mình đi bao nhiêu? Đi thiếu thì mất mặt, đi thừa thì tiếc, và KHÔNG
+-- AI NHỚ NỔI. Hiện thông tin này nằm trong một quyển sổ giấy cất đâu đó, hoặc
+-- trong trí nhớ của mẹ.
+--
+-- Đây là module DUY NHẤT ghi dữ liệu về người ngoài household. Mọi ràng buộc
+-- dưới đây bắt nguồn từ chỗ đó.
+
+-- contacts KHÔNG PHẢI members: không tài khoản, không thông báo, không thấy
+-- dữ liệu. CỐ Ý THIẾU TRƯỜNG: không phone, không địa chỉ, không ảnh, không
+-- ngày sinh, không nhóm. Đây không phải app danh bạ.
+create table contacts (
+  id            uuid primary key default gen_random_uuid(),
+  household_id  uuid not null references households(id) on delete cascade,
+
+  display_name  text not null,
+  -- Chữ tự do: "chú ruột bên nội", "bạn cấp 3 của vợ". Không enum hoá quan hệ
+  -- họ hàng VN — quá nhiều nhánh, và người dùng tự mô tả nhanh hơn chọn.
+  relation_note text,
+  side          contact_side not null default 'other',
+
+  created_by    uuid not null references profiles(id) on delete cascade,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz
+);
+
+create index contacts_household_idx on contacts (household_id)
+  where deleted_at is null;
+create index contacts_name_trgm_idx on contacts
+  using gin (display_name gin_trgm_ops);
+
+
+create table gift_entries (
+  id            uuid primary key default gen_random_uuid(),
+  household_id  uuid not null references households(id) on delete cascade,
+  contact_id    uuid not null references contacts(id) on delete cascade,
+
+  direction     gift_direction not null,   -- received = nhà mình nhận
+  occasion      gift_occasion  not null default 'wedding',
+  amount        numeric(14,2) not null check (amount >= 0),
+  occurred_on   date not null,
+
+  -- Ngữ cảnh (nguyên tắc 10.6): gắn với sự kiện trong app nếu có.
+  event_id      uuid references events(id) on delete set null,
+  -- Quà không phải tiền: "một cây vàng", "bộ ấm chén". amount = 0 khi đó.
+  in_kind_note  text,
+  notes         text,
+
+  created_by    uuid not null references profiles(id) on delete cascade,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz
+);
+
+create index gift_entries_household_idx
+  on gift_entries (household_id, occurred_on desc) where deleted_at is null;
+-- Index cho vòng lặp quan trọng nhất: "nhà này đã mừng mình bao nhiêu?"
+create index gift_entries_lookup_idx
+  on gift_entries (household_id, contact_id, direction, occurred_on desc)
+  where deleted_at is null;
+create index gift_entries_event_idx
+  on gift_entries (event_id) where event_id is not null;
+
+comment on table gift_entries is
+  'Hai chiều SONG SONG, KHÔNG BAO GIỜ TRỪ NHAU. Dữ liệu đủ để tính "nhà này '
+  'mình còn đi thiếu 500k" — và đó chính là lý do phải nói rõ là không tính: '
+  'nó biến quan hệ họ hàng thành sổ nợ. App hiện hai chiều, người dùng tự cân.';
+
+
+-- =============================================================================
+-- 7c. HỒ SƠ CON
+-- =============================================================================
+-- Nhóm dữ liệu DUY NHẤT có tần suất cao và cảm xúc cao cùng lúc trong ba năm
+-- đầu. Và khác mọi module khác: LỊCH TIÊM KHÔNG CHỜ AI CẢ — quên một mũi là
+-- hậu quả thật, không phải bất tiện.
+--
+-- Con đã tồn tại trong members với role='child', profile_id = null.
+-- Các bảng dưới treo vào member đó, không tạo thực thể người mới.
+
+-- DỮ LIỆU THAM CHIẾU, không phải dữ liệu người dùng.
+--
+-- ĐIỀU KIỆN CHẶN PHÁT HÀNH: file seed phải được một người có chuyên môn y tế
+-- đọc và xác nhận. KHÔNG seed từ trí nhớ, KHÔNG seed từ output của mô hình
+-- ngôn ngữ, KHÔNG seed từ blog. Nguồn phải là văn bản chính thức (Chương
+-- trình Tiêm chủng mở rộng, Bộ Y tế) và ba cột source_* phải điền thật.
+-- Sai một mũi hoặc sai một mốc tuổi là gây hại thật.
+create table vaccine_schedule_items (
+  code            text primary key,          -- 'BCG', 'DPT-VGB-Hib_1', …
+  display_name    text not null,
+  dose_label      text,                      -- 'mũi 1', 'nhắc lại'
+  due_age_months  numeric(5,2) not null,     -- mốc tuổi kể từ ngày sinh
+  sort_order      smallint not null,
+
+  -- Truy vết nguồn. Không có ba cột này thì không được ship.
+  source_name     text not null,
+  source_date     date not null,
+  schedule_version text not null,
+
+  is_active       boolean not null default true
+);
+
+
+create table child_vaccine_doses (
+  id             uuid primary key default gen_random_uuid(),
+  household_id   uuid not null references households(id) on delete cascade,
+  member_id      uuid not null references members(id) on delete cascade,
+
+  schedule_code  text references vaccine_schedule_items(code) on delete set null,
+  -- Mũi ngoài lịch (dịch vụ, tiêm bù). Khi đó schedule_code = null.
+  custom_name    text,
+
+  due_date       date,                       -- birthday + due_age_months
+  status         dose_status not null default 'planned',
+  administered_on date,
+  facility       text,
+  notes          text,
+
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz,
+
+  constraint dose_has_name check (schedule_code is not null or custom_name is not null),
+  constraint dose_done_has_date check (status <> 'done' or administered_on is not null),
+  unique (member_id, schedule_code)
+);
+
+create index child_doses_upcoming_idx
+  on child_vaccine_doses (household_id, due_date)
+  where deleted_at is null and status <> 'done';
+create index child_doses_member_idx
+  on child_vaccine_doses (member_id, due_date) where deleted_at is null;
+
+comment on column child_vaccine_doses.status is
+  'KHÔNG CÓ trạng thái "bỏ" hay "hoãn". App không bao giờ gợi ý hoãn, bỏ, hay '
+  'đổi thứ tự mũi tiêm. Mũi trễ hiện là "quá lịch" kèm gợi ý liên hệ cơ sở '
+  'tiêm, không dùng chữ trách móc.';
+
+
+create table child_growth_records (
+  id            uuid primary key default gen_random_uuid(),
+  household_id  uuid not null references households(id) on delete cascade,
+  member_id     uuid not null references members(id) on delete cascade,
+
+  measured_on   date not null,
+  height_cm     numeric(5,1),
+  weight_kg     numeric(5,2),
+  notes         text,
+
+  created_by    uuid not null references profiles(id) on delete cascade,
+  created_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
+
+  unique (member_id, measured_on)
+);
+
+create index child_growth_idx
+  on child_growth_records (member_id, measured_on desc) where deleted_at is null;
+
+comment on table child_growth_records is
+  'CỐ Ý KHÔNG có cột bách phân vị, z-score, hay đánh giá. App GHI VÀ VẼ, KHÔNG '
+  'DIỄN GIẢI. Bố mẹ mới rất dễ lo lắng, và một nhãn đỏ do app tự tính sẽ gây '
+  'hoảng mà không giúp được gì. Việc đánh giá thuộc về bác sĩ.';
+
+
+-- =============================================================================
 -- 8. REMINDERS
 -- =============================================================================
 -- Phần lớn nhắc nhở là ngày biết trước -> schedule LOCAL trên máy,
@@ -757,12 +1149,29 @@ create table reminders (
 
   sent_at         timestamptz,
   dismissed_at    timestamptz,
+  -- Người dùng đã hành động (mở, tạo việc gia hạn, ghi khoản chi).
+  -- Đánh dấu cột mốc trial (household đã trải qua ít nhất một lần nhắc hạn
+  -- được xác nhận). Cũng để không nhắc lại cùng một hạn.
+  acknowledged_at timestamptz,
   created_at      timestamptz not null default now()
 );
 
 create index reminders_pending_idx on reminders (household_id, fire_at)
   where sent_at is null and dismissed_at is null;
 create index reminders_entity_idx on reminders (entity_type, entity_id);
+create index reminders_acked_idx on reminders (household_id, acknowledged_at)
+  where acknowledged_at is not null;
+
+-- QUY TẮC NGƯỜI NHẬN — BẤT BIẾN (03 §5):
+--   việc có assignee_id  -> nhắc CHỈ người đó
+--   việc không gán ai    -> nhắc cả hai
+--   sự kiện/giấy tờ/tiền -> nhắc cả hai (là việc của nhà)
+--   shopping_items       -> KHÔNG BAO GIỜ nhắc
+--
+-- KHÔNG BAO GIỜ tồn tại thông báo dạng "X chưa làm Y". App nhắc người có tên
+-- bao nhiêu lần cũng được — đó chính là giá trị: người kia khỏi phải nhắc.
+-- Nhưng khoảnh khắc app báo cho người thứ hai rằng người thứ nhất chưa làm,
+-- nó thôi thay việc nhắc và bắt đầu thay LỜI TỐ.
 
 
 -- =============================================================================
@@ -783,7 +1192,8 @@ declare t text;
 begin
   foreach t in array array[
     'profiles','households','tasks','events','assets','debts',
-    'upcoming_payments','goals','documents'
+    'upcoming_payments','goals','documents',
+    'contacts','gift_entries','child_vaccine_doses'
   ] loop
     execute format(
       'create trigger %1$s_touch before update on %1$s
@@ -835,6 +1245,14 @@ alter table money_snapshots       enable row level security;
 alter table documents             enable row level security;
 alter table document_files        enable row level security;
 alter table reminders             enable row level security;
+alter table shopping_items        enable row level security;
+alter table event_occurrences     enable row level security;
+alter table ingest_drafts         enable row level security;
+alter table contacts              enable row level security;
+alter table gift_entries          enable row level security;
+alter table child_vaccine_doses   enable row level security;
+alter table child_growth_records  enable row level security;
+alter table vaccine_schedule_items enable row level security;
 
 -- profiles: chỉ chính mình + người cùng household (để hiện tên/avatar)
 create policy profiles_self on profiles
@@ -877,7 +1295,9 @@ begin
     'assets','debts','upcoming_payments','goals',
     'money_events','attention_items','money_snapshots',
     'documents','document_files',
-    'reminders'
+    'reminders',
+    'shopping_items','event_occurrences','ingest_drafts',
+    'contacts','gift_entries','child_vaccine_doses','child_growth_records'
   ] loop
     execute format($f$
       create policy %1$s_household on %1$s
@@ -887,6 +1307,11 @@ begin
     $f$, t);
   end loop;
 end $$;
+
+-- Dữ liệu tham chiếu: ai đăng nhập cũng đọc được, không ai ghi được từ client.
+-- Chỉ service role (migration / seed script) mới ghi.
+create policy vaccine_schedule_read on vaccine_schedule_items
+  for select to authenticated using (true);
 
 -- LƯU Ý: Dù có RLS, client PHẢI luôn filter `where household_id = ?` tường
 -- minh. RLS là lưới an toàn thứ hai — không phải tầng phân quyền duy nhất.
@@ -898,6 +1323,12 @@ end $$;
 -- =============================================================================
 -- Một query duy nhất cho toàn bộ dashboard, union 4 nguồn.
 -- Client filter theo household_id + khoảng ngày.
+--
+-- shopping_items CỐ Ý KHÔNG nằm trong view này: nó không có ngày, nên sẽ phá
+-- cách nhóm theo ngày của cả feed. Card CẦN MUA trên Nhà mình query thẳng
+-- shopping_items (count + 3 mục đầu). Đây là card DUY NHẤT được hiện cả khi
+-- mọi nhóm khác rỗng — nó là bề mặt hằng ngày, và là lý do app được mở khi
+-- không có sự kiện nào.
 
 create or replace view home_feed as
   select
@@ -994,22 +1425,187 @@ create or replace view finance_metrics as
     (select count(*) from attention_items ai
       where ai.household_id = h.id and ai.resolved_at is null
         and ai.expires_at > now())                                  as attention_count,
+    -- Ngày khai gần nhất CỦA RIÊNG nhóm "dùng ngay" — đây là con số mà màn
+    -- hình Sắp tới dựa vào, nên nhãn thời gian phải theo đúng nhóm này.
+    (select max(as_of_date) from assets a
+      where a.household_id = h.id and a.deleted_at is null
+        and a.is_closed = false and a.liquidity = 'usable_now')     as last_usable_updated_on,
     (select max(as_of_date) from assets a
       where a.household_id = h.id and a.deleted_at is null)         as last_updated_on,
-    (select as_of_date from money_snapshots ms
-      where ms.household_id = h.id
-      order by as_of_date desc limit 1)                             as last_snapshot_on,
-    h.snapshot_interval_days,
+    h.record_threshold_amount,
     h.currency
   from households h
   where h.deleted_at is null;
 
+-- ĐÃ BỎ snapshot_interval_days và last_snapshot_on: computeFinanceStatus không
+-- còn dùng độ mới dữ liệu để đổi trạng thái. Một chấm vàng vì "bạn chưa cập
+-- nhật" là một LỜI THÚC — và KHÔNG BIẾT TÌNH HÌNH khác với TÌNH HÌNH KHÔNG ỔN.
+-- Độ mới giờ là một nhãn riêng (computeFreshness), chỉ đổi văn bản.
+--
 -- Lưu ý: money_snapshots.status VẪN lưu giá trị trạng thái. Đó là ảnh chụp
 -- lịch sử, cần đúng bối cảnh thời điểm đó — Edge ghi vào khi tạo snapshot.
 
 
+-- -----------------------------------------------------------------------------
+-- 11c. UPCOMING NEEDS — nguồn của màn hình "Sắp tới nhà mình cần bao nhiêu"
+-- -----------------------------------------------------------------------------
+-- TRÁI TIM SẢN PHẨM. Đây là thứ DUY NHẤT mà Zalo, Calendar, Sheet và Drive
+-- cộng lại vẫn không làm được, vì nó cần đồng thời bốn nguồn: tài sản + sự
+-- kiện + chi phí dự kiến + hạn giấy tờ.
+--
+-- LỖI ĐÃ SỬA: trước đây finance_metrics.due_next_30d CHỈ cộng upcoming_payments.
+-- Giỗ 3tr, cưới 2tr, gia hạn bảo hiểm 12tr đều không bao giờ được tính — trong
+-- khi đó chính là thứ màn hình chính phải trả lời.
+--
+-- SQL chỉ gom số. Dự tính (projectRunway) tính ở packages/domain: nó là chính
+-- sách sản phẩm sẽ đổi nhiều lần — cùng lý do với computeFinanceStatus.
+
+create or replace view upcoming_needs as
+  select
+    'upcoming_payment'::entity_type          as source,
+    p.id,
+    p.household_id,
+    p.name                                   as title,
+    coalesce(p.due_date, p.due_month)        as on_date,
+    p.amount
+  from upcoming_payments p
+  where p.deleted_at is null
+    and p.state = 'unpaid'
+    and coalesce(p.due_date, p.due_month) is not null
+
+  union all
+
+  select 'event', e.id, e.household_id, e.title,
+         e.next_occurrence_date, e.estimated_cost
+  from events e
+  where e.deleted_at is null
+    and e.next_occurrence_date is not null
+    and e.estimated_cost is not null
+    and e.estimated_cost > 0
+
+  union all
+
+  select 'document', d.id, d.household_id, d.title,
+         d.expiry_date, d.renewal_cost
+  from documents d
+  where d.deleted_at is null
+    and d.expiry_date is not null
+    and d.renewal_cost is not null
+    and d.renewal_cost > 0;
+
+-- goals CỐ Ý KHÔNG có trong view này. Nghĩa vụ khác nguyện vọng — xem comment
+-- ở bảng goals.
+
+
+-- -----------------------------------------------------------------------------
+-- 11d. MONEY HISTORY — lịch sử biến động tài sản
+-- -----------------------------------------------------------------------------
+-- ĐƯỜNG PHÂN GIỚI CỦA CẢ MỤC NÀY:
+--   LIỆT KÊ thì trung thực khi dữ liệu thiếu. CỘNG TỔNG thì không.
+--
+--   "Sửa xe −2.000.000 ₫ · 15/9" vẫn đúng dù nhà mình còn mười khoản chưa ghi.
+--   Nó không tự nhận là đầy đủ.
+--   "Tháng 9 chi 12 triệu" thì TỰ NHẬN là đầy đủ, và sẽ sai 30-40% mãi mãi.
+--
+-- Niềm tin của người không giữ tiền đến từ việc THẤY ĐƯỢC THAY ĐỔI, không phải
+-- từ con số hiện tại. Đó là lý do view này tồn tại.
+
+create or replace view money_history as
+  select
+    me.id,
+    me.household_id,
+    me.entity_type,
+    me.entity_id,
+    me.event_type,
+    me.value_before,
+    me.value_after,
+    me.delta,
+    me.occurred_on,
+    me.note,
+    me.actor_profile_id,
+    -- coalesce vì entity có thể đã xoá mềm — money_events là append-only nên
+    -- dòng lịch sử vẫn còn và vẫn phải đọc được.
+    coalesce(a.name, d.name, g.name, p.name, '(đã xoá)') as entity_title,
+    m.display_name                                       as actor_display_name
+  from money_events me
+  left join assets            a on me.entity_type = 'asset'            and a.id = me.entity_id
+  left join debts             d on me.entity_type = 'debt'             and d.id = me.entity_id
+  left join goals             g on me.entity_type = 'goal'             and g.id = me.entity_id
+  left join upcoming_payments p on me.entity_type = 'upcoming_payment' and p.id = me.entity_id
+  left join members           m on m.household_id = me.household_id
+                               and m.profile_id  = me.actor_profile_id
+                               and m.deleted_at is null;
+
+comment on view money_history is
+  'CHỈ ĐƯỢC HIỂN THỊ DẠNG DANH SÁCH. Cấm vẽ tổng theo tháng thành đường xu '
+  'hướng: khoảng trống trong việc ghi chép sẽ trông y hệt thay đổi trong chi '
+  'tiêu — tháng nào hai người bận và quên ghi sẽ hiện ra như một tháng tiết '
+  'kiệm, và app vừa nói dối một cách rất thuyết phục. Danh sách không có vấn '
+  'đề đó vì không ai nhìn một danh sách rồi kết luận nó đầy đủ.';
+
+-- CỐ Ý KHÔNG TẠO — nếu thấy trong PR thì reject:
+--   view tổng hợp theo tháng · view phân loại theo danh mục
+--   view group by actor_profile_id hoặc member_id
+-- Tổng của một kỳ ĐƯỢC PHÉP nhưng tính ở client và bắt buộc kèm số lượng bản
+-- ghi + chữ "đã ghi" ("Tháng 9 · 5 khoản nhà mình đã ghi · −12.000.000 ₫"),
+-- nên nó không thuộc về SQL.
+
+
+-- -----------------------------------------------------------------------------
+-- 11e. GIFT HISTORY — nguồn của dòng gợi ý sổ mừng cưới
+-- -----------------------------------------------------------------------------
+-- Toàn bộ lý do module sổ mừng cưới tồn tại nằm ở đây: khi tạo khoản mừng cho
+-- nhà nào, app nói được nhà đó đã mừng mình bao nhiêu, khi nào. Không có dòng
+-- gợi ý đó thì đây chỉ là một cái Excel có màu.
+--
+-- CỐ Ý KHÔNG CÓ CỘT CHÊNH LỆCH. Dữ liệu đủ để tính "nhà này mình còn đi thiếu
+-- 500k" — và đó chính là lý do phải nói rõ là không tính.
+
+create or replace view gift_history as
+  select
+    c.id                as contact_id,
+    c.household_id,
+    c.display_name,
+    c.side,
+    count(*) filter (where g.direction = 'received')            as times_received,
+    count(*) filter (where g.direction = 'given')               as times_given,
+    coalesce(sum(g.amount) filter (where g.direction = 'received'), 0)
+                                                                as total_received,
+    coalesce(sum(g.amount) filter (where g.direction = 'given'), 0)
+                                                                as total_given,
+    max(g.occurred_on) filter (where g.direction = 'received')  as last_received_on,
+    max(g.occurred_on) filter (where g.direction = 'given')     as last_given_on
+  from contacts c
+  left join gift_entries g
+    on g.contact_id = c.id and g.deleted_at is null
+  where c.deleted_at is null
+  group by c.id, c.household_id, c.display_name, c.side;
+
+
+-- -----------------------------------------------------------------------------
+-- (11f đã bỏ) — VALUE SAVED
+-- -----------------------------------------------------------------------------
+-- Card "app đã nhắc bạn 6 hạn, tổng giá trị 47 triệu" ĐÃ BỊ BỎ.
+--
+-- Lý do không phải là nó yếu về marketing — mà là nó KHÔNG NHẤT QUÁN VỚI
+-- CHÍNH SẢN PHẨM. Cả spec này được xây trên nguyên tắc không nói quá: số khai
+-- phải kèm nhãn thời gian, dự tính phải ghi "theo những khoản đã ghi", tổng
+-- phải kèm số lượng bản ghi. Câu "app đã cứu bạn 47 triệu" là một khẳng định
+-- phản thực — không ai biết người dùng có tự nhớ hạn đó hay không — và nó
+-- không kiểm chứng được bằng bất kỳ cách nào.
+--
+-- Đặt một con số không kiểm chứng được cạnh những con số được gắn nhãn cẩn
+-- thận sẽ làm hỏng niềm tin vào cả hai.
+--
+-- Thêm nữa: 6 hạn/năm là quá thưa. Phần lớn thời gian card sẽ hiện "1 hạn"
+-- hoặc không hiện gì.
+
+
 -- View đọc gộp: tầng UI không cần biết tài chính nằm ở 4 bảng.
 -- Dùng cho ô tìm kiếm, timeline chung và card "mọi thứ về tiền".
+-- View kế thừa RLS của bảng gốc.
+-- (Đặt sau khi tất cả view đã được tạo — xem cuối mục 11.)
+
 create or replace view money_feed as
   select 'asset'::entity_type as kind, a.id, a.household_id, a.name as title,
          a.current_value as amount, a.as_of_date as on_date,
@@ -1097,13 +1693,20 @@ create or replace function update_asset_value(
   p_note     text default null
 ) returns void
 language plpgsql security invoker as $$
-declare v_old numeric; v_hh uuid;
+declare v_old numeric; v_hh uuid; v_member uuid;
 begin
   select current_value, household_id into v_old, v_hh
     from assets where id = p_asset_id and deleted_at is null for update;
   if not found then raise exception 'asset not found'; end if;
 
-  update assets set current_value = p_value, as_of_date = p_as_of
+  select id into v_member from members
+   where household_id = v_hh and profile_id = current_profile_id()
+     and deleted_at is null;
+
+  update assets
+     set current_value        = p_value,
+         as_of_date           = p_as_of,
+         updated_by_member_id = v_member
    where id = p_asset_id;
 
   insert into money_events (household_id, entity_type, entity_id, event_type,
@@ -1111,6 +1714,60 @@ begin
                             actor_profile_id)
   values (v_hh, 'asset', p_asset_id, 'value_updated',
           v_old, p_value, p_value - v_old, p_as_of, p_note, current_profile_id());
+end $$;
+
+-- Góp thêm vào mục tiêu. Cùng cơ học với update_asset_value.
+create or replace function contribute_to_goal(
+  p_goal_id uuid,
+  p_amount  numeric,
+  p_as_of   date default current_date,
+  p_note    text default null
+) returns void
+language plpgsql security invoker as $$
+declare v_old numeric; v_hh uuid; v_member uuid;
+begin
+  select current_amount, household_id into v_old, v_hh
+    from goals where id = p_goal_id and deleted_at is null for update;
+  if not found then raise exception 'goal not found'; end if;
+
+  select id into v_member from members
+   where household_id = v_hh and profile_id = current_profile_id()
+     and deleted_at is null;
+
+  update goals
+     set current_amount       = v_old + p_amount,
+         as_of_date           = p_as_of,
+         updated_by_member_id = v_member
+   where id = p_goal_id;
+
+  insert into money_events (household_id, entity_type, entity_id, event_type,
+                            value_before, value_after, delta, occurred_on, note,
+                            actor_profile_id)
+  values (v_hh, 'goal', p_goal_id, 'value_updated',
+          v_old, v_old + p_amount, p_amount, p_as_of, p_note,
+          current_profile_id());
+end $$;
+
+-- actor_profile_id trong money_events trả lời "AI KHAI CON SỐ NÀY" khi đọc
+-- lịch sử CỦA MỘT KHOẢN. Nó KHÔNG BAO GIỜ được nhóm lại thành "anh góp bao
+-- nhiêu, em góp bao nhiêu": đó là bảng điểm ở dạng TRÔNG GIỐNG MINH BẠCH
+-- nhất, và vì thế là dạng nguy hiểm nhất.
+
+
+-- =============================================================================
+-- 12b. SECURITY INVOKER CHO VIEW
+-- =============================================================================
+-- View kế thừa RLS của bảng gốc thay vì chạy quyền owner.
+
+do $$
+declare v text;
+begin
+  foreach v in array array[
+    'home_feed','finance_metrics','money_feed',
+    'upcoming_needs','money_history','gift_history'
+  ] loop
+    execute format('alter view %I set (security_invoker = true)', v);
+  end loop;
 end $$;
 
 
@@ -1128,20 +1785,34 @@ end $$;
 --   sync_storage_used()                          -- bộ đếm quota
 --        (ENFORCE quota ở Edge khi phát presigned URL;
 --         DUY TRÌ bộ đếm ở DB, để insert thẳng qua PostgREST không làm lệch)
---   settle_payment(), update_asset_value()       -- RPC nguyên tử, không policy
---   views: home_feed, finance_metrics, money_feed -- SQL làm việc SQL giỏi
+--   settle_payment(), update_asset_value(),
+--   contribute_to_goal()                         -- RPC nguyên tử, không policy
+--   views: home_feed, finance_metrics, money_feed,
+--          upcoming_needs, money_history,
+--          gift_history                          -- SQL làm việc SQL giỏi
 --
 -- RA EDGE FUNCTION (là chính sách — sẽ đổi nhiều lần, cần test/observability):
 --   computeFinanceStatus()      -- module TS dùng chung, chạy cả ở CLIENT
+--   computeFreshness()          -- nhãn độ mới, cũng dùng chung
+--   projectRunway()             -- dự tính "sắp tới cần bao nhiêu"
 --   refresh_lunar_dates         -- Postgres không biết lịch âm
+--                                  + ghi event_occurrences khi mốc trôi qua
+--   parse_capture               -- AI đọc ảnh chụp màn hình / ảnh giấy tờ
+--                                  ĐÂY LÀ EDGE FUNCTION ĐẦU TIÊN NHẬN INPUT
+--                                  NGƯỜI DÙNG -> chỗ đầu tiên cần validation
+--                                  phía server
+--   seed_vaccine_doses          -- sinh child_vaccine_doses từ birthday
 --   purge_soft_deleted          -- phải gọi R2 API để xoá file thật
 --   presign_upload              -- kiểm tra premium + quota + ký URL R2
 --   spawn_debt_installments     -- sinh kỳ trả nợ tiếp theo
 --   generate_task_instances     -- vật hoá việc lặp, cửa sổ 90 ngày
---   build_reminders             -- sinh nhắc nhở expiry / event / money
---   autosnapshot_monthly        -- chốt snapshot cuối tháng
---   nudge_snapshot_update       -- nhắc cập nhật theo snapshot_interval_days
+--   build_reminders             -- sinh nhắc nhở expiry / event / money / tiêm
+--   autosnapshot_monthly        -- chốt snapshot cuối tháng (dẫn xuất)
+--   sweep_shopping_done         -- ẩn mục đã tick quá 24h
+--   check_trial_milestones      -- cột mốc kết thúc trial
 --   revenuecat_webhook          -- đồng bộ entitlement về households
+--
+-- ĐÃ BỎ: nudge_snapshot_update. Không còn nhắc cập nhật định kỳ.
 --
 -- pg_cron KHÔNG chứa logic. Nó chỉ net.http_post() gọi Edge Function:
 --   select cron.schedule('purge', '0 2 * * *', $$
@@ -1165,23 +1836,68 @@ end $$;
 --  04:30  build-reminders           nhắc expiry tài liệu / sự kiện / khoản tiền
 --  05:00  spawn-debt-installments   sinh kỳ trả nợ tiếp theo
 --  05:15  expire-attention-items    đóng cờ cần trao đổi đã quá expires_at
---  09:00  nudge-snapshot-update     nhắc household quá hạn snapshot_interval_days
---                                   (vòng lặp thói quen chính của sản phẩm)
---  23:50  autosnapshot-monthly      ngày cuối tháng chốt 1 snapshot is_manual=false
---                                   để lịch sử không trống nếu user lười nhập
+--  05:30  sweep-shopping-done       ẩn shopping_items đã tick quá 24h
+--  05:45  mark-overdue-doses        child_vaccine_doses planned -> overdue
+--  06:00  check-trial-milestones    cập nhật households.trial_milestones
+--  06:15  sweep-ingest-drafts       xoá ingest_drafts pending quá expires_at
+--  23:50  autosnapshot-monthly      ngày cuối tháng chốt 1 snapshot (dẫn xuất,
+--                                   người dùng không thấy)
+--
+-- ĐÃ BỎ: 09:00 nudge-snapshot-update. Nhắc cập nhật theo lịch là nghi thức
+-- kế toán — chỉ người dùng mới quyết được khoản nào đáng ghi. Thay bằng nhãn
+-- thời gian + shouldAskForRefresh() hỏi theo ngữ cảnh.
 --
 -- =============================================================================
 -- GHI CHÚ PHẠM VI MVP
 -- =============================================================================
 -- ĐÃ BỎ khỏi MVP (thêm lại khi có nhu cầu thật — đều là thay đổi additive):
---   event_instances        ghi chú/chi phí thực tế theo từng năm
 --   event_checklist_items  checklist trong sự kiện
 --   links                  quan hệ N:N tự do; MVP dùng FK, sự kiện là hub
 --   activity_log           metrics đã có PostHog
 --   subscription_events    RevenueCat đã giữ lịch sử webhook
 --
+-- (event_instances đã ĐƯỢC ĐƯA VÀO ở v2 dưới tên event_occurrences — nó là
+--  nguồn của trí nhớ năm ngoái, và lịch sử không backfill được.)
+--
 -- GIỮ SCHEMA NHƯNG KHÔNG BUILD UI Ở MVP:
---   money_events    ghi từ ngày đầu; timeline & biểu đồ là Phase 2
 --   money_snapshots ghi từ ngày đầu; so sánh tháng là Phase 2
 --   Lý do: lịch sử KHÔNG backfill được. Chi phí schema ~0, chi phí feature 0.
---   ĐỪNG XOÁ hai bảng này vì "MVP chưa dùng đến".
+--   ĐỪNG XOÁ vì "MVP chưa dùng đến".
+--
+-- (money_events ĐÃ CÓ UI ở v2.1: money/history.tsx + khối LỊCH SỬ trong chi
+--  tiết tài sản. Bản v2 cắt nhầm phần này — xem 08 §1.)
+
+
+-- =============================================================================
+-- DANH SÁCH CẤM — kiểm tra khi review PR
+-- =============================================================================
+-- Đây là RÀNG BUỘC SẢN PHẨM, không phải nợ kỹ thuật. Không thêm kể cả khi
+-- người dùng yêu cầu, và kể cả khi dữ liệu đã có sẵn để tính.
+--
+--   Tổng tiền theo người                 -> công cụ kiểm soát; người giữ tiền
+--                                           rời app ngay
+--   Tỷ lệ hoàn thành việc theo người     -> bảng điểm giữa hai vợ chồng
+--   Chuỗi ngày / điểm thưởng / huy hiệu  -> gamification việc nhà
+--   Biểu đồ xu hướng chi tiêu theo tháng -> khoảng trống ghi chép trông y hệt
+--                                           thay đổi chi tiêu
+--   So sánh giữa các kỳ                  -> như trên
+--   Phân loại chi tiêu theo danh mục     -> ranh giới với app thu chi
+--   Đóng góp vào mục tiêu theo người     -> bảng điểm trông như minh bạch
+--   Gợi ý "mỗi tháng cần góp bao nhiêu"  -> app không biết thu nhập
+--   Chênh lệch đi/nhận theo contact      -> biến họ hàng thành sổ nợ
+--   Xếp hạng contact theo số tiền        -> xếp hạng họ hàng theo độ hào phóng
+--   Bách phân vị / đánh giá tăng trưởng  -> chẩn đoán y tế
+--   So sánh giữa các con trong nhà       -> như trên
+--   Trạng thái "bỏ / hoãn" cho mũi tiêm  -> gây hại thật
+--
+-- ĐƯỢC PHÉP CÓ ĐIỀU KIỆN: tổng của những gì đã ghi trong một kỳ — bắt buộc
+-- kèm SỐ LƯỢNG BẢN GHI và chữ "ĐÃ GHI", và không bao giờ được vẽ thành đường.
+--
+--
+-- =============================================================================
+-- ĐIỀU KIỆN CHẶN PHÁT HÀNH
+-- =============================================================================
+-- vaccine_schedule_items phải được seed từ một file có phiên bản, nguồn là
+-- văn bản chính thức, và ĐƯỢC MỘT NGƯỜI CÓ CHUYÊN MÔN Y TẾ ĐỌC VÀ XÁC NHẬN
+-- trước khi phát hành. Không seed từ trí nhớ, không từ mô hình ngôn ngữ,
+-- không từ blog. Sai một mũi hoặc một mốc tuổi là gây hại thật.

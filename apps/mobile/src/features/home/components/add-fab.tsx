@@ -57,6 +57,12 @@ export function AddFab() {
   // trước. Thứ tự theo tần suất thêm, không theo thứ tự tab: việc → sự kiện →
   // khoản sắp trả → khoản tiền → giấy tờ. Giấy tờ đứng cuối vì nó là thứ thêm
   // thưa nhất, vài lần một năm chứ không phải vài lần một tuần.
+  //
+  // "Nhập từ ảnh" đứng CUỐI dù `06 §11` xếp nó rất sớm trong thứ tự dựng: thứ
+  // tự dựng nói về rủi ro kỹ thuật (nếu nó không chạy thì mọi module đều rỗng),
+  // còn thứ tự ở đây nói về tần suất chạm. Đường vào thật của luồng này là share
+  // sheet từ Zalo (F4) — mục này chỉ là đường vào phụ khi người dùng đã ở trong
+  // app, nên nó không được đẩy bốn mục thường dùng xuống dưới.
   const items: FabMenuItem[] = [
     { key: 'task', label: t.quickAdd.task, icon: 'task', onPress: () => router.push('/(modals)/task-form') },
     {
@@ -78,6 +84,12 @@ export function AddFab() {
       onPress: () => router.push('/(modals)/asset-form'),
     },
     { key: 'doc', label: t.quickAdd.doc, icon: 'doc', onPress: () => router.push('/(modals)/doc-form') },
+    {
+      key: 'capture',
+      label: t.quickAdd.capture,
+      icon: 'doc',
+      onPress: () => router.push('/(modals)/capture-review'),
+    },
   ];
 
   return (

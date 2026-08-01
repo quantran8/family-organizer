@@ -1,11 +1,29 @@
 /**
- * Nhà mình đã thay đổi gì — G7b, timeline chung của `money_events`.
+ * Lịch sử biến động — 05 §6.8, timeline chung của `money_events` gộp theo THÁNG.
+ *
+ * Đây là màn hình khiến người không giữ tiền cảm thấy nắm tình hình: niềm tin
+ * đến từ việc THẤY ĐƯỢC THAY ĐỔI, không phải từ con số hiện tại.
  *
  * Tầng lịch sử thứ hai, khác `history.tsx`:
  *   `money_snapshots` = tổng của CẢ NHÀ theo mốc thời gian.
  *   `money_events`    = thay đổi của TỪNG KHOẢN.
  * Cần cả hai, và chúng trả lời hai câu khác nhau: *"nhà mình đang khá hơn hay
  * kém đi?"* và *"cái gì vừa đổi?"*.
+ *
+ * ── LIỆT KÊ THÌ TRUNG THỰC KHI THIẾU. CỘNG TỔNG THÌ KHÔNG. (08 §1.2) ──
+ *
+ * Một dòng *"Sửa xe −2.000.000 ₫ · 15/9"* vẫn đúng dù nhà mình còn mười khoản
+ * khác chưa ghi — nó không tự nhận là đầy đủ. Một con số *"Tháng 9 chi 12
+ * triệu"* thì tự nhận là đầy đủ, và sẽ sai 30–40% mãi mãi.
+ *
+ * Vì thế dòng tổng tháng ở đây BẮT BUỘC kèm số lượng bản ghi và chữ "đã ghi",
+ * và vì thế màn này **không bao giờ có biểu đồ**. Khi vẽ tổng theo tháng thành
+ * một đường, tháng nào hai người bận và quên ghi sẽ trông y hệt một tháng tiết
+ * kiệm — app vừa nói dối một cách rất thuyết phục. Danh sách không có vấn đề đó
+ * vì không ai nhìn một danh sách rồi kết luận nó đầy đủ.
+ *
+ * Cũng cấm: so sánh giữa các kỳ ("nhiều hơn tháng trước 20%"), phân loại chi
+ * tiêu theo danh mục, và tổng hợp theo người (08 §1.4).
  *
  * **RÀNG BUỘC #1 áp ở đây rõ hơn bất cứ màn nào khác trong app.** Bộ lọc là
  * theo LOẠI KHOẢN (tài sản · nợ · khoản trả · mục tiêu), và sẽ không bao giờ có
@@ -18,14 +36,14 @@
  * lịch sử; sửa sai bằng cách cập nhật lại giá trị qua thao tác bình thường.
  */
 
-import { describeMoneyEvent, type DayBucket, type MoneyEntityType } from '@family-organizer/domain';
+import { describeMoneyEvent, type MoneyEntityType } from '@family-organizer/domain';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
 import { ChipSelect, EmptyState, ErrorState, ListSkeleton } from '@/design/components';
 import { useCurrency } from '@/design/use-currency';
 import { useMoneyEventTimeline } from '@/features/money-history/queries/use-money-events';
-import { deltaText, fullSolarDate, moneyEventText, useT, type Dictionary } from '@/i18n';
+import { deltaText, fullSolarDate, moneyEventText, monthLabelText, useT, type Dictionary } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 
 /**
@@ -60,7 +78,7 @@ export function MoneyChangesScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useMoneyEventTimeline(entityType ?? undefined, today);
+  } = useMoneyEventTimeline(entityType ?? undefined);
 
   const filter = (
     <View className="px-4 pt-3">
@@ -116,12 +134,38 @@ export function MoneyChangesScreen() {
         ) : null}
 
         {(groups ?? []).map((g) => (
-          <View key={g.onDate} className="mt-5">
-            <Text className="mb-1 text-label font-semibold text-muted">
-              {bucketLabel(g.bucket, t.money)}
-            </Text>
+          <View key={g.month} className="mt-6">
+            {/* ── DÒNG TỔNG THÁNG ──
+                BẮT BUỘC đủ hai thứ: số lượng bản ghi và chữ "đã ghi" (08 §1.3).
 
-            {g.events.map((e) => {
+                Đây là đường phân giới của cả màn hình. "5 khoản nhà mình đã ghi:
+                −12 triệu" đúng theo đúng nghĩa đen của nó, kể cả khi nhà mình còn
+                mười khoản khác chưa ghi — nó không tự nhận là đầy đủ. Bỏ `count`
+                đi thì câu còn lại là "tháng 9: −12 triệu", và câu đó TỰ NHẬN là
+                bức tranh đầy đủ, sẽ sai 30–40% mãi mãi.
+
+                Nếu có lúc nào cần rút gọn dòng này cho gọn: rút phần khác, đừng
+                rút `count`. */}
+            <View className="mb-1 flex-row items-end justify-between gap-3">
+              <View className="flex-1">
+                <Text className="text-label font-semibold uppercase text-muted">
+                  {monthLabelText(g.month, today)}
+                </Text>
+                <Text className="mt-0.5 text-caption text-subtle">
+                  {f(t.money.monthlyRecorded, { count: g.count })}
+                </Text>
+              </View>
+              {/* Không tô màu theo dấu, không vẽ thành đường: chỉ danh sách và
+                  một con số có nhãn. Xem chú thích đầu file. */}
+              <Text
+                className="text-heading font-semibold text-ink"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {deltaText(g.total, currency)}
+              </Text>
+            </View>
+
+            {g.items.map((e) => {
               const shape = describeMoneyEvent(e);
               return (
                 <View
@@ -180,24 +224,3 @@ export function MoneyChangesScreen() {
   );
 }
 
-/**
- * Nhãn nhóm ngày.
- *
- * `groupEventsByDay` ở domain phân loại (hàm thuần, có test); ở đây chỉ dịch
- * sang chữ. Nhóm cũ hơn hai tuần hiện thẳng ngày — "3 tuần trước" bắt người
- * dùng tự trừ ra để biết đó là hôm nào.
- */
-function bucketLabel(b: DayBucket, m: Dictionary['money']): string {
-  switch (b.kind) {
-    case 'today':
-      return m.bucketToday;
-    case 'yesterday':
-      return m.bucketYesterday;
-    case 'this_week':
-      return m.bucketThisWeek;
-    case 'last_week':
-      return m.bucketLastWeek;
-    case 'older':
-      return fullSolarDate(b.onDate);
-  }
-}

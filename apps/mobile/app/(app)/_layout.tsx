@@ -68,6 +68,18 @@ export default function AppLayout() {
         route điều hướng tới được. Vào qua avatar ở header màn Nhà mình.
       */}
       <Tabs.Screen name="settings" options={{ href: null }} />
+      {/*
+        Hai module bản địa (G15) — cùng lý do với `settings`: thư mục nằm cạnh
+        bốn tab nên expo-router mọc thêm mục, `href: null` giấu đi mà vẫn điều
+        hướng tới được.
+
+        Sổ mừng vào qua tab Tiền; Hồ sơ con vào qua tab Giấy tờ hoặc từ dòng mũi
+        tiêm sắp tới trên Nhà mình (07 §4.5). Cả hai đều KHÔNG xứng một tab: sổ
+        mừng chỉ dùng vài lần một năm quanh mùa cưới, và hồ sơ con chỉ có nghĩa
+        với nhà đang có con nhỏ.
+      */}
+      <Tabs.Screen name="gifts" options={{ href: null }} />
+      <Tabs.Screen name="child" options={{ href: null }} />
     </Tabs>
   );
 }

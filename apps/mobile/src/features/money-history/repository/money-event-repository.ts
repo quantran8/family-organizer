@@ -1,80 +1,43 @@
 /**
  * Hiện thực MoneyEventRepository.
+ *
+ * Đọc view `money_history`, KHÔNG đọc bảng `money_events` trần. View đã join
+ * sẵn tên khoản (từ 4 bảng, qua coalesce) và tên người thực hiện (từ `members`)
+ * — thứ trước đây làm bằng 5 truy vấn phụ ở client cho mỗi trang.
+ *
+ * Vì sao đáng đổi, ngoài chuyện nhanh hơn: join thủ công ở client thì mỗi chỗ
+ * gọi phải TỰ NHỚ gọi kèm, và một chỗ quên sẽ hiện danh sách toàn dòng không có
+ * tên khoản — vẫn chạy, không lỗi, chỉ vô nghĩa. Đưa vào SQL thì không còn chỗ
+ * nào quên được.
+ *
+ * Hai điểm khác so với bản join tay:
+ *   - Khoản đã xoá mềm hiện `'(đã xoá)'` thay vì null. Dòng lịch sử vẫn còn vì
+ *     `money_events` là append-only, nên nó cần một cái tên để hiện.
+ *   - Tên người lấy từ `members.display_name` (trong phạm vi nhà), không phải
+ *     `profiles.display_name` (toàn cục). Tên hiển thị là thoả thuận trong một
+ *     nhà, không phải danh tính toàn hệ thống.
  */
 
 import { supabase } from '@/lib/supabase';
-import type { MoneyEventRow } from '@/lib/database.types';
+import type { MoneyHistoryRow } from '@/lib/database.types';
 import { unwrap } from '@/data/shared/errors';
 import { toMoneyEvent } from '@/data/shared/mappers';
-import type { MoneyEntityType, MoneyEvent, UUID } from '@family-organizer/domain';
+import type { MoneyEvent } from '@family-organizer/domain';
 
 import type { MoneyEventRepository } from './money-event-repository.interface';
 
-/**
- * `as const` để tên bảng giữ kiểu literal — nhờ đó TypeScript kiểm được là
- * bốn bảng này đều thật sự có cột `name`.
- */
-const TABLE_OF = {
-  asset: 'assets',
-  debt: 'debts',
-  goal: 'goals',
-  upcoming_payment: 'upcoming_payments',
-} as const satisfies Record<MoneyEntityType, string>;
-
-/**
- * Gắn tên khoản và tên người thực hiện.
- *
- * Join thủ công vì entity nằm ở 4 bảng khác nhau — PostgREST không join được
- * quan hệ đa hình. Chỉ 4 truy vấn phụ tối đa cho cả trang.
- */
-async function attachTitles(hh: UUID, rows: MoneyEventRow[]): Promise<MoneyEvent[]> {
-  if (rows.length === 0) return [];
-
-  const idsByType = new Map<MoneyEntityType, Set<string>>();
-  for (const r of rows) {
-    const type = r.entity_type as MoneyEntityType;
-    if (!(type in TABLE_OF)) continue;
-    const set = idsByType.get(type) ?? new Set<string>();
-    set.add(r.entity_id);
-    idsByType.set(type, set);
-  }
-
-  const titles = new Map<string, string>();
-  for (const [type, ids] of idsByType) {
-    // KHÔNG lọc deleted_at: khoản đã xoá mềm VẪN phải hiện tên trong lịch sử.
-    const data = await unwrap<Array<{ id: string; name: string }>>(
-      supabase
-        .from(TABLE_OF[type])
-        .select('id, name')
-        .eq('household_id', hh)
-        .in('id', [...ids]),
-    );
-    for (const row of data) titles.set(`${type}:${row.id}`, row.name);
-  }
-
-  const actorIds = [
-    ...new Set(rows.map((r) => r.actor_profile_id).filter((x): x is string => x !== null)),
-  ];
-  const actors = new Map<string, string>();
-  if (actorIds.length > 0) {
-    const data = await unwrap<Array<{ id: string; display_name: string }>>(
-      supabase.from('profiles').select('id, display_name').in('id', actorIds),
-    );
-    for (const row of data) actors.set(row.id, row.display_name);
-  }
-
-  return rows.map((r) =>
-    toMoneyEvent(r, {
-      entityTitle: titles.get(`${r.entity_type}:${r.entity_id}`) ?? null,
-      actorDisplayName: r.actor_profile_id ? (actors.get(r.actor_profile_id) ?? null) : null,
-    }),
-  );
+/** Hàng view → MoneyEvent. Tên khoản và tên người đã có sẵn trong hàng. */
+function fromView(r: MoneyHistoryRow): MoneyEvent {
+  return toMoneyEvent(r, {
+    entityTitle: r.entity_title,
+    actorDisplayName: r.actor_display_name,
+  });
 }
 
 export const moneyEventRepository: MoneyEventRepository = {
   async timeline(hh, opts) {
     let q = supabase
-      .from('money_events')
+      .from('money_history')
       .select('*')
       .eq('household_id', hh)
       .order('occurred_on', { ascending: false })
@@ -84,15 +47,15 @@ export const moneyEventRepository: MoneyEventRepository = {
     if (opts.entityType) q = q.eq('entity_type', opts.entityType);
     if (opts.before) q = q.lt('occurred_on', opts.before);
 
-    const rows = await unwrap<MoneyEventRow[]>(q);
-    return attachTitles(hh, rows);
+    const rows = await unwrap<MoneyHistoryRow[]>(q);
+    return rows.map(fromView);
   },
 
-  /** 5 thay đổi gần nhất của một khoản — mục "Thay đổi gần nhất" ở màn chi tiết. */
+  /** Lịch sử của MỘT khoản — mục "Thay đổi gần nhất" ở màn chi tiết. */
   async forEntity(hh, entityType, entityId, limit) {
-    const rows = await unwrap<MoneyEventRow[]>(
+    const rows = await unwrap<MoneyHistoryRow[]>(
       supabase
-        .from('money_events')
+        .from('money_history')
         .select('*')
         .eq('household_id', hh)
         .eq('entity_type', entityType)
@@ -101,6 +64,6 @@ export const moneyEventRepository: MoneyEventRepository = {
         .order('id', { ascending: false })
         .limit(limit),
     );
-    return attachTitles(hh, rows);
+    return rows.map(fromView);
   },
 };

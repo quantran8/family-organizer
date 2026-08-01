@@ -16,7 +16,12 @@
  * khác nhau về cùng một thứ là cách phá niềm tin nhanh nhất trong app tiền chung.
  */
 
-import { computeFinanceStatus, explainFinanceStatus, formatDueLabel } from '@family-organizer/domain';
+import {
+  computeFinanceStatus,
+  explainFinanceStatus,
+  formatDeclaredAt,
+  formatDueLabel,
+} from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +32,9 @@ import {
   EmptyState,
   ListSkeleton,
   MoneyText,
+  NavRow,
+  ProgressBar,
+  progressPct,
   SectionHeader,
   StatusPill,
   Toast,
@@ -34,9 +42,9 @@ import {
 import { useOpenAttention } from '@/features/attention/queries/use-attention';
 import { useGoals } from '@/features/goal/queries/use-goals';
 import { AddFab } from '@/features/home/components';
-import { useFinanceMetrics } from '@/features/household/queries/use-household';
+import { useFinanceMetrics, useUpcomingNeeds } from '@/features/household/queries/use-household';
 import { usePayments } from '@/features/payment/queries/use-payments';
-import { dueLabelText, financeReasonText, lastUpdatedText, useT } from '@/i18n';
+import { declaredAtText, dueLabelText, financeReasonText, useT } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 
 export function MoneyOverviewScreen() {
@@ -51,7 +59,11 @@ export function MoneyOverviewScreen() {
   const { data: attention } = useOpenAttention();
   const { data: goals } = useGoals();
 
-  const status = metrics ? computeFinanceStatus(metrics, today) : null;
+  // `needs` gộp ba nguồn tiền — đầu vào bắt buộc của computeFinanceStatus từ v2.
+  const { data: needs } = useUpcomingNeeds(today);
+  const needsList = needs ?? [];
+
+  const status = metrics ? computeFinanceStatus(metrics, needsList, today) : null;
 
   return (
     // Tab gốc, `headerShown: false` — không có header nào che notch. Cạnh dưới
@@ -72,27 +84,34 @@ export function MoneyOverviewScreen() {
         {metrics && status ? (
           <>
             {/* ── THẺ TRẠNG THÁI ──
-                Nhãn + MỘT CÂU lý do + nút mở nghi thức cập nhật. Nút nằm TRONG
-                thẻ chứ không nổi riêng: nó là câu trả lời cho tình hình vừa đọc
-                được, không phải một hành động độc lập ai đó phải đi tìm. */}
+                Nhãn + MỘT CÂU lý do + nhãn thời gian của số khai.
+                ĐÃ BỎ nút "Cập nhật tình hình" (06 §1): nghi thức cập nhật định
+                kỳ là một nghi thức kế toán, và chỉ người dùng mới quyết được
+                khoản nào đáng ghi. Đường cập nhật giờ nằm ở đúng chỗ có ngữ
+                cảnh — nút "Cập nhật giá trị" trong chi tiết từng khoản. */}
             <View className="mt-3">
               <Card emphasis={status === 'ok' ? 'none' : 'brand'}>
                 <StatusPill status={status} />
                 <Text className="mt-2 text-body text-ink">
-                  {financeReasonText(explainFinanceStatus(metrics, today).reason)}
+                  {financeReasonText(explainFinanceStatus(metrics, needsList, today).reason)}
                 </Text>
+                {/* Nhãn thời gian BẮT BUỘC ở mọi chỗ hiện số tổng (03 §8). */}
                 <Text className="mt-1 text-caption text-subtle">
-                  {metrics.lastUpdatedOn
-                    ? lastUpdatedText(formatDueLabel(metrics.lastUpdatedOn, today))
-                    : t.financeStatus.neverUpdated}
+                  {declaredAtText(formatDeclaredAt(metrics.lastUsableUpdatedOn, null, today))}
                 </Text>
-                <View className="mt-4">
-                  <Button
-                    label={t.money.updateSituation}
-                    onPress={() => router.push('/(modals)/snapshot-update')}
-                  />
-                </View>
               </Card>
+            </View>
+
+            {/* ── ĐƯỜNG VÀO MÀN "SẮP TỚI" ──
+                Đặt TRÊN bốn dòng nhóm, không phải dưới: theo v2 đây mới là màn
+                chính của module tiền ("sắp tới nhà mình cần bao nhiêu"), còn bốn
+                con số nhóm trả lời câu cũ ("nhà mình đang có bao nhiêu"). Thứ tự
+                trên màn hình phải nói ra thứ tự đó. */}
+            <View className="mt-4">
+              <Button
+                label={t.upcoming.title}
+                onPress={() => router.push('/(app)/money/upcoming')}
+              />
             </View>
 
             {/* ── BỐN DÒNG NHÓM ── gộp theo `liquidity`, chiều gộp duy nhất được phép. */}
@@ -245,13 +264,35 @@ export function MoneyOverviewScreen() {
         ) : null}
 
         {/* ── MỤC TIÊU ──
-            `P1` trong spec. Hiện được vì repository và thanh tiến độ đã có sẵn;
-            form tạo mục tiêu lên ở G9, nên mục này chỉ xuất hiện khi đã có dữ liệu. */}
+            P0 từ `08 §2` (đảo ngược quyết định hạ xuống P2 ở `06 §8`): mục tiêu
+            NHÌN VỀ PHÍA TRƯỚC, cùng hướng với trái tim sản phẩm.
+
+            Đặt DƯỚI tài sản và khoản sắp trả vì nó là nguyện vọng, không phải
+            nghĩa vụ — và vì lý do đó nó cũng không chảy vào con số ở màn "Sắp
+            tới". Ba con số và chỉ ba: đã có, cần đạt, còn thiếu. */}
         {(goals ?? []).length > 0 ? (
           <>
-            <SectionHeader title={t.money.sectionGoals} />
+            <SectionHeader
+              title={t.money.sectionGoals}
+              action={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.common.see}
+                  hitSlop={8}
+                  onPress={() => router.push('/(app)/money/goals')}
+                >
+                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
+                </Pressable>
+              }
+            />
             {(goals ?? []).map((g) => (
-              <View key={g.id} className="py-3">
+              <Pressable
+                key={g.id}
+                accessibilityRole="button"
+                accessibilityLabel={g.name}
+                onPress={() => router.push(`/(app)/money/goal/${g.id}`)}
+                className="py-3 active:bg-soft"
+              >
                 <View className="flex-row items-center justify-between gap-3">
                   <Text numberOfLines={1} className="flex-1 text-body text-ink">
                     {g.name}
@@ -264,10 +305,40 @@ export function MoneyOverviewScreen() {
                   </Text>
                 </View>
                 <ProgressBar value={g.currentAmount} total={g.targetAmount} />
-              </View>
+                {/* `currentAmount` là SỐ KHAI y hệt `assets.current_value`, nên
+                    chịu cùng ràng buộc nhãn thời gian (08 §2.2).
+
+                    Không truyền tên người khai ở đây (dùng biến thể ẩn danh
+                    "Cập nhật 5 tuần trước"): màn này mở nhiều nhất trong app, và
+                    bắt nó chờ thêm một truy vấn `members` chỉ để thêm một cái
+                    tên vào dòng tóm tắt là đánh đổi sai — cùng lý do đã ghi ở
+                    mục CẦN TRAO ĐỔI. Tên đầy đủ có ở màn chi tiết mục tiêu.
+                    Phần BẮT BUỘC của nhãn là thời gian, không phải tên (03 §8). */}
+                <Text className="mt-1 text-caption text-subtle">
+                  {declaredAtText(formatDeclaredAt(g.asOfDate, null, today))}
+                </Text>
+              </Pressable>
             ))}
           </>
         ) : null}
+
+        {/* ── SỔ MỪNG (G15) ──
+            Vào từ tab Tiền vì tiền mừng là tiền thật chảy vào nhà, nhưng KHÔNG
+            gộp vào bốn con số ở trên: một khoản mừng đã nhận không phải là tài
+            sản đang có, và một khoản sắp đi không phải là khoản sắp phải trả.
+            Trộn chúng vào `finance_metrics` sẽ làm trạng thái tài chính đổi mỗi
+            lần ghi một cái phong bì.
+
+            Dòng này LUÔN hiện, kể cả khi sổ trống — khác các nhóm ở trên. Đây là
+            đường vào duy nhất của module, và một đường vào chỉ xuất hiện sau khi
+            đã có dữ liệu thì không ai tìm được nó để tạo dữ liệu đầu tiên. */}
+        <View className="mt-6">
+          <NavRow
+            label={t.gift.title}
+            onPress={() => router.push('/(app)/gifts')}
+            last
+          />
+        </View>
 
         {status === 'no_data' ? (
           <View className="mt-6">
@@ -332,23 +403,3 @@ function GroupRow({
   );
 }
 
-/** Phần trăm đã đạt, kẹp 0–100. Mục tiêu vượt 100% vẫn vẽ đầy thanh, không tràn. */
-function progressPct(current: number, target: number): number {
-  if (target <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((current / target) * 100)));
-}
-
-/**
- * Thanh tiến độ mục tiêu.
- *
- * Iris nhạt, KHÔNG phải xanh "đạt chỉ tiêu": một mục tiêu chưa xong không phải
- * lỗi cần cảnh báo, và tô màu trạng thái vào đây làm nó đọc thành điểm số.
- */
-function ProgressBar({ value, total }: { value: number; total: number }) {
-  const pct = progressPct(value, total);
-  return (
-    <View className="mt-2 h-2 overflow-hidden rounded-full bg-soft">
-      <View className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
-    </View>
-  );
-}

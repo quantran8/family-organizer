@@ -68,7 +68,7 @@ interface Row {
   household_id: string;
   entity_type: string;
   entity_id: string;
-  target_member_id: null;
+  target_member_id: string | null;
   fire_at: string;
   title: string;
   body: string | null;
@@ -80,8 +80,16 @@ interface Row {
  *
  * `entity_type`/`entity_id` trỏ vào mục ĐẦU TIÊN (đến hạn sớm nhất): chạm vào
  * thông báo phải mở ra một thứ cụ thể, và mục sắp tới nhất là thứ đúng nhất để
- * mở. `target_member_id = null` = cả nhà — nhắc nhở của nhà mình không chia theo
- * người, vì việc nhà không phải sổ giao việc.
+ * mở.
+ *
+ * `target_member_id` lấy NGUYÊN từ draft (03 §5, 06 §7):
+ *   null   = cả nhà — sự kiện, giấy tờ, khoản tiền, và việc không gán ai
+ *   có id  = việc CÓ người phụ trách, nhắc CHỈ người đó
+ *
+ * Trước đây cột này bị ghi cứng `null`, tức là một việc gán riêng cho vợ vẫn
+ * bắn cho cả hai. KHÔNG BAO GIỜ được tồn tại thông báo dạng "X chưa làm Y":
+ * khoảnh khắc app báo cho người thứ hai rằng người thứ nhất chưa làm, nó thôi
+ * thay việc nhắc và bắt đầu THAY LỜI TỐ.
  */
 function toRow(householdId: string, draft: ReminderDraft): Row | null {
   const first = draft.items[0];
@@ -92,7 +100,7 @@ function toRow(householdId: string, draft: ReminderDraft): Row | null {
     household_id: householdId,
     entity_type: first.entityType,
     entity_id: first.entityId,
-    target_member_id: null,
+    target_member_id: draft.targetMemberId,
     fire_at: fireAtISO(draft.fireOn, draft.fireHour),
     title: many ? VI.many(draft.items.length) : VI.single(first.title),
     body: many ? VI.bodyMany(draft.items.map((i) => i.title)) : null,
@@ -162,7 +170,7 @@ async function rebuildForHousehold(
     // riêng, nếu không thì "nộp học phí ngày 15" không bao giờ được nhắc.
     supabase
       .from('tasks')
-      .select('id, title, due_date, status, recur')
+      .select('id, title, due_date, status, recur, assignee_id')
       .eq('household_id', hh)
       .is('deleted_at', null)
       .eq('status', 'todo')
@@ -176,6 +184,9 @@ async function rebuildForHousehold(
   }
 
   const taskTitles: Record<string, string> = {};
+  // Người phụ trách của từng việc. Thiếu bản ghi = việc không gán ai = nhắc cả
+  // nhà. Xem quy tắc người nhận ở `toRow` và 03 §5.
+  const taskAssignees: Record<string, string | null> = {};
   const oneOffInstances: TaskInstance[] = [];
 
   for (const row of (tasks.data ?? []) as {
@@ -183,8 +194,10 @@ async function rebuildForHousehold(
     title: string;
     due_date: ISODate;
     recur: { freq: string | null } | null;
+    assignee_id: string | null;
   }[]) {
     taskTitles[row.id] = row.title;
+    taskAssignees[row.id] = row.assignee_id;
     const repeats = row.recur !== null && row.recur.freq !== null && row.recur.freq !== 'none';
     if (repeats) continue;
     // Việc một lần được bọc thành TaskInstance để đi cùng một đường với việc
@@ -224,12 +237,17 @@ async function rebuildForHousehold(
   if (missingTaskIds.length > 0) {
     const { data, error } = await supabase
       .from('tasks')
-      .select('id, title')
+      .select('id, title, assignee_id')
       .eq('household_id', hh)
       .in('id', missingTaskIds);
     if (error) throw new Error(error.message);
-    for (const row of (data ?? []) as { id: string; title: string }[]) {
+    for (const row of (data ?? []) as {
+      id: string;
+      title: string;
+      assignee_id: string | null;
+    }[]) {
       taskTitles[row.id] = row.title;
+      taskAssignees[row.id] = row.assignee_id;
     }
   }
 
@@ -241,6 +259,7 @@ async function rebuildForHousehold(
         payments: mapRows<UpcomingPayment>(payments.data, toPayment),
         tasks: [...repeatInstances, ...oneOffInstances],
         taskTitles,
+        taskAssignees,
       },
       today,
       HORIZON_DAYS,

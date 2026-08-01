@@ -7,9 +7,14 @@ import type { GoalRow } from '@/lib/database.types';
 import { unwrap, unwrapMaybe, unwrapVoid } from '@/data/shared/errors';
 import { toGoal } from '@/data/shared/mappers';
 import { currentProfileId } from '@/data/shared/session';
-import type { GoalInput, GoalRepository } from './goal-repository.interface';
+import type { GoalPatch, GoalRepository } from './goal-repository.interface';
 
-function toRow(i: Partial<GoalInput>): Record<string, unknown> {
+/**
+ * `currentAmount` chỉ đi qua đây ở đường `create` — xem chú thích `GoalPatch`.
+ * `update` nhận `GoalPatch` (đã loại cột này ở tầng type), nên không có đường
+ * nào ghi số khai mà bỏ quên nhãn thời gian.
+ */
+function toRow(i: GoalPatch & { currentAmount?: number }): Record<string, unknown> {
   const r: Record<string, unknown> = {};
   if (i.name !== undefined) r.name = i.name;
   if (i.targetAmount !== undefined) r.target_amount = i.targetAmount;
@@ -69,10 +74,18 @@ export const goalRepository: GoalRepository = {
     return toGoal(row);
   },
 
-  /** Hai lệnh ghi (goals + money_events) → RPC, xem 0002_onboarding_rpc.sql. */
-  async contribute(_hh, id, amount, on) {
+  /**
+   * Ba lệnh ghi (goals + as_of_date/updated_by + money_events) → RPC.
+   * Bản dựng lại ở 0004 §12: thêm `p_note` và ghi nhãn "ai khai, khai lúc nào".
+   */
+  async contribute(_hh, id, amount, on, note) {
     await unwrapVoid(
-      supabase.rpc('contribute_to_goal', { p_goal_id: id, p_amount: amount, p_on: on }),
+      supabase.rpc('contribute_to_goal', {
+        p_goal_id: id,
+        p_amount: amount,
+        p_as_of: on,
+        p_note: note ?? null,
+      }),
     );
   },
 

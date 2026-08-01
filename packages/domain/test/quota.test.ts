@@ -20,7 +20,8 @@ function household(over: Partial<Household> = {}): Household {
     trialEndsAt: null,
     storageUsedBytes: 0,
     storageQuotaBytes: PRO_QUOTA_BYTES,
-    snapshotIntervalDays: 7,
+    trialMilestones: { reminderAcknowledged: false, eventWithCostCompleted: false },
+    recordThresholdAmount: null,
     ...over,
   };
 }

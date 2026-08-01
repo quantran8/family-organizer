@@ -127,3 +127,68 @@ export function filterByEntityType(
   if (entityType === null) return events;
   return events.filter((e) => e.entityType === entityType);
 }
+
+/**
+ * Một tháng trong màn hình lịch sử biến động — 03 §12.
+ *
+ * `count` là BẮT BUỘC TRONG KIỂU, không phải tuỳ chọn. UI không được hiển thị
+ * `total` mà thiếu `count` và thiếu chữ "đã ghi":
+ *
+ *     Tháng 9 · 5 khoản nhà mình đã ghi
+ *     −12.000.000 ₫
+ *
+ * Câu đó đúng theo ĐÚNG NGHĨA ĐEN của nó. Câu "Tháng 9 chi 12 triệu" thì tự
+ * nhận là đầy đủ, và sẽ sai 30–40% mãi mãi.
+ */
+export interface MonthlyHistoryGroup {
+  /** 'YYYY-MM-01' */
+  month: ISODate;
+  count: number;
+  total: number;
+  items: MoneyEvent[];
+}
+
+/**
+ * Gom money_events theo tháng, mới nhất trước — 03 §12.
+ *
+ * ĐƯỜNG PHÂN GIỚI: LIỆT KÊ thì trung thực khi dữ liệu thiếu, CỘNG TỔNG thì
+ * không. Một danh sách "Sửa xe −2.000.000 ₫ · 15/9" vẫn đúng dù nhà mình còn
+ * mười khoản khác chưa ghi — nó không tự nhận là đầy đủ.
+ *
+ * Vì thế `total` ở đây CHỈ được hiện kèm `count` và chữ "đã ghi", và
+ * TUYỆT ĐỐI KHÔNG BAO GIỜ được vẽ thành đường xu hướng. Khi vẽ tổng theo tháng
+ * thành một đường, KHOẢNG TRỐNG TRONG VIỆC GHI CHÉP TRÔNG Y HỆT THAY ĐỔI TRONG
+ * CHI TIÊU: tháng nào hai người bận và quên ghi sẽ hiện ra như một tháng tiết
+ * kiệm, và app vừa nói dối một cách rất thuyết phục. Đây là chỗ cấm sắc nhất
+ * của cả tài liệu — xem 08 §1.4.
+ *
+ * Tháng không có bản ghi thì KHÔNG XUẤT HIỆN, không phải trả về một nhóm với
+ * total = 0. Một tháng trống trong danh sách nói "nhà mình không ghi gì tháng
+ * đó"; một dòng "0 ₫" nói "nhà mình không tiêu gì tháng đó" — hai điều rất
+ * khác nhau, và điều thứ hai gần như luôn sai.
+ */
+export function groupHistoryByMonth(events: MoneyEvent[]): MonthlyHistoryGroup[] {
+  const byMonth = new Map<string, MoneyEvent[]>();
+  for (const e of events) {
+    // Gom theo 'YYYY-MM', không theo số tháng: cùng số tháng khác năm phải là
+    // HAI nhóm. Cùng ca biên đã bắt được ở groupEventsByMonth (G6).
+    const key = e.occurredOn.slice(0, 7);
+    const bucket = byMonth.get(key);
+    if (bucket) bucket.push(e);
+    else byMonth.set(key, [e]);
+  }
+
+  const groups: MonthlyHistoryGroup[] = [];
+  for (const [key, items] of byMonth) {
+    groups.push({
+      month: `${key}-01`,
+      count: items.length,
+      // delta null (event 'created' chưa có giá trị trước) không cộng vào tổng:
+      // nó không phải một thay đổi 0 đồng, nó là một thay đổi chưa đo được.
+      total: items.reduce((s, e) => s + (e.delta ?? 0), 0),
+      items,
+    });
+  }
+  groups.sort((a, b) => compareISODate(b.month, a.month));
+  return groups;
+}

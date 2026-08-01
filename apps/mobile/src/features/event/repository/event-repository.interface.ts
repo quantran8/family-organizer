@@ -9,6 +9,7 @@
 import type {
   CalendarType,
   EventKind,
+  EventOccurrence,
   FamilyEvent,
   FamilySide,
   ISODate,
@@ -38,10 +39,45 @@ export interface EventInput {
   estimatedCost: number | null;
 }
 
+/** Một lần diễn ra CHƯA được hỏi chi phí, kèm tên sự kiện để dựng câu hỏi. */
+export interface PendingCostAsk {
+  occurrence: EventOccurrence;
+  eventTitle: string;
+  /** Số dự kiến lúc trước — điền sẵn vào ô nhập để người dùng chỉ cần sửa. */
+  estimatedCost: number | null;
+}
+
 export interface EventRepository {
   list(hh: UUID): Promise<FamilyEvent[]>;
   get(hh: UUID, id: UUID): Promise<FamilyEvent | null>;
   create(hh: UUID, input: EventInput): Promise<FamilyEvent>;
   update(hh: UUID, id: UUID, patch: Partial<EventInput>): Promise<FamilyEvent>;
   softDelete(hh: UUID, id: UUID): Promise<void>;
+
+  /**
+   * Trí nhớ năm ngoái — những lần đã diễn ra, mới nhất trước (06 §5).
+   *
+   * CHỈ ĐỌC. Không có `create`: dòng `event_occurrences` do Edge cron
+   * `refresh-lunar-dates` sinh ra khi `next_occurrence_date` trôi qua, và đó là
+   * đường DUY NHẤT (03 §3). Một hàm tạo ở đây sẽ là đường thứ hai.
+   */
+  occurrences(hh: UUID, eventId: UUID, limit: number): Promise<EventOccurrence[]>;
+
+  /**
+   * Lần diễn ra kế tiếp cần hỏi chi phí, hoặc `null` nếu không có.
+   *
+   * Trả **một** thôi, dù có nhiều lần chưa hỏi: `05 §5.7` nói rõ "hiện MỘT
+   * sheet". Ba dịp trôi qua trong lúc người dùng đi vắng không được biến thành
+   * ba câu hỏi xếp hàng lúc mở app.
+   */
+  pendingCostAsk(hh: UUID): Promise<PendingCostAsk | null>;
+
+  /**
+   * Ghi chi phí thực tế và đóng câu hỏi lại VĨNH VIỄN.
+   *
+   * `amount === null` là "bỏ qua" — vẫn đặt `cost_asked = true`. Đó là toàn bộ
+   * điểm của cột đó: bỏ qua rồi thì không bao giờ hỏi lại về dịp ấy. Hỏi lần
+   * hai về một chuyện đã qua là phiền, không phải chu đáo.
+   */
+  recordActualCost(hh: UUID, occurrenceId: UUID, amount: number | null): Promise<void>;
 }

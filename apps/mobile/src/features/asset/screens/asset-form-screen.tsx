@@ -34,6 +34,7 @@ import {
   useCreateAsset,
   useUpdateAsset,
 } from '@/features/asset/queries/use-assets';
+import { useRecordThresholdHint } from '@/features/household/queries/use-record-threshold';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useT } from '@/i18n';
 import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
@@ -41,6 +42,7 @@ import { useToday } from '@/lib/use-today';
 
 export function AssetFormScreen() {
   const { t } = useT();
+  const thresholdHint = useRecordThresholdHint();
   const router = useRouter();
   const today = useToday();
 
@@ -159,7 +161,9 @@ export function AssetFormScreen() {
         />
       </Field>
 
-      <Field label={t.asset.fieldValue}>
+      {/* `hint` là DÒNG NHẮC, không phải cảnh báo (06 §2): nó không đổi màu,
+          không chặn lưu, và không xuất hiện khi nhà chọn "tự quyết". */}
+      <Field label={t.asset.fieldValue} hint={thresholdHint ?? undefined}>
         <AmountInput
           value={value}
           onChangeValue={setValue}

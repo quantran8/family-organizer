@@ -15,18 +15,27 @@
 // Type
 export type {
   AssetKind,
+  Basis,
   CalendarType,
+  ContactSide,
   DocType,
+  DoseStatus,
   EntityType,
   EventKind,
   FamilySide,
   FinanceStatus,
+  Freshness,
+  GiftDirection,
+  GiftOccasion,
+  IngestSource,
+  IngestStatus,
   ISODate,
   ISODateTime,
   Liquidity,
   MemberRole,
   MoneyEntityType,
   MoneyEventType,
+  NeedSource,
   PaymentState,
   RecurFreq,
   Recurrence,
@@ -35,31 +44,51 @@ export type {
 } from './types/base.ts';
 export {
   ASSET_KINDS,
+  CONTACT_SIDES,
   DOC_TYPES,
+  DOSE_STATUSES,
   EVENT_KINDS,
   FAMILY_SIDES,
   FINANCE_STATUSES,
+  GIFT_DIRECTIONS,
+  GIFT_OCCASIONS,
+  INGEST_SOURCES,
   LIQUIDITIES,
 } from './types/base.ts';
 
 export type {
   Asset,
   AttentionItem,
+  ChildVaccineDose,
+  Contact,
   Debt,
   DocumentFile,
+  EventOccurrence,
   FamilyDocument,
   FamilyEvent,
+  GiftEntry,
+  GiftHistory,
   Goal,
+  GrowthRecord,
   Household,
+  IngestDraft,
   Member,
   MoneyEvent,
   MoneySnapshot,
+  ShoppingItem,
   Task,
   TaskInstance,
   UpcomingPayment,
+  VaccineScheduleItem,
 } from './types/entities.ts';
 
-export type { FinanceMetrics, HomeFeedItem, MoneyFeedItem } from './types/views.ts';
+export type {
+  FinanceMetrics,
+  HomeFeedItem,
+  MoneyFeedItem,
+  RunwayProjection,
+  UpcomingNeed,
+} from './types/views.ts';
 
 export type { AppError } from './types/errors.ts';
 export { AppErrorException, isAppErrorException } from './types/errors.ts';
@@ -86,6 +115,12 @@ export type { FinanceReason } from './finance/status.ts';
 export { computeFinanceStatus, explainFinanceStatus } from './finance/status.ts';
 export { inferLiquidity } from './finance/liquidity.ts';
 export { debtPaidAmount, progressPct } from './finance/progress.ts';
+export {
+  DEFAULT_RECORD_THRESHOLD,
+  projectRunway,
+  RUNWAY_HORIZON_DAYS,
+  shouldAskForRefresh,
+} from './finance/runway.ts';
 
 // Lịch âm
 export type { LunarDate } from './lunar/convert.ts';
@@ -109,6 +144,21 @@ export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tas
 export type { EventMonthGroup } from './events/group.ts';
 export { groupEventsByMonth } from './events/group.ts';
 
+// Trí nhớ năm ngoái
+export { lastYearFor } from './events/last-year.ts';
+
+// Sổ mừng cưới
+export { suggestGiftAmount, summarizeOccasion } from './gifts/suggest.ts';
+
+// Hồ sơ con — lịch tiêm
+export type { DoseLabel } from './child/vaccine.ts';
+export {
+  buildVaccineSchedule,
+  DOSE_REMIND_LEAD_DAYS,
+  doseStatus,
+  formatDoseLabel,
+} from './child/vaccine.ts';
+
 // Nhắc nhở
 export type { BuildRemindersInput, ReminderDraft, ReminderSource } from './reminders/build.ts';
 export {
@@ -129,6 +179,14 @@ export {
   MAX_FILE_BYTES,
   PRO_QUOTA_BYTES,
 } from './quota/upload.ts';
+export type { CanUseCaptureResult } from './quota/capture.ts';
+export {
+  canUseCapture,
+  captureQuotaFor,
+  FREE_CAPTURES_PER_MONTH,
+  hasCaptureEntitlement,
+  PRO_CAPTURES_PER_MONTH,
+} from './quota/capture.ts';
 
 // Gợi ý gắn cờ
 export type { AttentionSuggestion } from './attention/suggest.ts';
@@ -139,6 +197,7 @@ export type {
   DayBucket,
   EventDayGroup,
   MoneyEventShape,
+  MonthlyHistoryGroup,
   SnapshotDiff,
 } from './history/snapshots.ts';
 export {
@@ -146,6 +205,7 @@ export {
   diffSnapshots,
   filterByEntityType,
   groupEventsByDay,
+  groupHistoryByMonth,
   withDiffs,
 } from './history/snapshots.ts';
 
@@ -153,3 +213,18 @@ export {
 export { formatMoney, formatMoneyShort } from './format/money.ts';
 export type { DueLabel, LunarLabel } from './format/dates.ts';
 export { formatDueLabel, formatLunarLabel, lunarLabelOfDate } from './format/dates.ts';
+export type { DeclaredLabel } from './format/declared.ts';
+export { computeFreshness, formatDeclaredAt } from './format/declared.ts';
+
+// Gói khởi tạo (05 §3.4)
+export type {
+  StarterPackDraft,
+  StarterPackItem,
+  StarterPackKey,
+} from './onboarding/starter-pack.ts';
+export {
+  buildStarterPack,
+  defaultCheckedKeys,
+  STARTER_PACK_ITEMS,
+  starterPackItem,
+} from './onboarding/starter-pack.ts';

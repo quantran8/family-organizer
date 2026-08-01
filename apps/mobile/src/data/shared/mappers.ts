@@ -11,42 +11,62 @@
 import type {
   Asset,
   AttentionItem,
+  ChildVaccineDose,
+  Contact,
   Debt,
   FamilyDocument,
+  EventOccurrence,
   FamilyEvent,
   FinanceMetrics,
+  GiftEntry,
+  GiftHistory,
   Goal,
+  GrowthRecord,
   HomeFeedItem,
+  IngestDraft,
   Household,
   Member,
   MoneyEvent,
   MoneyFeedItem,
   MoneySnapshot,
   Recurrence,
+  ShoppingItem,
   Task,
   TaskInstance,
+  UpcomingNeed,
   UpcomingPayment,
+  VaccineScheduleItem,
 } from '@family-organizer/domain';
 
 import type {
   AssetRow,
   AttentionItemRow,
+  ChildGrowthRecordRow,
+  ChildVaccineDoseRow,
+  ContactRow,
   DebtRow,
   DocumentFileRow,
   DocumentRow,
+  EventOccurrenceRow,
   EventRow,
   FinanceMetricsRow,
+  GiftEntryRow,
+  GiftHistoryRow,
   GoalRow,
   HomeFeedRow,
   HouseholdRow,
+  IngestDraftRow,
   MemberRow,
   MoneyEventRow,
   MoneyFeedRow,
   MoneySnapshotRow,
   RecurrenceRow,
+  ShoppingItemRow,
   TaskInstanceRow,
   TaskRow,
+  UpcomingNeedRow,
   UpcomingPaymentRow,
+  VaccineScheduleItemRow,
 } from '@/lib/database.types';
 
 function num(v: unknown): number {
@@ -92,7 +112,11 @@ export function toHousehold(r: HouseholdRow): Household {
     trialEndsAt: r.trial_ends_at,
     storageUsedBytes: num(r.storage_used_bytes),
     storageQuotaBytes: num(r.storage_quota_bytes),
-    snapshotIntervalDays: (r.snapshot_interval_days === 30 ? 30 : 7) as 7 | 30,
+    recordThresholdAmount: numOrNull(r.record_threshold_amount),
+    trialMilestones: {
+      reminderAcknowledged: r.trial_milestones?.reminderAcknowledged ?? false,
+      eventWithCostCompleted: r.trial_milestones?.eventWithCostCompleted ?? false,
+    },
   };
 }
 
@@ -103,6 +127,9 @@ export function toMember(r: MemberRow): Member {
     displayName: r.display_name,
     role: r.role as Member['role'],
     birthday: r.birthday,
+    schoolName: r.school_name,
+    schoolClass: r.school_class,
+    healthInsuranceNo: r.health_insurance_no,
     isActive: r.is_active,
   };
 }
@@ -133,6 +160,21 @@ export function toTaskInstance(r: TaskInstanceRow): TaskInstance {
   };
 }
 
+/**
+ * `doneBy` CỐ Ý không được map lên type domain: nó có trong DB để hoàn tác,
+ * nhưng UI không bao giờ thấy nó — xem ShoppingItem ở packages/domain.
+ */
+export function toShoppingItem(r: ShoppingItemRow): ShoppingItem {
+  return {
+    id: r.id,
+    title: r.title,
+    note: r.note,
+    isDone: r.is_done,
+    addedBy: r.added_by,
+    doneAt: r.done_at,
+  };
+}
+
 export function toEvent(r: EventRow): FamilyEvent {
   return {
     id: r.id,
@@ -155,6 +197,47 @@ export function toEvent(r: EventRow): FamilyEvent {
   };
 }
 
+export function toEventOccurrence(r: EventOccurrenceRow): EventOccurrence {
+  return {
+    id: r.id,
+    eventId: r.event_id,
+    occurredOn: r.occurred_on,
+    actualCost: numOrNull(r.actual_cost),
+    notes: r.notes,
+    costAsked: r.cost_asked,
+  };
+}
+
+/**
+ * Bản nháp AI — 06 §6.
+ *
+ * `parsed` được ép về `Record<string, unknown> | null` chứ KHÔNG về hình dạng
+ * của một entity nào: nội dung đến từ model và chưa qua kiểm. Nơi kiểm là zod
+ * schema của entity tương ứng, chạy ngay trước khi đổ vào form (02 §5).
+ *
+ * `unknown` từ jsonb có thể là số, chuỗi, hay mảng nếu model trả sai hình
+ * dạng — không phải lúc nào cũng là object. Kiểm tường minh thay vì ép kiểu,
+ * nếu không một mảng sẽ lọt qua và form nhận `parsed.title === undefined` mà
+ * không ai biết vì sao.
+ */
+export function toIngestDraft(r: IngestDraftRow): IngestDraft {
+  const parsed =
+    typeof r.parsed === 'object' && r.parsed !== null && !Array.isArray(r.parsed)
+      ? (r.parsed as Record<string, unknown>)
+      : null;
+
+  return {
+    id: r.id,
+    source: r.source as IngestDraft['source'],
+    rawText: r.raw_text,
+    imagePath: r.image_path,
+    suggestedEntityType: r.suggested_entity_type as IngestDraft['suggestedEntityType'],
+    parsed,
+    status: r.status as IngestDraft['status'],
+    createdAt: r.created_at,
+  };
+}
+
 export function toAsset(r: AssetRow): Asset {
   return {
     id: r.id,
@@ -165,6 +248,7 @@ export function toAsset(r: AssetRow): Asset {
     holderMemberId: r.holder_member_id,
     institution: r.institution,
     asOfDate: r.as_of_date,
+    updatedByMemberId: r.updated_by_member_id,
     notes: r.notes,
     isClosed: r.is_closed,
   };
@@ -209,6 +293,8 @@ export function toGoal(r: GoalRow): Goal {
     name: r.name,
     targetAmount: num(r.target_amount),
     currentAmount: num(r.current_amount),
+    asOfDate: r.as_of_date,
+    updatedByMemberId: r.updated_by_member_id,
     targetDate: r.target_date,
     isArchived: r.is_archived,
   };
@@ -256,7 +342,6 @@ export function toMoneySnapshot(r: MoneySnapshotRow): MoneySnapshot {
     totalLongTerm: num(r.total_long_term),
     totalDebt: num(r.total_debt),
     status: r.status as MoneySnapshot['status'],
-    isManual: r.is_manual,
     note: r.note,
     createdBy: r.created_by,
     createdAt: r.created_at,
@@ -339,10 +424,26 @@ export function toFinanceMetrics(r: FinanceMetricsRow): FinanceMetrics {
     dueNext7dCount: num(r.due_next_7d_count),
     overdueCount: num(r.overdue_count),
     attentionCount: num(r.attention_count),
+    lastUsableUpdatedOn: r.last_usable_updated_on,
     lastUpdatedOn: r.last_updated_on,
-    lastSnapshotOn: r.last_snapshot_on,
-    snapshotIntervalDays: num(r.snapshot_interval_days),
     currency: r.currency,
+    recordThresholdAmount: numOrNull(r.record_threshold_amount),
+  };
+}
+
+/**
+ * View `upcoming_needs` — ba nguồn tiền gộp làm một (06 §3).
+ *
+ * `source` narrow từ `entity_type` (9 giá trị) xuống đúng ba nguồn thật sự
+ * xuất hiện trong union của view.
+ */
+export function toUpcomingNeed(r: UpcomingNeedRow): UpcomingNeed {
+  return {
+    source: r.source as UpcomingNeed['source'],
+    id: r.id,
+    title: r.title,
+    amount: num(r.amount),
+    onDate: r.on_date,
   };
 }
 
@@ -355,5 +456,106 @@ export function toMoneyFeedItem(r: MoneyFeedRow): MoneyFeedItem {
     onDate: r.on_date,
     memberId: r.member_id,
     isClosed: r.is_closed,
+  };
+}
+
+// --- Sổ mừng cưới (07 §3) ---
+
+export function toContact(r: ContactRow): Contact {
+  return {
+    id: r.id,
+    displayName: r.display_name,
+    relationNote: r.relation_note,
+    side: r.side as Contact['side'],
+  };
+}
+
+export function toGiftEntry(r: GiftEntryRow): GiftEntry {
+  return {
+    id: r.id,
+    contactId: r.contact_id,
+    direction: r.direction as GiftEntry['direction'],
+    occasion: r.occasion as GiftEntry['occasion'],
+    amount: num(r.amount),
+    occurredOn: r.occurred_on,
+    eventId: r.event_id,
+    inKindNote: r.in_kind_note,
+    notes: r.notes,
+  };
+}
+
+/**
+ * View `gift_history`. `count(*)` của Postgres là bigint → về JS có thể là
+ * string, nên `timesReceived`/`timesGiven` cũng phải đi qua num() chứ không
+ * chỉ các cột tiền.
+ */
+export function toGiftHistory(r: GiftHistoryRow): GiftHistory {
+  return {
+    contactId: r.contact_id,
+    displayName: r.display_name,
+    timesReceived: num(r.times_received),
+    timesGiven: num(r.times_given),
+    totalReceived: num(r.total_received),
+    totalGiven: num(r.total_given),
+    lastReceivedOn: r.last_received_on,
+    lastGivenOn: r.last_given_on,
+  };
+}
+
+// --- Hồ sơ con (07 §4) ---
+
+export function toVaccineScheduleItem(r: VaccineScheduleItemRow): VaccineScheduleItem {
+  return {
+    code: r.code,
+    displayName: r.display_name,
+    doseLabel: r.dose_label,
+    dueAgeMonths: num(r.due_age_months),
+    sortOrder: num(r.sort_order),
+    sourceName: r.source_name,
+    sourceDate: r.source_date,
+    scheduleVersion: r.schedule_version,
+  };
+}
+
+/**
+ * `displayName` KHÔNG có trong bảng — nó được ghép từ hàng tham chiếu
+ * (`vaccine_schedule_items`) cho mũi trong lịch, hoặc lấy `custom_name` cho mũi
+ * ngoài lịch.
+ *
+ * Cố ý không denormalize tên xuống `child_vaccine_doses`: khi lịch được cập
+ * nhật (một phiên bản mới được người có chuyên môn xác nhận), tên phải đổi theo
+ * ở mọi hàng cũ. Một bản sao trong hàng của người dùng sẽ đóng băng tên của
+ * phiên bản lịch đã bị thay — và không có gì báo cho ai biết.
+ *
+ * `names` rỗng (chưa seed) → rơi về `custom_name`, rồi về `schedule_code`. Mã
+ * thô xấu nhưng THẬT; bịa ra một cái tên ở đây là bịa dữ liệu y tế.
+ */
+export function toChildVaccineDose(
+  r: ChildVaccineDoseRow,
+  names: ReadonlyMap<string, string>,
+): ChildVaccineDose {
+  const fromSchedule = r.schedule_code === null ? null : (names.get(r.schedule_code) ?? null);
+  return {
+    id: r.id,
+    memberId: r.member_id,
+    scheduleCode: r.schedule_code,
+    customName: r.custom_name,
+    displayName: fromSchedule ?? r.custom_name ?? r.schedule_code ?? '',
+    dueDate: r.due_date,
+    status: r.status as ChildVaccineDose['status'],
+    administeredOn: r.administered_on,
+    facility: r.facility,
+    notes: r.notes,
+  };
+}
+
+export function toGrowthRecord(r: ChildGrowthRecordRow): GrowthRecord {
+  return {
+    id: r.id,
+    memberId: r.member_id,
+    measuredOn: r.measured_on,
+    heightCm: numOrNull(r.height_cm),
+    weightKg: numOrNull(r.weight_kg),
+    notes: r.notes,
   };
 }

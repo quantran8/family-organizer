@@ -67,6 +67,18 @@ export function AuthGate() {
   const inJoin = path[1] === 'join';
 
   /**
+   * Hai bước onboarding chạy KHI NHÀ ĐÃ TỒN TẠI (05 §3.3, §3.4): ngưỡng ghi và
+   * gói khởi tạo. Chúng nằm trong `(auth)` mà `effectiveHouseholdId` đã có, nên
+   * cả effect điều hướng lẫn `canRender` đều coi chúng là "đã có nhà mà còn ở
+   * `(auth)`" và đá ra — không có lỗi nào để nhìn thấy, chỉ là một bước
+   * onboarding im lặng biến mất. Đó đúng là chuyện đã xảy ra với `threshold` ở
+   * G12; giữ hai bước trong MỘT danh sách để bước thứ ba thêm vào sau không
+   * phải phát hiện lại bài học đó.
+   */
+  const POST_HOUSEHOLD_STEPS = ['threshold', 'seed'];
+  const inPostHouseholdStep = POST_HOUSEHOLD_STEPS.includes(path[1] ?? '');
+
+  /**
    * `(modals)` KHÔNG được coi là rời khỏi `(app)`.
    *
    * Sheet đẩy lên trên màn hình đang đứng chứ không thay thế nó, nhưng
@@ -107,8 +119,22 @@ export function AuthGate() {
       );
       return;
     }
+    // Xem chú thích ở `POST_HOUSEHOLD_STEPS`: thiếu ngoại lệ này thì màn hình
+    // bị đẩy về `home` ngay trong khung hình đầu tiên và người tạo nhà không
+    // bao giờ thấy các bước đó.
+    if (inPostHouseholdStep) return;
     if (inAuth || atRoot) router.replace('/(app)/home');
-  }, [isReady, session, effectiveHouseholdId, inAuth, atRoot, inJoin, inModal, router]);
+  }, [
+    isReady,
+    session,
+    effectiveHouseholdId,
+    inAuth,
+    atRoot,
+    inJoin,
+    inPostHouseholdStep,
+    inModal,
+    router,
+  ]);
 
   useEffect(() => {
     if (isReady) {
@@ -139,7 +165,13 @@ export function AuthGate() {
   // `inModal` đi cùng nhánh có nhà: modal chỉ mở được từ trong `(app)`, nên tới
   // được đây là đã qua gate rồi. Nói tường minh để lần sau siết điều kiện không
   // vô tình chặn mất cây đang có sheet nằm trên.
-  const canRender = isReady && (hasHousehold ? inModal || (!inAuth && !atRoot) : inAuth);
+  //
+  // `inPostHouseholdStep` cũng vậy nhưng vì lý do khác: đó là những bước
+  // onboarding chạy khi nhà đã tồn tại (05 §3.3, §3.4). Không có nó ở đây thì
+  // effect ở trên cho phép ở lại route, còn chỗ này lại trả `null` — màn hình
+  // trắng, không lỗi.
+  const canRender =
+    isReady && (hasHousehold ? inModal || inPostHouseholdStep || (!inAuth && !atRoot) : inAuth);
 
   // Splash vẫn đang phủ kín màn hình lúc `isReady` còn false, nên `null` ở đây
   // không tạo ra một khoảnh khắc trắng — nó chỉ ngăn cây con dựng quá sớm.

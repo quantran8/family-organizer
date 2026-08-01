@@ -16,7 +16,7 @@
  * xoá lịch sử.
  */
 
-import { describeMoneyEvent, formatDueLabel, type UUID } from '@family-organizer/domain';
+import { describeMoneyEvent, formatDeclaredAt, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
@@ -35,7 +35,7 @@ import { useAsset, useDeleteAsset } from '@/features/asset/queries/use-assets';
 import { useFlagAttention } from '@/features/attention/queries/use-attention';
 import { useEntityMoneyEvents } from '@/features/money-history/queries/use-money-events';
 import { useMembers } from '@/features/member/queries/use-members';
-import { agoLabelText, deltaText, fullSolarDate, moneyEventText, useT } from '@/i18n';
+import { declaredAtText, deltaText, fullSolarDate, moneyEventText, useT } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 import { showToast } from '@/stores/toast';
 
@@ -78,6 +78,12 @@ export function AssetDetailScreen() {
     ? ((members ?? []).find((m) => m.id === asset.holderMemberId)?.displayName ?? null)
     : null;
 
+  // Người KHAI con số, khác người GIỮ khoản: chồng có thể cập nhật số dư sổ tiết
+  // kiệm đứng tên vợ. Hai câu hỏi khác nhau nên là hai dòng khác nhau.
+  const updatedBy = asset.updatedByMemberId
+    ? ((members ?? []).find((m) => m.id === asset.updatedByMemberId)?.displayName ?? null)
+    : null;
+
   const confirmDelete = (): void => {
     Alert.alert(asset.name, t.common.delete, [
       { text: t.common.cancel, style: 'cancel' },
@@ -95,10 +101,14 @@ export function AssetDetailScreen() {
 
       <View className="mt-2">
         <MoneyText amount={asset.currentValue} size="display" />
-        {/* Độ mới của con số, bằng nhãn TRUNG TÍNH: "40 ngày trước", không phải
-            "Quá hạn 40 ngày" — người dùng chưa hứa sẽ cập nhật nó bao giờ. */}
+        {/* Nhãn SỐ KHAI, đủ hai nửa: ai khai và khai lúc nào — 03 §8.
+            Trước G13 chỗ này chỉ có nửa sau ("Cập nhật 40 ngày trước"), vì cột
+            `updated_by_member_id` chưa tồn tại. Mất tên người làm con số đọc như
+            một sự thật khách quan, trong khi nó là điều MỘT NGƯỜI đã nói ra.
+            Vẫn là nhãn TRUNG TÍNH: "6 tuần trước", không phải "Quá hạn 6 tuần" —
+            người dùng chưa hứa sẽ cập nhật nó bao giờ. */}
         <Text className="mt-1 text-caption text-subtle">
-          {f(t.asset.staleValue, { label: agoLabelText(formatDueLabel(asset.asOfDate, today)) })}
+          {declaredAtText(formatDeclaredAt(asset.asOfDate, updatedBy, today))}
         </Text>
       </View>
 

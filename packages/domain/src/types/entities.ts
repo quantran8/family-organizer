@@ -9,11 +9,17 @@
 import type {
   AssetKind,
   CalendarType,
+  ContactSide,
   DocType,
+  DoseStatus,
   EntityType,
   EventKind,
   FamilySide,
   FinanceStatus,
+  GiftDirection,
+  GiftOccasion,
+  IngestSource,
+  IngestStatus,
   ISODate,
   ISODateTime,
   Liquidity,
@@ -32,9 +38,26 @@ export interface Household {
   currency: string;
   subscriptionStatus: SubscriptionStatus;
   trialEndsAt: ISODateTime | null;
+  /**
+   * Cột mốc để kết thúc trial. Trial KHÔNG hết theo ngày đơn thuần: 30 ngày có
+   * thể trôi qua mà không có hạn nào tới, khi đó người dùng chưa từng nhìn
+   * thấy sản phẩm hoạt động. Trần cứng 90 ngày. Xem 06 §9.
+   */
+  trialMilestones: {
+    reminderAcknowledged: boolean;
+    eventWithCostCompleted: boolean;
+  };
   storageUsedBytes: number;
   storageQuotaBytes: number;
-  snapshotIntervalDays: 7 | 30;
+  /**
+   * Ngưỡng hai người tự chốt lúc onboarding. null = "tự quyết".
+   *
+   * KHÔNG PHẢI VALIDATION: không chặn form, không cảnh báo, không constraint.
+   * Chỉ dùng cho dòng gợi ý dưới ô nhập tiền và cho shouldAskForRefresh().
+   * Biến nó thành ràng buộc là biến một quy ước của hai vợ chồng thành quy
+   * định của app. Xem 06 §2.
+   */
+  recordThresholdAmount: number | null;
 }
 
 export interface Member {
@@ -43,7 +66,18 @@ export interface Member {
   profileId: UUID | null;
   displayName: string;
   role: MemberRole;
+  /**
+   * Với `role='child'` đây là ĐẦU VÀO của buildVaccineSchedule(). null nghĩa là
+   * chưa sinh được lịch nào — màn hồ sơ con hỏi ngày sinh trước, không đoán.
+   */
   birthday: ISODate | null;
+  /**
+   * Ba trường của hồ sơ con (07 §4.4), treo vào member thay vì bảng riêng.
+   * Chúng là chữ để hiện lại, không phải thứ app tính toán gì trên đó.
+   */
+  schoolName: string | null;
+  schoolClass: string | null;
+  healthInsuranceNo: string | null;
   isActive: boolean;
 }
 
@@ -98,7 +132,10 @@ export interface Asset {
   currentValue: number;
   holderMemberId: UUID | null;
   institution: string | null;
+  /** BẮT BUỘC hiển thị kèm giá trị qua formatDeclaredAt() — 03 §8. */
   asOfDate: ISODate;
+  /** Để render "Anh cập nhật 6 tuần trước". Ghi bởi RPC update_asset_value. */
+  updatedByMemberId: UUID | null;
   notes: string | null;
   isClosed: boolean;
 }
@@ -133,11 +170,26 @@ export interface UpcomingPayment {
   notes: string | null;
 }
 
+/**
+ * P0 trở lại ở 08 §2 (bản 06 §8 hạ xuống P2 là nhầm — mục tiêu NHÌN VỀ PHÍA
+ * TRƯỚC, cùng hướng với trái tim sản phẩm).
+ *
+ * Ba ranh giới (08 §2.3):
+ *   1. KHÔNG chảy vào UpcomingNeed — nghĩa vụ khác nguyện vọng.
+ *   2. Không tiến độ theo thời gian, không lời khuyên góp bao nhiêu mỗi tháng.
+ *   3. Không đóng góp theo người.
+ */
 export interface Goal {
   id: UUID;
   name: string;
   targetAmount: number;
+  /**
+   * SỐ KHAI, y hệt Asset.currentValue. Luôn hiển thị kèm asOfDate.
+   * Đọc-only: chỉ RPC `contribute_to_goal` được ghi — 02 §7.
+   */
   currentAmount: number;
+  asOfDate: ISODate;
+  updatedByMemberId: UUID | null;
   targetDate: ISODate | null;
   isArchived: boolean;
 }
@@ -219,6 +271,11 @@ export interface MoneyEvent {
 /**
  * Ảnh chụp TỔNG của cả nhà theo thời điểm — schema.sql §5.7.
  * Khác MoneyEvent: hai tầng lịch sử khác nhau, cần cả hai.
+ *
+ * ĐỔI VAI ở 06 §1: không còn là vòng lặp thói quen do người dùng chạy, mà là
+ * LỊCH SỬ DẪN XUẤT do cron ghi hằng tháng. Người dùng không bao giờ nhìn thấy
+ * hành động tạo snapshot, nên `isManual` đã bị bỏ — nó chỉ có nghĩa khi tồn
+ * tại cả hai đường tạo.
  */
 export interface MoneySnapshot {
   id: UUID;
@@ -229,9 +286,158 @@ export interface MoneySnapshot {
   totalDebt: number;
   /** Trạng thái ĐÃ LƯU tại thời điểm đó — không tính lại trên số cũ. */
   status: FinanceStatus;
-  /** false = cron cuối tháng tự tổng hợp, không phải ai nhập. */
-  isManual: boolean;
   note: string | null;
   createdBy: UUID | null;
   createdAt: ISODateTime;
+}
+
+/**
+ * Bề mặt hằng ngày DUY NHẤT của app — 06 §4.
+ *
+ * CỐ Ý THIẾU TRƯỜNG: không quantity, không price, không category, không store,
+ * không assigneeId. Thêm bất kỳ trường nào trong số đó là biến danh sách thành
+ * VIỆC ĐƯỢC GIAO — và mất đúng lý do module này tồn tại.
+ */
+export interface ShoppingItem {
+  id: UUID;
+  title: string;
+  note: string | null;
+  isDone: boolean;
+  addedBy: UUID | null;
+  doneAt: ISODateTime | null;
+}
+
+/**
+ * Lần diễn ra ĐÃ QUA của một sự kiện lặp. Nguồn của "trí nhớ năm ngoái" (06 §5).
+ *
+ * occurredOn do Edge cron ghi; chỉ actualCost là UI ghi — 02 §7.
+ */
+export interface EventOccurrence {
+  id: UUID;
+  eventId: UUID;
+  occurredOn: ISODate;
+  /** Hỏi MỘT LẦN, bỏ qua được. null = chưa trả lời hoặc đã bỏ qua. */
+  actualCost: number | null;
+  notes: string | null;
+  /** true sau khi đã hỏi, dù người dùng có trả lời hay không. */
+  costAsked: boolean;
+}
+
+/**
+ * Bản nháp do AI đọc từ ảnh chụp màn hình hoặc ảnh giấy tờ — 06 §6.
+ *
+ * Người dùng LUÔN xác nhận trước khi ghi. Không bao giờ tự tạo bản ghi từ AI:
+ * một ngày giỗ sai do AI đoán sẽ phá niềm tin ở đúng tính năng khác biệt nhất.
+ */
+export interface IngestDraft {
+  id: UUID;
+  source: IngestSource;
+  rawText: string | null;
+  imagePath: string | null;
+  suggestedEntityType: EntityType | null;
+  /**
+   * Payload đã parse, hình dạng tuỳ suggestedEntityType.
+   * KHÔNG ĐƯỢC TIN: luôn phải qua zod schema của entity tương ứng ở client
+   * trước khi đổ vào form.
+   */
+  parsed: Record<string, unknown> | null;
+  status: IngestStatus;
+  createdAt: ISODateTime;
+}
+
+// --- Sổ mừng cưới (07 §3) ---
+
+/**
+ * Họ hàng và bạn bè. KHÔNG PHẢI Member: không tài khoản, không thông báo,
+ * không thấy dữ liệu.
+ *
+ * CỐ Ý THIẾU TRƯỜNG: không phone, không địa chỉ, không ảnh, không ngày sinh,
+ * không nhóm. Đây không phải app danh bạ.
+ */
+export interface Contact {
+  id: UUID;
+  displayName: string;
+  /** Chữ tự do: "chú ruột bên nội". Không enum hoá quan hệ họ hàng VN. */
+  relationNote: string | null;
+  side: ContactSide;
+}
+
+export interface GiftEntry {
+  id: UUID;
+  contactId: UUID;
+  direction: GiftDirection;
+  occasion: GiftOccasion;
+  amount: number;
+  occurredOn: ISODate;
+  eventId: UUID | null;
+  /** Quà không phải tiền: "một cây vàng". amount = 0 khi đó. */
+  inKindNote: string | null;
+  notes: string | null;
+}
+
+/**
+ * Nguồn của dòng gợi ý — TOÀN BỘ lý do module này tồn tại.
+ *
+ * CỐ Ý KHÔNG CÓ cột chênh lệch. Dữ liệu đủ để tính "nhà này mình còn đi thiếu
+ * 500k" — và đó chính là lý do phải nói rõ là không tính: nó biến quan hệ họ
+ * hàng thành sổ nợ. Xem 07 §3.4.
+ */
+export interface GiftHistory {
+  contactId: UUID;
+  displayName: string;
+  timesReceived: number;
+  timesGiven: number;
+  totalReceived: number;
+  totalGiven: number;
+  lastReceivedOn: ISODate | null;
+  lastGivenOn: ISODate | null;
+}
+
+// --- Hồ sơ con (07 §4) ---
+
+/**
+ * DỮ LIỆU THAM CHIẾU, seed từ file có phiên bản. Client không bao giờ ghi.
+ *
+ * Toàn bộ tri thức y tế nằm ở đây, KHÔNG nằm trong code: nếu lịch tiêm nằm
+ * trong code thì việc cập nhật nó thành một PR, và không ai có chuyên môn y tế
+ * đọc PR. Nằm trong file dữ liệu thì nó là một tài liệu, và tài liệu thì xem
+ * xét được. Xem 07 §4.2.
+ */
+export interface VaccineScheduleItem {
+  code: string;
+  displayName: string;
+  doseLabel: string | null;
+  /** Mốc tuổi tính bằng tháng kể từ ngày sinh. Có thể lẻ (1.5). */
+  dueAgeMonths: number;
+  sortOrder: number;
+  sourceName: string;
+  sourceDate: ISODate;
+  scheduleVersion: string;
+}
+
+export interface ChildVaccineDose {
+  id: UUID;
+  memberId: UUID;
+  scheduleCode: string | null;
+  customName: string | null;
+  displayName: string;
+  dueDate: ISODate | null;
+  status: DoseStatus;
+  administeredOn: ISODate | null;
+  facility: string | null;
+  notes: string | null;
+}
+
+/**
+ * CỐ Ý KHÔNG CÓ percentile, z-score, hay đánh giá. App GHI VÀ VẼ, KHÔNG DIỄN
+ * GIẢI — một nhãn đỏ do app tự tính sẽ làm bố mẹ mới hoảng mà không giúp được
+ * gì. Việc đánh giá thuộc về bác sĩ. Xem 07 §4.3.
+ */
+export interface GrowthRecord {
+  id: UUID;
+  memberId: UUID;
+  measuredOn: ISODate;
+  heightCm: number | null;
+  weightKg: number | null;
+  notes: string | null;
 }

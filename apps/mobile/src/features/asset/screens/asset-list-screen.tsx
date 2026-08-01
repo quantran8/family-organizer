@@ -2,7 +2,7 @@
  * Tài sản — 05 §6.3.
  *
  * Danh sách nhóm theo `liquidity`. Mỗi dòng: tên · nơi giữ · giá trị · chip
- * người giữ · ngày cập nhật nếu cũ hơn 30 ngày.
+ * người giữ · nhãn số khai LUÔN hiện (ai khai, khai lúc nào).
  *
  * **Ràng buộc #1 ở màn này:** chip người giữ hiện Ở CẤP TỪNG DÒNG và chỉ ở đó.
  * Không có tổng theo người, không nhóm theo người, không đếm "Vợ giữ 3 khoản".
@@ -15,7 +15,13 @@
  * quay ra quay vào ba lần.
  */
 
-import { daysBetween, type Asset, type Liquidity, type UUID } from '@family-organizer/domain';
+import {
+  formatDeclaredAt,
+  type Asset,
+  type ISODate,
+  type Liquidity,
+  type UUID,
+} from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -30,7 +36,7 @@ import {
 } from '@/design/components';
 import { useAssets } from '@/features/asset/queries/use-assets';
 import { useMembers } from '@/features/member/queries/use-members';
-import { useT } from '@/i18n';
+import { declaredAtText, useT } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 
 /**
@@ -41,9 +47,6 @@ import { useToday } from '@/lib/use-today';
  * mỗi lần thay vì nhớ vị trí.
  */
 const GROUPS: readonly Liquidity[] = ['usable_now', 'not_immediate', 'long_term'];
-
-/** Cũ hơn ngần này thì hiện ngày cập nhật — 05 §6.3. */
-const STALE_DAYS = 30;
 
 export function AssetListScreen() {
   const { t } = useT();
@@ -138,7 +141,10 @@ export function AssetListScreen() {
                     holderName={
                       a.holderMemberId ? (memberName.get(a.holderMemberId) ?? null) : null
                     }
-                    staleDays={daysBetween(a.asOfDate, today)}
+                    updatedByName={
+                      a.updatedByMemberId ? (memberName.get(a.updatedByMemberId) ?? null) : null
+                    }
+                    today={today}
                     onPress={() => router.push(`/(app)/money/asset/${a.id}`)}
                   />
                 ))
@@ -171,15 +177,17 @@ export function AssetListScreen() {
 function AssetRow({
   asset,
   holderName,
-  staleDays,
+  updatedByName,
+  today,
   onPress,
 }: {
   asset: Asset;
   holderName: string | null;
-  staleDays: number;
+  updatedByName: string | null;
+  today: ISODate;
   onPress: () => void;
 }) {
-  const { t, f } = useT();
+  const { t } = useT();
 
   // Nơi giữ + người giữ trên cùng một dòng phụ. Người giữ là NGỮ CẢNH ngang
   // hàng với "ngân hàng nào", không phải một nhãn trách nhiệm.
@@ -205,13 +213,16 @@ function AssetRow({
 
       <View className="items-end">
         <MoneyText amount={asset.currentValue} size="body" />
-        {/* Chỉ hiện khi số liệu đã cũ. Hiện ngày cập nhật trên MỌI dòng biến
-            danh sách thành một bảng kiểm tra ai chăm cập nhật hơn ai. */}
-        {staleDays > STALE_DAYS ? (
-          <Text className="mt-0.5 text-micro text-subtle">
-            {f(t.asset.staleValue, { label: f(t.dueLabel.daysAgo, { days: staleDays }) })}
-          </Text>
-        ) : null}
+        {/* LUÔN hiện, kể cả khi vừa cập nhật hôm nay — 05 §6.3.
+            Trước G13 nhãn này bị giấu khi số còn mới, với lo ngại rằng hiện ngày
+            trên mọi dòng biến danh sách thành bảng kiểm tra ai chăm cập nhật hơn.
+            Lo ngại đó đúng chỗ nhưng sai cách chặn: giấu nhãn không bỏ được phép
+            so sánh, nó chỉ làm con số đọc như sự thật hiện tại trong khi nó là số
+            MỘT NGƯỜI đã khai (03 §8). Việc chặn so sánh nằm ở chỗ khác và đã có:
+            không có tổng theo người ở bất kỳ đâu trong app. */}
+        <Text className="mt-0.5 text-micro text-subtle">
+          {declaredAtText(formatDeclaredAt(asset.asOfDate, updatedByName, today))}
+        </Text>
       </View>
 
       <Text className="text-body text-subtle">›</Text>

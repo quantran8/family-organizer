@@ -3,10 +3,19 @@
  *
  * Ngày bắn = ngày đến hạn − remindLeadDays. Giờ mặc định 08:00 giờ địa phương.
  *
- * GỘP TRƯỚC KHI BẮN. Nhiều nhắc nhở cùng ngày → MỘT thông báo. Nếu không gộp,
- * người dùng sẽ tắt thông báo trong tuần đầu và mất luôn kênh giữ chân duy nhất.
+ * GỘP TRƯỚC KHI BẮN. Nhiều nhắc nhở cùng ngày cho cùng một người → MỘT thông
+ * báo. Nếu không gộp, người dùng sẽ tắt thông báo trong tuần đầu và mất luôn
+ * kênh giữ chân duy nhất.
  *
  * Không bắn quá 2 thông báo mỗi ngày cho mỗi người.
+ *
+ * HAI THỨ CỐ Ý KHÔNG CÓ THÔNG BÁO:
+ *
+ *   - Danh sách mua sắm (03 §5). Bắn push mỗi lần người kia thêm một chai nước
+ *     mắm thì người dùng tắt thông báo trong tuần đầu.
+ *   - Cập nhật tình hình định kỳ. Nhắc snapshot hằng tuần đã bị bỏ ở 06 §1 —
+ *     nó là một nghi thức kế toán, và chỉ người dùng mới quyết được khoản nào
+ *     đáng ghi.
  */
 
 import { addDays, compareISODate } from '../date/civil.ts';
@@ -57,6 +66,11 @@ export interface ReminderDraft {
   /** Ngày bắn, không phải ngày đến hạn. */
   fireOn: ISODate;
   fireHour: number;
+  /**
+   * Người nhận. `null` = gửi cho CẢ NHÀ (sự kiện, giấy tờ, khoản tiền, và việc
+   * không gán ai) — 03 §5.
+   */
+  targetMemberId: UUID | null;
   items: ReminderSource[];
 }
 
@@ -67,6 +81,11 @@ export interface BuildRemindersInput {
   tasks: TaskInstance[];
   /** Tra tên việc cho TaskInstance — instance không mang title. */
   taskTitles?: Record<UUID, string>;
+  /**
+   * Tra người phụ trách cho TaskInstance — instance không mang assigneeId.
+   * Thiếu bản ghi cho một taskId nghĩa là việc KHÔNG GÁN AI → nhắc cả nhà.
+   */
+  taskAssignees?: Record<UUID, UUID | null>;
 }
 
 /**
@@ -82,20 +101,28 @@ export function buildReminders(
   horizonDays: number,
 ): ReminderDraft[] {
   const horizonEnd = addDays(today, horizonDays);
-  const byFireDate = new Map<ISODate, ReminderSource[]>();
 
-  const add = (fireOn: ISODate, item: ReminderSource): void => {
+  // Gộp theo CẶP (ngày bắn, người nhận), không chỉ theo ngày.
+  //
+  // Nếu gộp theo ngày thôi, một việc gán riêng cho vợ sẽ nằm chung thông báo
+  // với nhắc hạn của cả nhà — và thông báo đó gửi cho cả hai. Chồng khi đó
+  // nhận được một dòng nói vợ có việc chưa làm, tức là app vừa thay lời tố.
+  const buckets = new Map<string, { fireOn: ISODate; target: UUID | null; items: ReminderSource[] }>();
+
+  const add = (fireOn: ISODate, target: UUID | null, item: ReminderSource): void => {
     // Ngày bắn đã qua thì bỏ — không nhắc về quá khứ.
     if (compareISODate(fireOn, today) < 0) return;
     if (compareISODate(fireOn, horizonEnd) > 0) return;
-    const bucket = byFireDate.get(fireOn);
-    if (bucket) bucket.push(item);
-    else byFireDate.set(fireOn, [item]);
+    const key = `${fireOn}|${target ?? ''}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.items.push(item);
+    else buckets.set(key, { fireOn, target, items: [item] });
   };
 
+  // Sự kiện, giấy tờ, khoản tiền: nhắc CẢ HAI, vì đó là việc của nhà (03 §5).
   for (const e of input.events) {
     if (e.nextOccurrenceDate === null) continue;
-    add(addDays(e.nextOccurrenceDate, -e.remindLeadDays), {
+    add(addDays(e.nextOccurrenceDate, -e.remindLeadDays), null, {
       entityType: 'event',
       entityId: e.id,
       title: e.title,
@@ -105,7 +132,7 @@ export function buildReminders(
 
   for (const d of input.documents) {
     if (d.expiryDate === null) continue;
-    add(addDays(d.expiryDate, -d.remindLeadDays), {
+    add(addDays(d.expiryDate, -d.remindLeadDays), null, {
       entityType: 'document',
       entityId: d.id,
       title: d.title,
@@ -117,7 +144,7 @@ export function buildReminders(
     if (p.state === 'paid') continue;
     const due = p.dueDate ?? p.dueMonth;
     if (due === null) continue;
-    add(addDays(due, -DEFAULT_LEAD_DAYS.payment), {
+    add(addDays(due, -DEFAULT_LEAD_DAYS.payment), null, {
       entityType: 'upcoming_payment',
       entityId: p.id,
       title: p.name,
@@ -125,9 +152,18 @@ export function buildReminders(
     });
   }
 
+  // VIỆC NHÀ — quy tắc người nhận là BẤT BIẾN (03 §5, 06 §7):
+  //
+  //   việc có assigneeId  → nhắc CHỈ người đó
+  //   việc không gán ai   → nhắc cả hai
+  //
+  // KHÔNG BAO GIỜ tồn tại thông báo dạng "X chưa làm Y". App nhắc người có tên
+  // bao nhiêu lần cũng được — đó chính là giá trị: người kia khỏi phải nhắc.
+  // Nhưng khoảnh khắc app báo cho người thứ hai rằng người thứ nhất chưa làm,
+  // nó thôi thay việc nhắc và bắt đầu THAY LỜI TỐ.
   for (const t of input.tasks) {
     if (t.status === 'done' || t.skipped) continue;
-    add(addDays(t.dueDate, -DEFAULT_LEAD_DAYS.task), {
+    add(addDays(t.dueDate, -DEFAULT_LEAD_DAYS.task), input.taskAssignees?.[t.taskId] ?? null, {
       entityType: 'task',
       entityId: t.id,
       title: input.taskTitles?.[t.taskId] ?? '',
@@ -136,32 +172,37 @@ export function buildReminders(
   }
 
   const drafts: ReminderDraft[] = [];
-  for (const [fireOn, items] of byFireDate) {
+  for (const { fireOn, target, items } of buckets.values()) {
     items.sort((a, b) => compareISODate(a.dueOn, b.dueOn));
-    drafts.push({ fireOn, fireHour: DEFAULT_REMIND_HOUR, items });
+    drafts.push({ fireOn, fireHour: DEFAULT_REMIND_HOUR, targetMemberId: target, items });
   }
   drafts.sort((a, b) => compareISODate(a.fireOn, b.fireOn));
   return drafts;
 }
 
 /**
- * Áp trần MAX_REMINDERS_PER_DAY.
+ * Áp trần MAX_REMINDERS_PER_DAY — "không quá 2 thông báo mỗi ngày CHO MỖI
+ * NGƯỜI" (03 §5).
  *
- * Vì buildReminders() đã gộp mọi mục cùng ngày thành MỘT draft, kết quả bình
- * thường luôn là 1 thông báo/ngày — dưới trần. Hàm này là lưới an toàn cho
- * trường hợp người gọi tự thêm draft (ví dụ nhắc cập nhật tình hình tuần), và
- * là chỗ duy nhất định nghĩa "trần" để không rải rác trong client.
+ * Đếm theo CẶP (ngày, người nhận). Đếm theo ngày thôi thì thông báo của một
+ * người sẽ ăn mất suất của người kia: vợ có 2 việc riêng là chồng không còn
+ * nhận được nhắc hạn nào của cả nhà hôm đó.
+ *
+ * Vì buildReminders() đã gộp mọi mục cùng ngày cùng người thành MỘT draft, kết
+ * quả bình thường luôn dưới trần. Hàm này là lưới an toàn cho trường hợp người
+ * gọi tự thêm draft, và là chỗ duy nhất định nghĩa "trần".
  */
 export function capPerDay(
   drafts: ReminderDraft[],
   maxPerDay: number = MAX_REMINDERS_PER_DAY,
 ): ReminderDraft[] {
-  const count = new Map<ISODate, number>();
+  const count = new Map<string, number>();
   const out: ReminderDraft[] = [];
   for (const d of drafts) {
-    const n = count.get(d.fireOn) ?? 0;
+    const key = `${d.fireOn}|${d.targetMemberId ?? ''}`;
+    const n = count.get(key) ?? 0;
     if (n >= maxPerDay) continue;
-    count.set(d.fireOn, n + 1);
+    count.set(key, n + 1);
     out.push(d);
   }
   return out;

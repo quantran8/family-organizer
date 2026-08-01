@@ -84,6 +84,16 @@ async function fetchNames(
       );
       return rows;
     }
+    // Hai loại này KHÔNG BAO GIỜ được gắn cờ, nhưng enum cho phép nên switch
+    // phải xử lý — nếu không, thêm một giá trị enum ở migration sau sẽ làm hàm
+    // này trả `undefined` lúc chạy mà typecheck vẫn xanh.
+    //
+    //   shopping_item: một món đồ cần mua không phải thứ hai người ngồi lại
+    //     bàn bạc. Gắn cờ vào nó là biến danh sách thành việc được giao.
+    //   household: cờ cấp nhà không trỏ vào bản ghi nào nên không có tên để tra.
+    case 'shopping_item':
+    case 'household':
+      return [];
   }
 }
 

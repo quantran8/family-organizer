@@ -29,6 +29,15 @@ export const queryKeys = {
       [...hh(id), 'household', 'home-feed', from, to] as const,
     /** View `finance_metrics` — nguyên liệu thô, trạng thái tính ở client. */
     financeMetrics: (id: UUID) => [...hh(id), 'household', 'finance-metrics'] as const,
+    /**
+     * View `upcoming_needs` — ba nguồn tiền gộp làm một (06 §3).
+     *
+     * Nguồn của màn hình "Sắp tới nhà mình cần bao nhiêu" VÀ là đầu vào của
+     * `computeFinanceStatus`. Nó đọc từ ba bảng, nên bất kỳ thao tác nào chạm
+     * `upcoming_payments`, `events`, hay `documents` đều phải invalidate nó.
+     */
+    upcomingNeeds: (id: UUID, today: ISODate, horizonDays: number) =>
+      [...hh(id), 'household', 'upcoming-needs', today, horizonDays] as const,
   },
 
   members: {
@@ -53,10 +62,47 @@ export const queryKeys = {
     byEvent: (id: UUID, eventId: UUID) => [...hh(id), 'tasks', 'by-event', eventId] as const,
   },
 
+  /**
+   * Mua sắm — bề mặt hằng ngày (06 §4).
+   *
+   * Chỉ có `list`: danh sách phẳng, không lọc, không nhóm, không chi tiết. Mỗi
+   * key thêm vào đây là một chiều cắt mà module này cố ý không có.
+   */
+  shopping: {
+    all: (id: UUID) => [...hh(id), 'shopping'] as const,
+    list: (id: UUID) => [...hh(id), 'shopping', 'list'] as const,
+  },
+
   events: {
     all: (id: UUID) => [...hh(id), 'events'] as const,
     list: (id: UUID) => [...hh(id), 'events', 'list'] as const,
     detail: (id: UUID, eventId: UUID) => [...hh(id), 'events', 'detail', eventId] as const,
+    /** Trí nhớ năm ngoái — những lần đã diễn ra của MỘT sự kiện (06 §5). */
+    occurrences: (id: UUID, eventId: UUID) =>
+      [...hh(id), 'events', 'occurrences', eventId] as const,
+    /**
+     * Lần diễn ra chưa được hỏi chi phí. Không nằm dưới `occurrences` vì nó
+     * cắt ngang MỌI sự kiện, không thuộc về `eventId` nào.
+     */
+    pendingCostAsk: (id: UUID) => [...hh(id), 'events', 'pending-cost-ask'] as const,
+  },
+
+  /**
+   * Nhập nhanh bằng AI — 06 §6.
+   *
+   * CỐ Ý không có `list`: bản nháp không phải một kho để duyệt. Mỗi lần chụp
+   * sinh đúng một nháp, người dùng xác nhận hoặc bỏ ngay tại đó, và dòng còn
+   * lại tự hết hạn sau 7 ngày. Một màn "danh sách nháp" sẽ biến thứ đang là
+   * một bước trung gian thành một hộp thư đến thứ hai phải dọn.
+   *
+   * `quota` tách khỏi `detail` vì nó cắt ngang mọi bản nháp và phải làm mới
+   * sau MỖI lần submit — gộp chung thì con số còn lại đứng im cho tới lần mở
+   * app sau.
+   */
+  ingest: {
+    all: (id: UUID) => [...hh(id), 'ingest'] as const,
+    detail: (id: UUID, draftId: UUID) => [...hh(id), 'ingest', 'detail', draftId] as const,
+    quota: (id: UUID) => [...hh(id), 'ingest', 'quota'] as const,
   },
 
   assets: {
@@ -116,6 +162,50 @@ export const queryKeys = {
     openWithEntities: (id: UUID) => [...hh(id), 'attention', 'open-with-entities'] as const,
   },
 
+  /**
+   * Sổ mừng cưới — 07 §3.
+   *
+   * `history` là view `gift_history`, nguồn của dòng gợi ý. Nó là TỔNG HỢP của
+   * `entries`, nên mọi lệnh ghi một khoản mừng phải invalidate cả hai — dùng
+   * `gifts.all` để quét một lượt. Chỉ invalidate `entries` thì dòng gợi ý sẽ
+   * còn nói số cũ sau khi vừa ghi một khoản mới, và đó đúng là con số mà toàn
+   * bộ module này tồn tại để nói đúng.
+   *
+   * KHÔNG CÓ key nào cắt theo "ai mừng nhiều nhất" hay chênh lệch đi–nhận —
+   * xem 07 §3.4.
+   */
+  gifts: {
+    all: (id: UUID) => [...hh(id), 'gifts'] as const,
+    /** Danh sách khoản mừng; `contactId` khi xem của riêng một nhà. */
+    entries: (id: UUID, contactId?: UUID) =>
+      [...hh(id), 'gifts', 'entries', contactId ?? 'all'] as const,
+    history: (id: UUID) => [...hh(id), 'gifts', 'history'] as const,
+    /** Tổng của MỘT ĐÁM — gắn với một sự kiện trong app (07 §3.3). */
+    byEvent: (id: UUID, eventId: UUID) => [...hh(id), 'gifts', 'by-event', eventId] as const,
+  },
+
+  contacts: {
+    all: (id: UUID) => [...hh(id), 'contacts'] as const,
+    list: (id: UUID) => [...hh(id), 'contacts', 'list'] as const,
+  },
+
+  /**
+   * Hồ sơ con — 07 §4.
+   *
+   * `schedule` (bảng `vaccine_schedule_items`) là DỮ LIỆU THAM CHIẾU dùng chung
+   * cho mọi con và không đổi theo household — nhưng key vẫn nằm dưới `hh` để
+   * đăng xuất xoá sạch được bằng một lệnh. Rẻ hơn nhiều so với một ngoại lệ
+   * trong quy ước key.
+   */
+  child: {
+    all: (id: UUID) => [...hh(id), 'child'] as const,
+    doses: (id: UUID, memberId: UUID) => [...hh(id), 'child', 'doses', memberId] as const,
+    /** Mũi sắp tới của MỌI con — nguồn của dòng trên Nhà mình (07 §4.5). */
+    upcomingDoses: (id: UUID) => [...hh(id), 'child', 'upcoming-doses'] as const,
+    growth: (id: UUID, memberId: UUID) => [...hh(id), 'child', 'growth', memberId] as const,
+    schedule: (id: UUID) => [...hh(id), 'child', 'schedule'] as const,
+  },
+
   documents: {
     all: (id: UUID) => [...hh(id), 'documents'] as const,
     list: (id: UUID, filter: DocumentFilter) => [...hh(id), 'documents', 'list', filter] as const,
@@ -154,6 +244,9 @@ export const householdScope = hh;
 export function financeAffectedKeys(id: UUID): readonly (readonly unknown[])[] {
   return [
     queryKeys.household.financeMetrics(id),
+    // `household.all` quét cả `upcoming-needs` (mọi horizonDays) lẫn
+    // `home-feed` — key xây theo tầng nên invalidate tầng trên là đủ. Đây là lý
+    // do `upcomingNeeds` KHÔNG cần một dòng riêng ở đây dù nó đọc ba bảng.
     queryKeys.household.all(id),
     queryKeys.assets.all(id),
     queryKeys.payments.all(id),

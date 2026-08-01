@@ -28,7 +28,6 @@
  */
 
 import { formatMoneyShort } from '@family-organizer/domain';
-import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { Divider, EmptyState, ErrorState, ListSkeleton, StatusPill } from '@/design/components';
@@ -38,7 +37,6 @@ import { deltaText, fullSolarDate, useT } from '@/i18n';
 
 export function SnapshotHistoryScreen() {
   const { t } = useT();
-  const router = useRouter();
   const currency = useCurrency();
 
   const { data: rows, isPending, isError, refetch } = useSnapshotHistory();
@@ -66,11 +64,12 @@ export function SnapshotHistoryScreen() {
   if ((rows ?? []).length === 0) {
     return (
       <View className="flex-1 bg-white px-4">
+        {/* KHÔNG có nút hành động: mốc lịch sử do cron ghi hằng tháng, người
+            dùng không tạo được (06 §1). Một nút ở đây sẽ mời họ làm một việc
+            không tồn tại. */}
         <EmptyState
           title={t.money.historyEmptyTitle}
           body={t.money.historyEmptyBody}
-          actionLabel={t.money.updateSituation}
-          onAction={() => router.push('/(modals)/snapshot-update')}
         />
       </View>
     );
@@ -93,11 +92,8 @@ export function SnapshotHistoryScreen() {
               </Text>
               {/* Trạng thái ĐÃ LƯU, không tính lại — xem chú thích #2 đầu file. */}
               <StatusPill status={snapshot.status} size="sm" />
-              {/* Mốc do cron cuối tháng tự chốt, không phải ai nhập. Nói rõ để
-                  người dùng không đi tìm xem "hôm đó mình có mở app không". */}
-              {!snapshot.isManual ? (
-                <Text className="text-micro text-subtle">{t.money.historyAuto}</Text>
-              ) : null}
+              {/* KHÔNG còn nhãn "tự động": từ 06 §1 mọi mốc đều do cron ghi, nên
+                  một nhãn hiện trên MỌI dòng không phân biệt được gì cả. */}
             </View>
 
             <View className="mt-3">

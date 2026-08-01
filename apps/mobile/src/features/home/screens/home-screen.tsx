@@ -18,7 +18,7 @@
 import {
   computeFinanceStatus,
   explainFinanceStatus,
-  formatDueLabel,
+  formatDeclaredAt,
   groupTasksByDue,
   lunarLabelOfDate,
   parseISODate,
@@ -41,12 +41,14 @@ import {
   UndoToast,
   useUndo,
 } from '@/design/components';
+import { useCostAskPrompt } from '@/features/event/queries/use-cost-ask-prompt';
 import { AddFab } from '@/features/home/components';
-import { useFinanceMetrics } from '@/features/household/queries/use-household';
+import { useFinanceMetrics, useUpcomingNeeds } from '@/features/household/queries/use-household';
 import { useMe, useMembers } from '@/features/member/queries/use-members';
+import { useShoppingItems } from '@/features/shopping/queries/use-shopping';
 import { TaskRow } from '@/features/task/components';
 import { useDeleteTask, useSetTaskDone, useTasks } from '@/features/task/queries/use-tasks';
-import { financeReasonText, lastUpdatedText, useT, weekdayName } from '@/i18n';
+import { declaredAtText, financeReasonText, useT, weekdayName } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 import { useSessionStore } from '@/stores/session';
 
@@ -55,6 +57,10 @@ export function HomeScreen() {
   const router = useRouter();
   const today = useToday();
   const householdName = useSessionStore((s) => s.householdName);
+
+  // Sheet "dịp vừa qua hết bao nhiêu?" — tự bật MỘT lần mỗi lần chạy app, chỉ
+  // khi màn này đang được nhìn (05 §5.7). Toàn bộ điều kiện nằm trong hook.
+  useCostAskPrompt();
 
   const { data: tasks, isPending, refetch, isRefetching } = useTasks();
   const { data: members } = useMembers();
@@ -87,7 +93,14 @@ export function HomeScreen() {
     };
   }, [tasks, today, undo.pendingIds]);
 
-  const isEmpty = !isPending && todayTasks.length === 0 && weekTasks.length === 0;
+  // Card CẦN MUA hiện cả khi mọi nhóm khác rỗng, nên nó phải được tính vào đây:
+  // thiếu vế này thì màn hình vừa hiện "Bắt đầu từ điều gần nhất" vừa hiện một
+  // danh sách ba món cần mua — hai câu mâu thuẫn nhau trên cùng một màn.
+  const { data: shopping } = useShoppingItems();
+  const hasShopping = (shopping ?? []).some((i) => !i.isDone);
+
+  const isEmpty =
+    !isPending && todayTasks.length === 0 && weekTasks.length === 0 && !hasShopping;
 
   const renderTask = (item: Task) => (
     <TaskRow
@@ -126,6 +139,8 @@ export function HomeScreen() {
         <TodayHeader today={today} householdName={householdName ?? t.app.name} />
 
         <FinanceCard today={today} onPress={() => router.push('/(app)/money')} />
+
+        <ShoppingCard onPress={() => router.push('/(app)/plan')} />
 
         <InviteCard hasFirstRecord={(tasks ?? []).length > 0} />
 
@@ -253,24 +268,72 @@ function InviteCard({ hasFirstRecord }: { hasFirstRecord: boolean }) {
  * của người mới cài app là một lời trách trước khi họ kịp làm gì.
  */
 function FinanceCard({ today, onPress }: { today: string; onPress: () => void }) {
-  const { t } = useT();
   const { data: metrics } = useFinanceMetrics();
+  // `needs` là đầu vào BẮT BUỘC từ v2: con số "cần chuẩn bị 30 ngày" phải gồm
+  // cả chi phí sự kiện và phí gia hạn giấy tờ, không chỉ khoản sắp trả (06 §0.2).
+  const { data: needs } = useUpcomingNeeds(today);
 
   if (!metrics) return null;
-  const status = computeFinanceStatus(metrics, today);
+  const needsList = needs ?? [];
+  const status = computeFinanceStatus(metrics, needsList, today);
   if (status === 'no_data') return null;
 
-  const { reason } = explainFinanceStatus(metrics, today);
+  const { reason } = explainFinanceStatus(metrics, needsList, today);
 
   return (
     <Pressable accessibilityRole="button" onPress={onPress} className="mt-5">
       <Card>
         <StatusPill status={status} />
         <Text className="mt-2 text-body text-ink">{financeReasonText(reason)}</Text>
+        {/* Nhãn thời gian của SỐ KHAI — bắt buộc ở mọi chỗ hiện số tổng (03 §8).
+            Dùng nhóm "dùng ngay" vì đó là con số màn Tiền dựa vào. */}
         <Text className="mt-1 text-caption text-subtle">
-          {metrics.lastUpdatedOn
-            ? lastUpdatedText(formatDueLabel(metrics.lastUpdatedOn, today))
-            : t.financeStatus.neverUpdated}
+          {declaredAtText(formatDeclaredAt(metrics.lastUsableUpdatedOn, null, today))}
+        </Text>
+      </Card>
+    </Pressable>
+  );
+}
+
+/**
+ * CẦN MUA — 05 §4, 06 §4.
+ *
+ * **Nhóm DUY NHẤT được hiện cả khi mọi nhóm khác rỗng.** Mọi nhóm khác trên màn
+ * này ẩn hẳn khi trống (một dòng "chưa có gì" là một lần nhắc người dùng rằng
+ * họ chưa làm gì), nhưng card này là ngoại lệ có chủ ý: nó là bề mặt hằng ngày,
+ * và là lý do app được mở trong tuần không có sự kiện nào.
+ *
+ * Ẩn khi danh sách RỖNG THẬT — không có gì cần mua thì không có gì để nói. Đó
+ * khác với "mọi nhóm khác rỗng", tình huống mà card này vẫn hiện.
+ *
+ * Hiện SỐ MÓN CHƯA MUA + ba tên đầu. Không đếm tổng cả món đã tick: con số
+ * người dùng cần trong siêu thị là "còn bao nhiêu món nữa".
+ *
+ * KHÔNG có ô đánh dấu ở đây — chạm là đi tới danh sách. Tick ngay trên màn
+ * chính nghe tiện, nhưng nó sẽ nhân đôi chỗ chứa cùng một thao tác, và người
+ * dùng sẽ không biết chỗ nào là chỗ thật.
+ */
+function ShoppingCard({ onPress }: { onPress: () => void }) {
+  const { t } = useT();
+  const { data: items } = useShoppingItems();
+
+  const pending = (items ?? []).filter((i) => !i.isDone);
+  if (pending.length === 0) return null;
+
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} className="mt-5">
+      <Card>
+        <View className="flex-row items-center">
+          <Text className="flex-1 text-label font-semibold text-muted">
+            {t.shopping.cardTitle}
+          </Text>
+          <Text className="text-label font-medium text-brand">{pending.length}</Text>
+        </View>
+        <Text className="mt-1 text-body text-ink" numberOfLines={1}>
+          {pending
+            .slice(0, 3)
+            .map((i) => i.title)
+            .join(' · ')}
         </Text>
       </Card>
     </Pressable>

@@ -35,15 +35,18 @@ export default function MoneyLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="upcoming" options={{ ...HEADER, title: vi.upcoming.title }} />
       <Stack.Screen name="assets" options={{ ...HEADER, title: vi.asset.title }} />
       <Stack.Screen name="payments" options={{ ...HEADER, title: vi.payment.title }} />
       <Stack.Screen name="debts" options={{ ...HEADER, title: vi.debt.title }} />
       <Stack.Screen name="attention" options={{ ...HEADER, title: vi.attention.title }} />
       <Stack.Screen name="history" options={{ ...HEADER, title: vi.money.historyTitle }} />
       <Stack.Screen name="changes" options={{ ...HEADER, title: vi.money.changesTitle }} />
+      <Stack.Screen name="goals" options={{ ...HEADER, title: vi.goal.title }} />
       <Stack.Screen name="asset/[id]" options={{ ...HEADER, title: '' }} />
       <Stack.Screen name="payment/[id]" options={{ ...HEADER, title: '' }} />
       <Stack.Screen name="debt/[id]" options={{ ...HEADER, title: '' }} />
+      <Stack.Screen name="goal/[id]" options={{ ...HEADER, title: '' }} />
     </Stack>
   );
 }

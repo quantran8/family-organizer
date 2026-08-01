@@ -45,6 +45,7 @@ import {
   EmptyState,
   ErrorState,
   ListSkeleton,
+  NavRow,
   Segmented,
   Toast,
 } from '@/design/components';
@@ -155,6 +156,22 @@ export function DocumentListScreen() {
               onPress={() => router.push({ pathname: '/(app)/docs/[id]', params: { id: d.id } })}
             />
           ))}
+
+          {/* ── HỒ SƠ CON (G15) ──
+              Vào từ tab Giấy tờ vì phần lớn thứ của một đứa trẻ là giấy tờ:
+              khai sinh, BHYT, sổ tiêm, hồ sơ trường (07 §4.4). Lịch tiêm là
+              thứ duy nhất cần cấu trúc riêng.
+
+              Một dòng dẫn sang DANH SÁCH con, không phải nhiều dòng mỗi bé một
+              dòng: đặt hai đứa trẻ cạnh nhau trên cùng một màn là bước đầu của
+              việc so sánh chúng (07 §4.6). */}
+          <View className="mt-8">
+            <NavRow
+              label={t.child.listTitle}
+              onPress={() => router.push('/(app)/child')}
+              last
+            />
+          </View>
 
           <View className="mt-8">
             <Button

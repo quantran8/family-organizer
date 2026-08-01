@@ -5,7 +5,7 @@
  * biết TanStack Query (01 §2).
  */
 
-import { addDays, type ISODate } from '@family-organizer/domain';
+import { addDays, RUNWAY_HORIZON_DAYS, type ISODate } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';
@@ -21,7 +21,7 @@ export function useHousehold() {
 }
 
 /**
- * Đổi tên nhà / nhịp cập nhật.
+ * Đổi tên nhà / ngưỡng ghi.
  *
  * KHÔNG optimistic: đây là thao tác hiếm và không nằm trên đường đi hằng ngày,
  * nên một vòng round-trip ở đây không ai thấy phiền — trong khi hiện tên mới rồi
@@ -79,5 +79,24 @@ export function useFinanceMetrics() {
   return useQuery({
     queryKey: queryKeys.household.financeMetrics(hh),
     queryFn: () => householdRepository.financeMetrics(hh),
+  });
+}
+
+/**
+ * Ba nguồn tiền sắp phải chuẩn bị, gộp làm một (06 §3).
+ *
+ * Đi CẶP với `useFinanceMetrics`: `computeFinanceStatus` cần cả hai, vì con số
+ * "cần chuẩn bị trong 30 ngày" phải gồm chi phí sự kiện và phí gia hạn giấy tờ
+ * chứ không chỉ khoản sắp trả (06 §0.2 — lỗi đã có từ 0001).
+ *
+ * Cửa sổ mặc định 90 ngày = `RUNWAY_HORIZON_DAYS`, để màn hình "Sắp tới" và
+ * trạng thái trên Nhà mình đọc cùng một cache thay vì bắn hai truy vấn lệch
+ * nhau vài ngày.
+ */
+export function useUpcomingNeeds(today: ISODate, horizonDays = RUNWAY_HORIZON_DAYS) {
+  const hh = useHouseholdId();
+  return useQuery({
+    queryKey: queryKeys.household.upcomingNeeds(hh, today, horizonDays),
+    queryFn: () => householdRepository.upcomingNeeds(hh, today, horizonDays),
   });
 }

@@ -71,15 +71,30 @@ Infrastructure). Lệch số này thì `db push` so sai schema.
 pnpm db:push
 ```
 
-Đẩy ba migration theo thứ tự:
+Đẩy năm migration theo thứ tự:
 
 | File | Nội dung | Bỏ qua thì sao |
 |---|---|---|
 | `0001_init.sql` | toàn bộ schema, RLS, view, trigger | — |
 | `0002_onboarding_rpc.sql` | `create_household`, `join_household` | F1 và F2 kẹt vòng luẩn quẩn RLS: chưa là member thì không tạo được nhà, mà tạo nhà mới thành member |
 | `0003_grants.sql` | `GRANT` bảng cho role `authenticated` | **mọi** truy vấn trả `permission denied` — `schema.sql` không có một lệnh GRANT nào |
+| `0004_concept_v2.sql` | concept v2: `family_side`, ngưỡng ghi, `shopping_items`, `event_occurrences`, `ingest_drafts`, view `upcoming_needs` + `money_history` | màn "Sắp tới" không có nguồn, và con số "cần chuẩn bị" bỏ sót chi phí sự kiện |
+| `0005_local_modules.sql` | sổ mừng cưới + hồ sơ con | hai module bản địa không có bảng |
 
-Kiểm nhanh: Dashboard → Table Editor phải thấy 22 bảng.
+Kiểm nhanh: Dashboard → Table Editor phải thấy **26 bảng** (18 từ `0001`, 3 từ
+`0004`, 5 từ `0005`) và **6 view**: `home_feed` · `finance_metrics` ·
+`money_feed` · `upcoming_needs` · `money_history` · `gift_history`.
+
+> **`0004` đổi một enum ĐANG CÓ DỮ LIỆU** (`family_side`: `paternal|maternal` →
+> `husband_family|wife_family`). Không có Docker local nên không có bước tập
+> dượt. Chạy trên một project staging trước, và đối chiếu trước/sau:
+>
+> ```sql
+> select side, count(*) from events group by 1;
+> ```
+>
+> `0005` cần extension `pg_trgm` — migration tự bật, nhưng nếu project chặn
+> `create extension` thì phải bật tay ở Dashboard → Database → Extensions.
 
 ---
 
@@ -141,24 +156,42 @@ hôm sau ở Việt Nam. Cột "giờ VN" dưới đây là giờ người dùng
 
 | Giờ VN | UTC | Job | Vì sao ở đúng chỗ đó trong thứ tự |
 |---|---|---|---|
-| 02:00 | `0 19` | `purge-soft-deleted` | xoá cứng bản ghi quá 30 ngày, kèm xoá object R2 |
+| 02:00 | `0 19` | `purge-soft-deleted` | hai chặng: mục mua sắm đã tick quá 24h → xoá mềm; mọi bản ghi xoá mềm quá 30 ngày → xoá cứng, kèm xoá object R2 |
 | 03:00 | `0 20` | `sweep-orphan-uploads` | dọn `document_files` pending quá 24h |
 | 03:30 | `30 20` | `generate-task-instances` | vật hoá việc lặp, cửa sổ 90 ngày |
-| 04:00 | `0 21` | `refresh-lunar-dates` | tính `next_occurrence_date` cho sự kiện âm lịch |
+| 04:00 | `0 21` | `refresh-lunar-dates` | ghi `event_occurrences` cho mốc vừa trôi qua **rồi mới** tính `next_occurrence_date` mới |
 | 04:30 | `30 21` | `build-reminders` | **phải chạy sau** hai job trên — nó đọc `task_instances` và `next_occurrence_date` |
 | 05:00 | `0 22` | `spawn-debt-installments` | sinh kỳ trả nợ tiếp theo |
 | 05:15 | `15 22` | `expire-attention-items` | đóng cờ cần trao đổi đã quá `expires_at` |
-| 09:00 | `0 2` | `nudge-snapshot-update` | **phải chạy sau `build-reminders`** — xem dưới |
 | 23:50 | `50 16` | `autosnapshot-monthly` | tự thoát nếu chưa phải ngày cuối tháng |
 
-**Hai phụ thuộc thứ tự không có gì trong code nói ra:**
+> **`nudge-snapshot-update` đã bị bỏ ở G11** cùng toàn bộ nghi thức cập nhật
+> định kỳ (`06 §1`). Nếu project của bạn đã `cron.schedule` job này từ trước,
+> phải gỡ nó ra — nó sẽ gọi một URL không còn tồn tại mỗi ngày:
+>
+> ```sql
+> select cron.unschedule('nudge-snapshot-update');
+> ```
 
-1. `build-reminders` đọc `task_instances` và `next_occurrence_date`, nên nó phải
-   chạy **sau** `generate-task-instances` và `refresh-lunar-dates`.
-2. `build-reminders` **xoá sạch mọi nhắc nhở tương lai chưa gửi** của một nhà
-   rồi dựng lại từ đầu. Hàng do `nudge-snapshot-update` ghi có `fire_at` trong
-   cùng ngày — nằm đúng trong khoảng bị xoá. Chạy nudge **trước** 04:30 thì lời
-   nhắc biến mất trước khi kịp bắn, và không có lỗi nào để nhìn thấy.
+**Phụ thuộc thứ tự không có gì trong code nói ra:**
+
+`build-reminders` đọc `task_instances` và `next_occurrence_date`, nên nó phải
+chạy **sau** `generate-task-instances` và `refresh-lunar-dates`.
+
+Bên trong `refresh-lunar-dates` cũng có một thứ tự bắt buộc, và nó nằm trong
+một hàm nên không ai nhìn thấy từ bảng cron: **ghi `event_occurrences` trước,
+cập nhật `next_occurrence_date` sau** (G14, `03 §3`). Đảo lại thì ngày vừa trôi
+qua đã bị đẩy sang năm sau và không còn ở đâu trong DB để mà ghi — trí nhớ năm
+ngoái mất một dòng mỗi năm, im lặng, và chỉ lộ ra sau 12 tháng.
+
+Cũng vì thế mà **không được gọi `refresh-lunar-dates` với body rỗng từ client**:
+chế độ không-body là chế độ cron, nó coi mọi mốc đã qua là một dịp đã diễn ra.
+Client sửa sự kiện thì gọi kèm `{ eventId }` — repository đã làm đúng.
+
+Nó cũng **xoá sạch mọi nhắc nhở tương lai chưa gửi** của một nhà rồi dựng lại
+từ đầu. Bất kỳ job nào ghi thêm hàng `reminders` có `fire_at` trong cùng ngày
+đều phải chạy **sau** 04:30, nếu không lời nhắc biến mất trước khi kịp bắn — và
+không có lỗi nào để nhìn thấy.
 
 ```sql
 -- Mẫu cho một job; lặp lại cho từng dòng trong bảng trên.
@@ -211,7 +244,7 @@ Metro** — Expo đọc config một lần lúc bắt đầu, không theo dõi f
 ## Kiểm chứng — chạy trước mỗi lần duyệt
 
 ```bash
-pnpm test                                  # cổng G1 — 160 test domain
+pnpm test                                  # cổng G1 — 262 test domain
 pnpm --filter @family-organizer/mobile typecheck
 pnpm --filter @family-organizer/mobile lint         # chặn literal tiếng Việt trong JSX
 ```

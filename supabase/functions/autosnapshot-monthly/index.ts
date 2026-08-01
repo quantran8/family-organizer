@@ -1,36 +1,32 @@
 /**
- * `autosnapshot-monthly` — chốt một mốc cuối tháng nếu người dùng chưa tự nhập.
+ * `autosnapshot-monthly` — chốt một mốc lịch sử vào cuối mỗi tháng.
  *
  * Lý do sản phẩm, không phải kỹ thuật: *niềm tin của người không giữ tiền đến
- * từ việc **thấy được thay đổi**, không phải từ con số hiện tại* (G7b). Một
- * lịch sử trống rỗng vì cả hai người đều bận suốt tháng làm màn `money/history`
- * vô dụng đúng lúc nó cần có ích nhất.
+ * từ việc **thấy được thay đổi**, không phải từ con số hiện tại* (G7b, 08 §1).
  *
- * ── `is_manual = false` là trường quan trọng nhất ở đây ──
+ * ── ĐÂY LÀ ĐƯỜNG DUY NHẤT tạo money_snapshots (06 §1) ──
  *
- * Nó phân biệt *"nhà mình đã ngồi lại và chốt con số"* với *"máy tự ghi lại số
- * đang có"*. Hai thứ đó **không cùng ý nghĩa** và không được trộn:
+ * `is_manual` đã bị bỏ ở migration 0004. Trước đây cột đó phân biệt *"nhà mình
+ * đã ngồi lại và chốt con số"* với *"máy tự ghi lại số đang có"* — nhưng nghi
+ * thức cập nhật định kỳ đã bị loại bỏ, nên vế thứ nhất không còn tồn tại và
+ * cột chỉ có một giá trị.
  *
- *   - `nudge-snapshot-update` chỉ đếm mốc `is_manual = true`. Nếu mốc tự động
- *     cũng tính, thì cứ cuối tháng cron chốt hộ một cái là lời nhắc im lặng
- *     luôn — và nghi thức, thứ duy nhất giữ chân người dùng, chết dần mà không
- *     ai nhận ra.
- *   - Màn lịch sử đọc `status` nguyên từ DB. Một mốc tự động mang trạng thái
- *     tính từ số liệu chưa ai xác nhận, nên nó là ghi chép, không phải cam kết.
+ * `money_snapshots` giờ là **lịch sử dẫn xuất**: người dùng không bao giờ nhìn
+ * thấy hành động tạo snapshot, và không có màn hình nào để tạo nó. Nó phục vụ
+ * "trí nhớ năm ngoái", không phải một vòng lặp thói quen.
  *
- * ── Không ghi đè mốc người dùng đã tự nhập ──
+ * ── Chạy lại trong cùng ngày không tạo mốc thứ hai ──
  *
  * `unique (household_id, as_of_date)` chặn ở DB, nhưng dựa vào lỗi unique để
  * điều khiển luồng là dựa vào một lỗi. Kiểm trước cho rõ ý.
  *
- * ── Số liệu lấy từ `finance_metrics`, không cộng lại ở đây ──
+ * ── Số liệu lấy từ `finance_metrics` + `upcoming_needs`, không cộng lại ở đây ──
  *
- * Cùng nguồn với màn Tiền và với nghi thức cập nhật. Cộng lại ở đây là dựng
- * nguồn sự thật thứ hai, và hai nguồn sẽ lệch nhau đúng vào lúc có một khoản
- * vừa bị xoá mềm.
+ * Cùng nguồn với màn Tiền. Cộng lại ở đây là dựng nguồn sự thật thứ hai, và hai
+ * nguồn sẽ lệch nhau đúng vào lúc có một khoản vừa bị xoá mềm.
  */
 
-import { computeFinanceStatus } from '@family-organizer/domain';
+import { computeFinanceStatus, type UpcomingNeed } from '@family-organizer/domain';
 
 import { jsonResponse, serviceClient, todayInVN } from '../_shared/client.ts';
 
@@ -44,7 +40,19 @@ interface MetricsRow {
   due_next_7d_count: number;
   overdue_count: number;
   attention_count: number;
+  last_usable_updated_on: string | null;
   last_updated_on: string | null;
+  record_threshold_amount: number | null;
+  currency: string;
+}
+
+interface NeedRow {
+  source: UpcomingNeed['source'];
+  id: string;
+  household_id: string;
+  title: string;
+  on_date: string;
+  amount: number;
 }
 
 /** Hôm nay có phải ngày cuối tháng không (giờ VN). */
@@ -70,6 +78,29 @@ Deno.serve(async (req) => {
 
   const { data, error } = await supabase.from('finance_metrics').select('*');
   if (error) return jsonResponse({ error: error.message }, 500);
+
+  // `computeFinanceStatus` nhận thêm `needs` từ v2: chi phí sự kiện và phí gia
+  // hạn giấy tờ phải được tính vào con số "cần chuẩn bị" (06 §0.2). Đọc một
+  // lần cho mọi nhà rồi gom theo household_id — cron chạy cho TẤT CẢ household
+  // nên một query kèm nhóm ở bộ nhớ rẻ hơn N query.
+  const { data: needsData, error: needsError } = await supabase
+    .from('upcoming_needs')
+    .select('*');
+  if (needsError) return jsonResponse({ error: needsError.message }, 500);
+
+  const needsByHousehold = new Map<string, UpcomingNeed[]>();
+  for (const n of (needsData ?? []) as NeedRow[]) {
+    const need: UpcomingNeed = {
+      source: n.source,
+      id: n.id,
+      title: n.title,
+      amount: Number(n.amount),
+      onDate: n.on_date,
+    };
+    const bucket = needsByHousehold.get(n.household_id);
+    if (bucket) bucket.push(need);
+    else needsByHousehold.set(n.household_id, [need]);
+  }
 
   const rows = (data ?? []) as MetricsRow[];
   let created = 0;
@@ -114,8 +145,13 @@ Deno.serve(async (req) => {
         dueNext7dCount: Number(m.due_next_7d_count),
         overdueCount: Number(m.overdue_count),
         attentionCount: Number(m.attention_count),
+        lastUsableUpdatedOn: m.last_usable_updated_on,
         lastUpdatedOn: m.last_updated_on,
+        currency: m.currency,
+        recordThresholdAmount:
+          m.record_threshold_amount === null ? null : Number(m.record_threshold_amount),
       },
+      needsByHousehold.get(m.household_id) ?? [],
       today,
     );
 
@@ -127,8 +163,6 @@ Deno.serve(async (req) => {
       total_long_term: m.total_long_term,
       total_debt: m.total_debt,
       status,
-      // Trường quan trọng nhất của file này — xem đầu file.
-      is_manual: false,
       // `created_by` để null: KHÔNG có người nào tạo mốc này. Gán id của một
       // thành viên sẽ nói dối rằng họ đã ngồi xuống và chốt con số.
       created_by: null,

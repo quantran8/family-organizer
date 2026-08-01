@@ -38,12 +38,14 @@ import { EventRow } from '@/features/event/components';
 import { useEvents } from '@/features/event/queries/use-events';
 import { AddFab } from '@/features/home/components';
 import { useMembers } from '@/features/member/queries/use-members';
+import { ShoppingListScreen } from '@/features/shopping/screens/shopping-list-screen';
 import { TaskRow } from '@/features/task/components';
 import {
   useDeleteTask,
   useRescheduleTask,
   useSetTaskDone,
   useTasks,
+  useUpdateTask,
 } from '@/features/task/queries/use-tasks';
 import { useT, vi } from '@/i18n';
 import { useToday } from '@/lib/use-today';
@@ -56,6 +58,7 @@ export function PlanScreen() {
 
   const options: readonly { value: PlanTab; label: string }[] = [
     { value: 'task', label: t.task.title },
+    { value: 'shopping', label: t.shopping.title },
     { value: 'event', label: t.event.title },
   ];
 
@@ -66,7 +69,9 @@ export function PlanScreen() {
         <Segmented options={options} value={planTab} onChange={setPlanTab} />
       </View>
 
-      {planTab === 'task' ? <TaskList /> : <EventList />}
+      {planTab === 'task' ? <TaskList /> : null}
+      {planTab === 'shopping' ? <ShoppingListScreen /> : null}
+      {planTab === 'event' ? <EventList /> : null}
     </Screen>
   );
 }
@@ -91,6 +96,7 @@ function TaskList() {
   const setDone = useSetTaskDone();
   const reschedule = useRescheduleTask();
   const deleteTask = useDeleteTask();
+  const updateTask = useUpdateTask();
   const undo = useUndo();
 
   // Tên người phụ trách tra bằng map: dòng nào cũng cần, và `find` trong render
@@ -100,6 +106,34 @@ function TaskList() {
     for (const x of members ?? []) m.set(x.id, x.displayName);
     return m;
   }, [members]);
+
+  /**
+   * Vòng đổi người phụ trách khi chạm chip — 06 §7.
+   *
+   * CHỈ `owner` và `partner`: một nhà có thể có `child` và `relative` trong
+   * `members` (hồ sơ con ở 07 §4, ông bà hai bên), và việc nhà không được rơi
+   * vào tên một đứa trẻ chỉ vì người dùng chạm thêm một nhịp.
+   *
+   * Vòng KHÔNG có nấc "chưa phân": bỏ gán là một quyết định khác hẳn với đổi
+   * người, và trộn nó vào cùng một cử chỉ nghĩa là người dùng đang xoay tên qua
+   * lại thì bất chợt việc rơi về không ai. Bỏ gán nằm ở màn chi tiết.
+   */
+  const adults = useMemo(
+    () => (members ?? []).filter((m) => m.role === 'owner' || m.role === 'partner'),
+    [members],
+  );
+
+  const cycleAssignee = (task: Task): void => {
+    // Một mình thì không có ai để đổi sang — chip vẫn hiện, chạm không làm gì.
+    if (adults.length < 2) return;
+    const at = adults.findIndex((m) => m.id === task.assigneeId);
+    // Người hiện tại không nằm trong vòng (đã rời nhà, hoặc là `relative`) →
+    // `-1 + 1 = 0`, rơi về người đầu. Đúng thứ ta muốn: một cái tên không đổi
+    // được nữa là một dòng kẹt.
+    const next = adults[(at + 1) % adults.length];
+    if (!next) return;
+    updateTask.mutate({ id: task.id, patch: { assigneeId: next.id } });
+  };
 
   // Nhóm rỗng ẩn HẲN — không hiện "không có gì" (05 §4).
   const sections = useMemo(() => {
@@ -159,6 +193,8 @@ function TaskList() {
             title={item.title}
             done={item.status === 'done'}
             assigneeName={item.assigneeId ? (memberName.get(item.assigneeId) ?? null) : null}
+            // Chỉ có nghĩa khi nhà đủ hai người lớn — dưới đó chip để đọc.
+            onCycleAssignee={adults.length >= 2 ? () => cycleAssignee(item) : undefined}
             repeats={item.recur !== null}
             onToggle={(next) => setDone.mutate({ id: item.id, done: next })}
             onPress={() => router.push(`/(app)/plan/task/${item.id}`)}

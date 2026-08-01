@@ -9,11 +9,25 @@
  * household từ biến toàn cục.
  */
 
-import type { FinanceMetrics, HomeFeedItem, Household, ISODate, UUID } from '@family-organizer/domain';
+import type {
+  FinanceMetrics,
+  HomeFeedItem,
+  Household,
+  ISODate,
+  UpcomingNeed,
+  UUID,
+} from '@family-organizer/domain';
 
 export interface HouseholdPatch {
   name?: string;
-  snapshotIntervalDays?: 7 | 30;
+  /**
+   * Ngưỡng ghi hai người tự chốt. `null` = "tự quyết" (06 §2).
+   *
+   * KHÔNG PHẢI VALIDATION: repository chỉ lưu, không kiểm. Không có ràng buộc
+   * nào chặn ghi khoản nhỏ hơn ngưỡng — nó là một quy ước của gia đình, không
+   * phải quy định của app.
+   */
+  recordThresholdAmount?: number | null;
 }
 
 export interface HouseholdRepository {
@@ -26,4 +40,13 @@ export interface HouseholdRepository {
    * Trạng thái tính ở client bằng computeFinanceStatus (03 §1).
    */
   financeMetrics(hh: UUID): Promise<FinanceMetrics | null>;
+  /**
+   * View `upcoming_needs` — nguồn DUY NHẤT cho màn hình "Sắp tới nhà mình cần
+   * bao nhiêu" (02 §4), và là đầu vào bắt buộc của computeFinanceStatus.
+   *
+   * Gộp ba nguồn: khoản sắp trả, chi phí sự kiện, phí gia hạn giấy tờ. Trước v2
+   * chỉ có nguồn thứ nhất được tính, nên giỗ 3tr và gia hạn bảo hiểm 12tr không
+   * bao giờ xuất hiện trong con số "cần chuẩn bị" (06 §0.2).
+   */
+  upcomingNeeds(hh: UUID, today: ISODate, horizonDays: number): Promise<UpcomingNeed[]>;
 }

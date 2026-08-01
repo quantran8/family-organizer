@@ -9,9 +9,14 @@
 import {
   formatMoney,
   formatMoneyShort,
+  type ContactSide,
+  type DeclaredLabel,
+  type DoseLabel,
   type DueLabel,
   type FinanceReason,
   type FinanceStatus,
+  type GiftDirection,
+  type GiftOccasion,
   type LunarLabel,
   type MoneyEventShape,
 } from '@family-organizer/domain';
@@ -21,6 +26,37 @@ import { interpolate, vi } from './vi';
 /** Nhãn một từ cho trạng thái tài chính. Luôn đi kèm câu giải thích. */
 export function financeStatusLabel(s: FinanceStatus): string {
   return vi.financeStatus[s];
+}
+
+/**
+ * "Anh cập nhật 6 tuần trước" · "Chưa có số liệu" — 03 §8.
+ *
+ * BẮT BUỘC ở mọi chỗ hiển thị số tổng. Không có ngoại lệ. Một con số tiền
+ * không kèm nhãn thời gian sẽ được đọc là sự thật hiện tại, trong khi nó là
+ * điều một người đã nói ra sáu tuần trước.
+ */
+export function declaredAtText(d: DeclaredLabel): string {
+  const m = vi.declaredAt;
+  switch (d.kind) {
+    case 'never':
+      return m.never;
+    case 'today':
+      return d.by ? interpolate(m.today, { by: d.by }) : m.todayAnon;
+    case 'yesterday':
+      return d.by ? interpolate(m.yesterday, { by: d.by }) : m.yesterdayAnon;
+    case 'days_ago':
+      return d.by
+        ? interpolate(m.daysAgo, { by: d.by, days: d.days })
+        : interpolate(m.daysAgoAnon, { days: d.days });
+    case 'weeks_ago':
+      return d.by
+        ? interpolate(m.weeksAgo, { by: d.by, weeks: d.weeks })
+        : interpolate(m.weeksAgoAnon, { weeks: d.weeks });
+    case 'months_ago':
+      return d.by
+        ? interpolate(m.monthsAgo, { by: d.by, months: d.months })
+        : interpolate(m.monthsAgoAnon, { months: d.months });
+  }
 }
 
 /**
@@ -40,8 +76,8 @@ export function financeReasonText(r: FinanceReason): string {
       return interpolate(m.reasonAttention, { count: r.count });
     case 'due_soon':
       return interpolate(m.reasonDueSoon, { count: r.count });
-    case 'stale':
-      return interpolate(m.reasonStale, { days: r.daysAgo });
+    // KHÔNG còn nhánh 'stale': độ mới của số liệu không đổi trạng thái nữa
+    // (03 §1). Nó là một nhãn riêng — xem declaredAtText bên dưới.
     case 'ok':
       return m.reasonOk;
   }
@@ -134,6 +170,25 @@ export function fullSolarDate(iso: string): string {
 }
 
 /**
+ * "Tháng 9" · "Tháng 12/2025" — nhãn nhóm tháng.
+ *
+ * Chỉ thêm năm khi KHÁC năm hiện tại. Người đọc mặc định hiểu "Tháng 9" là năm
+ * nay, nên in năm ở mọi dòng là nhiễu; nhưng bỏ năm ở nhóm của năm khác thì
+ * tháng 12 năm ngoái và tháng 12 năm nay trông y hệt nhau — và ở màn lịch sử
+ * thì hai nhóm đó nằm cạnh nhau thật.
+ *
+ * `month` nhận ISO date đầu tháng ('2025-09-01'), đúng thứ `groupHistoryByMonth`
+ * và `projectRunway().byMonth` trả về.
+ */
+export function monthLabelText(month: string, today: string): string {
+  const [year, m] = month.split('-');
+  const [thisYear] = today.split('-');
+  return year === thisYear
+    ? interpolate(vi.money.monthLabel, { month: Number(m) })
+    : interpolate(vi.money.monthLabelWithYear, { month: Number(m), year: year ?? '' });
+}
+
+/**
  * "15/8 âm — Chủ nhật 5/10" — 03 §8.
  * Hiện CẢ HAI ngày; đây là điểm khác biệt bản địa rõ nhất, đừng giấu (05 §5.3).
  */
@@ -200,4 +255,122 @@ export function deltaText(delta: number, currency: string): string {
 
 export function moneyText(v: number, currency: string): string {
   return formatMoney(v, currency);
+}
+
+// --- Sổ mừng cưới (07 §3) ---
+
+export function giftDirectionLabel(d: GiftDirection): string {
+  return vi.giftDirection[d];
+}
+
+export function giftOccasionLabel(o: GiftOccasion): string {
+  return vi.giftOccasion[o];
+}
+
+export function contactSideLabel(s: ContactSide): string {
+  return vi.contactSide[s];
+}
+
+/**
+ * Dòng gợi ý — TOÀN BỘ lý do module sổ mừng cưới tồn tại (07 §3.3):
+ *
+ *     Chú Ba đã mừng nhà mình
+ *     2.000.000 ₫ — cưới, 3/2023
+ *
+ * Ngày rút về "3/2023": người dùng cần biết *khoảng bao lâu rồi*, không cần
+ * biết ngày nào. Một ngày đầy đủ ở đây chỉ làm dòng dài ra mà không thêm gì
+ * cho quyết định đang phải ra.
+ *
+ * KHÔNG có câu nào so sánh, khuyên, hay điều chỉnh con số. App đưa ra một DỮ
+ * KIỆN; đi bao nhiêu là chuyện của hai vợ chồng.
+ */
+export function giftSuggestionText(
+  name: string,
+  amount: number,
+  occasion: GiftOccasion,
+  occurredOn: string,
+  currency: string,
+): { line: string; basis: string } {
+  const [year, month] = occurredOn.split('-');
+  return {
+    line: interpolate(vi.gift.suggestLine, { name }),
+    basis: interpolate(vi.gift.suggestBasis, {
+      amount: formatMoney(amount, currency),
+      occasion: giftOccasionLabel(occasion).toLocaleLowerCase('vi'),
+      date: `${Number(month)}/${year}`,
+    }),
+  };
+}
+
+/**
+ * Tổng của một đám — LUÔN kèm số lượng bản ghi (ràng buộc #5).
+ *
+ * Một tổng đứng một mình sẽ được đọc là đầy đủ, trong khi nó chỉ là tổng của
+ * những gì đã kịp ghi.
+ */
+export function occasionTotalText(
+  s: { count: number; total: number },
+  currency: string,
+): string {
+  return interpolate(vi.gift.occasionTotal, {
+    total: formatMoney(s.total, currency),
+    count: s.count,
+  });
+}
+
+// --- Hồ sơ con (07 §4) ---
+
+/**
+ * Nhãn một mũi tiêm: "còn 9 ngày" · "quá lịch 12 ngày" · "đã tiêm 5/10/2025".
+ *
+ * KHÔNG DÙNG CHỮ TRÁCH MÓC. Không "bạn đã bỏ lỡ", không "chưa hoàn thành",
+ * không "trễ hẹn". Mũi quá lịch đọc là một SỰ VIỆC, và màn hình kèm theo một
+ * việc làm được (`vi.child.overdueHint`) — 07 §4.2.
+ *
+ * `planned_no_date` là mũi ngoài lịch chưa hẹn ngày. Nó KHÔNG được đọc thành
+ * "chưa tiêm": app không biết mũi đó đã tiêm hay chưa, chỉ biết chưa có ngày.
+ */
+export function doseLabelText(d: DoseLabel): string {
+  const m = vi.child;
+  switch (d.kind) {
+    case 'planned':
+      return d.inDays === 0 ? m.doseToday : interpolate(m.doseIn, { days: d.inDays });
+    case 'planned_no_date':
+      return m.doseNoDate;
+    case 'overdue':
+      return interpolate(m.doseOverdue, { days: d.days });
+    case 'done':
+      return interpolate(m.doseDone, { date: fullSolarDate(d.on) });
+  }
+}
+
+/**
+ * Tuổi của con: "14 tháng" dưới 2 tuổi, "3 tuổi" từ đó trở lên.
+ *
+ * Mốc 24 tháng không tuỳ tiện — nó là cách bố mẹ Việt thật sự nói. Dưới hai
+ * tuổi thì tháng là đơn vị có nghĩa (và cũng là đơn vị của lịch tiêm); trên
+ * hai tuổi thì "38 tháng" nghe như một biểu mẫu bệnh viện.
+ */
+export function childAgeText(birthday: string, today: string): string {
+  const months = monthsBetweenISO(birthday, today);
+  if (months < 24) return interpolate(vi.child.ageMonths, { count: Math.max(0, months) });
+  return interpolate(vi.child.ageYears, { count: Math.floor(months / 12) });
+}
+
+function monthsBetweenISO(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  if (
+    fy === undefined ||
+    fm === undefined ||
+    fd === undefined ||
+    ty === undefined ||
+    tm === undefined ||
+    td === undefined
+  ) {
+    return 0;
+  }
+  // Chưa qua ngày trong tháng thì chưa tròn tháng: sinh 20/3 thì đến 19/4 vẫn
+  // là "0 tháng". Bố mẹ đếm tuổi con theo đúng cách đó.
+  return (ty - fy) * 12 + (tm - fm) - (td < fd ? 1 : 0);
 }

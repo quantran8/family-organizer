@@ -4,7 +4,7 @@ import { computeFinanceStatus, explainFinanceStatus } from '../src/finance/statu
 import { inferLiquidity } from '../src/finance/liquidity.js';
 import { debtPaidAmount, progressPct } from '../src/finance/progress.js';
 import { ASSET_KINDS, type Liquidity } from '../src/types/base.js';
-import type { FinanceMetrics } from '../src/types/views.js';
+import type { FinanceMetrics, UpcomingNeed } from '../src/types/views.js';
 
 const TODAY = '2026-07-30';
 
@@ -18,33 +18,51 @@ function metrics(over: Partial<FinanceMetrics> = {}): FinanceMetrics {
     dueNext7dCount: 0,
     overdueCount: 0,
     attentionCount: 0,
+    lastUsableUpdatedOn: null,
     lastUpdatedOn: null,
-    lastSnapshotOn: null,
-    snapshotIntervalDays: 7,
     currency: 'VND',
+    recordThresholdAmount: null,
     ...over,
   };
 }
 
-describe('computeFinanceStatus — cả 4 nhánh (03 §9)', () => {
+/** Một khoản cần chuẩn bị. `onDate` mặc định trong cửa sổ 30 ngày. */
+function need(over: Partial<UpcomingNeed> = {}): UpcomingNeed {
+  return {
+    source: 'upcoming_payment',
+    id: 'need-1',
+    title: 'Học phí',
+    amount: 0,
+    onDate: '2026-08-10',
+    ...over,
+  };
+}
+
+describe('computeFinanceStatus — cả 4 nhánh (03 §13)', () => {
   it('bậc 1: chưa có gì → no_data', () => {
-    expect(computeFinanceStatus(metrics(), TODAY)).toBe('no_data');
+    expect(computeFinanceStatus(metrics(), [], TODAY)).toBe('no_data');
   });
 
   it('bậc 1: chỉ cần một khoản nợ cũng đủ để thoát no_data', () => {
-    expect(computeFinanceStatus(metrics({ totalDebt: 1 }), TODAY)).not.toBe('no_data');
+    expect(computeFinanceStatus(metrics({ totalDebt: 1 }), [], TODAY)).not.toBe('no_data');
+  });
+
+  it('bậc 1: chỉ cần một need cũng đủ để thoát no_data', () => {
+    const needs = [need({ amount: 1 })];
+    expect(computeFinanceStatus(metrics(), needs, TODAY)).not.toBe('no_data');
   });
 
   it('bậc 2: có khoản quá hạn → tight', () => {
     const m = metrics({ totalUsable: 100_000_000, overdueCount: 1 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('tight');
-    expect(explainFinanceStatus(m, TODAY).reason).toEqual({ kind: 'overdue', count: 1 });
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('tight');
+    expect(explainFinanceStatus(m, [], TODAY).reason).toEqual({ kind: 'overdue', count: 1 });
   });
 
-  it('bậc 2: tiền dùng ngay ít hơn khoản sắp trả 30 ngày → tight', () => {
-    const m = metrics({ totalUsable: 10_000_000, dueNext30d: 25_000_000 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('tight');
-    expect(explainFinanceStatus(m, TODAY).reason).toEqual({
+  it('bậc 2: tiền dùng ngay ít hơn tổng needs 30 ngày → tight', () => {
+    const m = metrics({ totalUsable: 10_000_000 });
+    const needs = [need({ amount: 25_000_000 })];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('tight');
+    expect(explainFinanceStatus(m, needs, TODAY).reason).toEqual({
       kind: 'not_enough',
       dueNext30d: 25_000_000,
       totalUsable: 10_000_000,
@@ -53,76 +71,92 @@ describe('computeFinanceStatus — cả 4 nhánh (03 §9)', () => {
 
   it('bậc 3: có cờ cần trao đổi → watch', () => {
     const m = metrics({ totalUsable: 50_000_000, attentionCount: 1 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('watch');
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('watch');
   });
 
   it('bậc 3: có khoản đến hạn trong 7 ngày → watch', () => {
     const m = metrics({ totalUsable: 50_000_000, dueNext7dCount: 2 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('watch');
-    expect(explainFinanceStatus(m, TODAY).reason).toEqual({ kind: 'due_soon', count: 2 });
-  });
-
-  it('bậc 3: số liệu cũ hơn snapshotIntervalDays × 3 → watch', () => {
-    // interval 7 ngày → ngưỡng 21 ngày. 24 ngày trước là quá cũ.
-    const m = metrics({
-      totalUsable: 50_000_000,
-      lastUpdatedOn: '2026-07-06',
-      snapshotIntervalDays: 7,
-    });
-    expect(computeFinanceStatus(m, TODAY)).toBe('watch');
-    expect(explainFinanceStatus(m, TODAY).reason).toEqual({ kind: 'stale', daysAgo: 24 });
-  });
-
-  it('bậc 3: đúng ngưỡng cũ (21 ngày) thì CHƯA phải watch — điều kiện là ">"', () => {
-    const m = metrics({
-      totalUsable: 50_000_000,
-      lastUpdatedOn: '2026-07-09', // đúng 21 ngày trước
-      snapshotIntervalDays: 7,
-    });
-    expect(computeFinanceStatus(m, TODAY)).toBe('ok');
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('watch');
+    expect(explainFinanceStatus(m, [], TODAY).reason).toEqual({ kind: 'due_soon', count: 2 });
   });
 
   it('bậc 4: còn lại → ok', () => {
-    const m = metrics({
-      totalUsable: 50_000_000,
-      dueNext30d: 20_000_000,
-      lastUpdatedOn: TODAY,
-    });
-    expect(computeFinanceStatus(m, TODAY)).toBe('ok');
-    expect(explainFinanceStatus(m, TODAY).reason).toEqual({ kind: 'ok' });
+    const m = metrics({ totalUsable: 50_000_000, lastUpdatedOn: TODAY });
+    const needs = [need({ amount: 20_000_000 })];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('ok');
+    expect(explainFinanceStatus(m, needs, TODAY).reason).toEqual({ kind: 'ok' });
   });
 });
 
-describe('computeFinanceStatus — ranh giới totalUsable === dueNext30d (03 §9)', () => {
-  it('vừa đủ tiền KHÔNG phải tight — điều kiện là "<" chứ không phải "<="', () => {
+describe('computeFinanceStatus — số liệu cũ KHÔNG còn đổi trạng thái (03 §1)', () => {
+  // Bản trước đẩy sang `watch` khi lastUpdatedOn cũ hơn interval × 3. Bỏ ở v2:
+  // một chấm vàng vì "bạn chưa cập nhật" là một LỜI THÚC, và KHÔNG BIẾT TÌNH
+  // HÌNH khác với TÌNH HÌNH KHÔNG ỔN. Độ mới giờ là computeFreshness(), chỉ
+  // đổi văn bản nhãn.
+  it('số liệu cũ một năm vẫn là ok nếu không có gì gấp', () => {
     const m = metrics({
-      totalUsable: 25_000_000,
-      dueNext30d: 25_000_000,
-      lastUpdatedOn: TODAY,
+      totalUsable: 50_000_000,
+      lastUpdatedOn: '2025-07-30',
+      lastUsableUpdatedOn: '2025-07-30',
     });
-    expect(computeFinanceStatus(m, TODAY)).toBe('ok');
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('ok');
+    expect(explainFinanceStatus(m, [], TODAY).reason).toEqual({ kind: 'ok' });
+  });
+});
+
+describe('computeFinanceStatus — chi phí sự kiện phải được tính (06 §0.2)', () => {
+  // CA NÀY TRƯỚC ĐÂY SAI. finance_metrics.due_next_30d chỉ cộng
+  // upcoming_payments, nên một nhà có giỗ 3tr và cưới 2tr sắp tới mà không có
+  // khoản sắp trả nào sẽ hiện `ok` trong khi tiền không đủ.
+  it('có chi phí sự kiện nhưng KHÔNG có upcoming_payment → vẫn tight', () => {
+    const m = metrics({ totalUsable: 4_000_000, dueNext30d: 0 });
+    const needs = [
+      need({ source: 'event', id: 'e1', title: 'Giỗ ông ngoại', amount: 3_000_000 }),
+      need({ source: 'event', id: 'e2', title: 'Cưới em Hằng', amount: 2_000_000 }),
+    ];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('tight');
+  });
+
+  it('phí gia hạn giấy tờ cũng được tính', () => {
+    const m = metrics({ totalUsable: 5_000_000, dueNext30d: 0 });
+    const needs = [
+      need({ source: 'document', id: 'd1', title: 'Bảo hiểm xe', amount: 12_000_000 }),
+    ];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('tight');
+  });
+
+  it('needs ngoài cửa sổ 30 ngày KHÔNG kéo trạng thái xuống tight', () => {
+    const m = metrics({ totalUsable: 1_000_000, lastUpdatedOn: TODAY });
+    // 60 ngày nữa — nằm trong cửa sổ 90 ngày của projectRunway nhưng ngoài 30.
+    const needs = [need({ amount: 25_000_000, onDate: '2026-09-28' })];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('ok');
+  });
+});
+
+describe('computeFinanceStatus — ranh giới totalUsable === tổng needs (03 §13)', () => {
+  it('vừa đủ tiền KHÔNG phải tight — điều kiện là "<" chứ không phải "<="', () => {
+    const m = metrics({ totalUsable: 25_000_000, lastUpdatedOn: TODAY });
+    const needs = [need({ amount: 25_000_000 })];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('ok');
   });
 
   it('thiếu đúng 1 đồng thì thành tight', () => {
-    const m = metrics({
-      totalUsable: 24_999_999,
-      dueNext30d: 25_000_000,
-      lastUpdatedOn: TODAY,
-    });
-    expect(computeFinanceStatus(m, TODAY)).toBe('tight');
+    const m = metrics({ totalUsable: 24_999_999, lastUpdatedOn: TODAY });
+    const needs = [need({ amount: 25_000_000 })];
+    expect(computeFinanceStatus(m, needs, TODAY)).toBe('tight');
   });
 });
 
 describe('computeFinanceStatus — thứ tự bậc, dừng ở điều kiện khớp đầu tiên', () => {
   it('quá hạn thắng cờ cần trao đổi: tight chứ không phải watch', () => {
     const m = metrics({ totalUsable: 99_000_000, overdueCount: 1, attentionCount: 5 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('tight');
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('tight');
   });
 
   it('no_data thắng tất cả: không có dữ liệu thì không phán xét gì', () => {
     // attentionCount không nằm trong danh sách "có gì đó" — cờ không phải tiền.
     const m = metrics({ attentionCount: 3 });
-    expect(computeFinanceStatus(m, TODAY)).toBe('no_data');
+    expect(computeFinanceStatus(m, [], TODAY)).toBe('no_data');
   });
 });
 

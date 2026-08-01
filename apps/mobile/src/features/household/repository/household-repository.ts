@@ -6,14 +6,20 @@
  * query vẫn đúng nếu sau này chạy qua API server tự viết.
  */
 
-import type { HomeFeedItem } from '@family-organizer/domain';
+import { addDays, type HomeFeedItem } from '@family-organizer/domain';
 
 import { unwrap, unwrapMaybe } from '@/data/shared/errors';
-import { toFinanceMetrics, toHomeFeedItem, toHousehold } from '@/data/shared/mappers';
+import {
+  toFinanceMetrics,
+  toHomeFeedItem,
+  toHousehold,
+  toUpcomingNeed,
+} from '@/data/shared/mappers';
 import type {
   FinanceMetricsRow,
   HomeFeedRow,
   HouseholdRow,
+  UpcomingNeedRow,
 } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import type { HouseholdRepository } from './household-repository.interface';
@@ -32,8 +38,11 @@ export const householdRepository: HouseholdRepository = {
         .from('households')
         .update({
           ...(patch.name !== undefined ? { name: patch.name } : {}),
-          ...(patch.snapshotIntervalDays !== undefined
-            ? { snapshot_interval_days: patch.snapshotIntervalDays }
+          // `null` là một giá trị HỢP LỆ ở đây ("tự quyết"), nên phải kiểm
+          // `!== undefined` chứ không phải truthy — dùng truthy thì người dùng
+          // không bao giờ quay lại được lựa chọn "tự quyết" sau khi đã chốt.
+          ...(patch.recordThresholdAmount !== undefined
+            ? { record_threshold_amount: patch.recordThresholdAmount }
             : {}),
         })
         .eq('id', hh)
@@ -61,5 +70,25 @@ export const householdRepository: HouseholdRepository = {
       supabase.from('finance_metrics').select('*').eq('household_id', hh).single(),
     );
     return row ? toFinanceMetrics(row) : null;
+  },
+
+  async upcomingNeeds(hh, today, horizonDays) {
+    // Cận trên tính từ `today` do CHỖ GỌI truyền vào, không từ đồng hồ ở đây.
+    // `lib/today.ts` là chỗ duy nhất đọc đồng hồ trong app (bài học G4): dùng
+    // `Date.now()` ở đây thì màn này lệch một ngày với màn kia trong khoảng
+    // 00:00–07:00 giờ Việt Nam, và không có gì báo lỗi.
+    //
+    // Khoản QUÁ HẠN vẫn lấy: nó vẫn là tiền nhà mình còn phải chuẩn bị. Không
+    // đặt cận dưới, `projectRunway` tự quyết cách trình bày.
+    const to = addDays(today, horizonDays);
+    const rows = await unwrap<UpcomingNeedRow[]>(
+      supabase
+        .from('upcoming_needs')
+        .select('*')
+        .eq('household_id', hh)
+        .lte('on_date', to)
+        .order('on_date', { ascending: true }),
+    );
+    return rows.map(toUpcomingNeed);
   },
 };

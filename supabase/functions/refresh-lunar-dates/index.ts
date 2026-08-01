@@ -23,20 +23,38 @@
  * Sự kiện DƯƠNG lịch cũng được xử lý: `next_occurrence_date = solar_date`. Giữ
  * một cột duy nhất để sắp xếp là lý do view `home_feed` và tab Sự kiện không
  * phải biết sự kiện thuộc loại lịch nào.
+ *
+ * ## Ghi `event_occurrences` — 03 §3, G14
+ *
+ * Cùng cron này, KHI `next_occurrence_date` trôi qua: ghi một dòng
+ * `event_occurrences` **rồi mới** tính mốc kế tiếp. Đây là nguồn DUY NHẤT của
+ * trí nhớ năm ngoái (03 §10) — không có UI nào tạo dòng này.
+ *
+ * Thứ tự đó là bắt buộc và là chỗ dễ sai nhất trong cả function: một khi
+ * `next_occurrence_date` đã bị đẩy sang năm sau thì ngày vừa trôi qua **không
+ * còn ở đâu trong DB nữa**. Ghi sau khi cập nhật nghĩa là mất luôn — và mất
+ * một cách im lặng, chỉ lộ ra sau 12 tháng khi khối NĂM NGOÁI trống trơn ở
+ * đúng tính năng giữ người trả tiếp.
+ *
+ * Chỉ ghi ở CHẾ ĐỘ CRON, không ghi khi client gọi kèm `{ eventId }`: lúc đó
+ * người dùng vừa sửa một sự kiện, và ngày cũ trong cột là ngày họ vừa bỏ đi,
+ * không phải một dịp đã diễn ra.
  */
 
-import { nextLunarOccurrence, type ISODate } from '@family-organizer/domain';
+import { compareISODate, nextLunarOccurrence, type ISODate } from '@family-organizer/domain';
 
 import { jsonResponse, serviceClient, todayInVN } from '../_shared/client.ts';
 
 interface EventRow {
   id: string;
+  household_id: string;
   calendar: 'solar' | 'lunar';
   solar_date: ISODate | null;
   lunar_day: number | null;
   lunar_month: number | null;
   lunar_leap_month: boolean;
   next_occurrence_date: ISODate | null;
+  estimated_cost: number | null;
 }
 
 /**
@@ -64,6 +82,52 @@ function computeNextOccurrence(row: EventRow, today: ISODate): ISODate | null {
   }
 }
 
+/**
+ * Ghi một dòng `event_occurrences` nếu mốc đã cache trôi qua. Trả `true` khi có ghi.
+ *
+ * `cost_asked` được đặt sẵn = `true` cho sự kiện KHÔNG có `estimatedCost`:
+ * `05 §5.7` chỉ hỏi chi phí thực tế sau khi một sự kiện **có dự kiến** trôi
+ * qua. Hỏi "hết bao nhiêu?" về một dịp mà hai vợ chồng chưa từng nói là có
+ * tốn tiền là app tự nghĩ ra một câu chuyện — và câu hỏi đó xuất hiện với MỌI
+ * sinh nhật, mọi ngày kỷ niệm, mỗi năm.
+ *
+ * Lỗi ở đây KHÔNG dừng cron và KHÔNG chặn việc cập nhật mốc kế tiếp: mất một
+ * dòng lịch sử là tiếc, còn một sự kiện đứng mãi ở ngày cũ thì thôi không nhắc
+ * nữa — thiệt hại lớn hơn nhiều.
+ *
+ * Ràng buộc `unique (event_id, occurred_on)` là thứ giữ hàm này đúng, không
+ * phải một lưới an toàn phụ. Sự kiện dương lịch MỘT LẦN đã qua giữ nguyên
+ * `solar_date` mãi mãi (xem `computeNextOccurrence`), nên đêm nào nó cũng rơi
+ * vào nhánh này và thử ghi lại đúng dòng cũ. Lần đầu ghi được, mọi lần sau
+ * đụng unique và trả về `false` — đúng thứ ta muốn, và là lý do KHÔNG được
+ * đổi `insert` thành `upsert`: upsert sẽ ghi đè `actual_cost` người dùng vừa
+ * nhập bằng `null`, mỗi đêm, cho tới khi họ nhận ra con số biến mất.
+ */
+async function recordPassedOccurrence(
+  supabase: ReturnType<typeof serviceClient>,
+  row: EventRow,
+  today: ISODate,
+): Promise<boolean> {
+  const cached = row.next_occurrence_date;
+  if (cached === null) return false;
+
+  // Nghiêm ngặt TRƯỚC hôm nay: một dịp diễn ra ĐÚNG hôm nay chưa qua. Ghi nó
+  // sáng nay nghĩa là hỏi "hết bao nhiêu?" khi người ta còn đang ở đám giỗ.
+  if (compareISODate(cached, today) >= 0) return false;
+
+  const { error } = await supabase.from('event_occurrences').insert({
+    event_id: row.id,
+    household_id: row.household_id,
+    occurred_on: cached,
+    cost_asked: row.estimated_cost === null,
+  });
+
+  // 23505 = trùng khoá: đã ghi ở lần chạy trước. Không phải lỗi, và cũng không
+  // phải một lần ghi mới.
+  if (error) return false;
+  return true;
+}
+
 Deno.serve(async (req) => {
   const supabase = serviceClient();
   const today = todayInVN();
@@ -80,7 +144,10 @@ Deno.serve(async (req) => {
 
   let query = supabase
     .from('events')
-    .select('id, calendar, solar_date, lunar_day, lunar_month, lunar_leap_month, next_occurrence_date')
+    .select(
+      'id, household_id, calendar, solar_date, lunar_day, lunar_month, ' +
+        'lunar_leap_month, next_occurrence_date, estimated_cost',
+    )
     .is('deleted_at', null);
 
   if (eventId !== null) {
@@ -94,8 +161,14 @@ Deno.serve(async (req) => {
   let updated = 0;
   let unchanged = 0;
   let failed = 0;
+  let recorded = 0;
 
   for (const row of rows) {
+    // Ghi lần diễn ra TRƯỚC khi tính mốc mới — xem ghi chú đầu file.
+    if (eventId === null && (await recordPassedOccurrence(supabase, row, today))) {
+      recorded += 1;
+    }
+
     const next = computeNextOccurrence(row, today);
     if (next === null) {
       failed += 1;
@@ -121,5 +194,5 @@ Deno.serve(async (req) => {
     updated += 1;
   }
 
-  return jsonResponse({ scanned: rows.length, updated, unchanged, failed, today });
+  return jsonResponse({ scanned: rows.length, updated, unchanged, failed, recorded, today });
 });

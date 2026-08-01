@@ -30,12 +30,14 @@ import {
   Sheet,
 } from '@/design/components';
 import { useAsset, useUpdateAssetValue } from '@/features/asset/queries/use-assets';
+import { useRecordThresholdHint } from '@/features/household/queries/use-record-threshold';
 import { useT } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 import { showToast } from '@/stores/toast';
 
 export function UpdateAssetValueScreen() {
   const { t } = useT();
+  const thresholdHint = useRecordThresholdHint();
   const router = useRouter();
   const today = useToday();
 
@@ -106,7 +108,7 @@ export function UpdateAssetValueScreen() {
         </View>
       ) : null}
 
-      <Field label={t.asset.fieldValue}>
+      <Field label={t.asset.fieldValue} hint={thresholdHint ?? undefined}>
         <AmountInput
           value={value}
           onChangeValue={setValue}

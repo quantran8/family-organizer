@@ -21,7 +21,7 @@ function event(over: Partial<FamilyEvent> = {}): FamilyEvent {
     id: 'e1',
     title: 'Giỗ ông ngoại',
     kind: 'death_anniversary',
-    side: 'maternal',
+    side: 'wife_family',
     location: null,
     notes: null,
     calendar: 'lunar',
@@ -257,20 +257,135 @@ describe('capPerDay — trần 2 thông báo/ngày (03 §5)', () => {
 
   it('cắt phần vượt trần khi người gọi tự thêm draft', () => {
     const extra = [
-      { fireOn: '2026-08-07', fireHour: 8, items: [] },
-      { fireOn: '2026-08-07', fireHour: 9, items: [] },
-      { fireOn: '2026-08-07', fireHour: 10, items: [] },
+      { fireOn: '2026-08-07', fireHour: 8, targetMemberId: null, items: [] },
+      { fireOn: '2026-08-07', fireHour: 9, targetMemberId: null, items: [] },
+      { fireOn: '2026-08-07', fireHour: 10, targetMemberId: null, items: [] },
     ];
     expect(capPerDay(extra)).toHaveLength(2);
   });
 
   it('trần tính riêng theo từng ngày', () => {
     const extra = [
-      { fireOn: '2026-08-07', fireHour: 8, items: [] },
-      { fireOn: '2026-08-07', fireHour: 9, items: [] },
-      { fireOn: '2026-08-07', fireHour: 10, items: [] },
-      { fireOn: '2026-08-08', fireHour: 8, items: [] },
+      { fireOn: '2026-08-07', fireHour: 8, targetMemberId: null, items: [] },
+      { fireOn: '2026-08-07', fireHour: 9, targetMemberId: null, items: [] },
+      { fireOn: '2026-08-07', fireHour: 10, targetMemberId: null, items: [] },
+      { fireOn: '2026-08-08', fireHour: 8, targetMemberId: null, items: [] },
     ];
     expect(capPerDay(extra)).toHaveLength(3);
+  });
+
+  it('trần tính riêng theo TỪNG NGƯỜI, không chỉ theo ngày (03 §5)', () => {
+    // Thiếu vế "mỗi người" thì thông báo của một người ăn mất suất của người
+    // kia: vợ có 2 việc riêng là chồng không còn nhận được nhắc hạn nào của cả
+    // nhà hôm đó.
+    const extra = [
+      { fireOn: '2026-08-07', fireHour: 8, targetMemberId: 'm1', items: [] },
+      { fireOn: '2026-08-07', fireHour: 9, targetMemberId: 'm1', items: [] },
+      { fireOn: '2026-08-07', fireHour: 10, targetMemberId: 'm1', items: [] },
+      { fireOn: '2026-08-07', fireHour: 8, targetMemberId: 'm2', items: [] },
+      { fireOn: '2026-08-07', fireHour: 8, targetMemberId: null, items: [] },
+    ];
+    // m1 giữ 2 (cắt 1), m2 giữ 1, cả nhà giữ 1 → 4.
+    expect(capPerDay(extra)).toHaveLength(4);
+  });
+});
+
+describe('quy tắc người nhận — BẤT BIẾN (03 §5, 06 §7)', () => {
+  it('việc CÓ assignee sinh ĐÚNG MỘT draft, ĐÚNG người đó', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        tasks: [taskInstance()],
+        taskTitles: { t1: 'Đổ rác' },
+        taskAssignees: { t1: 'm1' },
+      }),
+      TODAY,
+      90,
+    );
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.targetMemberId).toBe('m1');
+  });
+
+  it('việc KHÔNG gán ai → targetMemberId null = gửi cả nhà', () => {
+    const drafts = buildReminders(
+      emptyInput({ tasks: [taskInstance()], taskTitles: { t1: 'Đổ rác' } }),
+      TODAY,
+      90,
+    );
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.targetMemberId).toBeNull();
+  });
+
+  it('việc riêng của một người KHÔNG gộp chung với nhắc của cả nhà', () => {
+    // Đây là chỗ quy tắc dễ hỏng nhất. Nếu gộp theo ngày thôi, việc gán riêng
+    // cho vợ nằm chung thông báo với nhắc hạn của cả nhà — và thông báo đó gửi
+    // cho cả hai. Chồng khi đó nhận một dòng nói vợ có việc chưa làm, tức là
+    // app vừa THAY LỜI TỐ.
+    const drafts = buildReminders(
+      emptyInput({
+        // Sự kiện lead 3 ngày, hạn 10/8 → bắn 7/8. Cùng ngày với việc.
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3 })],
+        tasks: [taskInstance({ dueDate: '2026-08-07' })],
+        taskTitles: { t1: 'Đổ rác' },
+        taskAssignees: { t1: 'm1' },
+      }),
+      TODAY,
+      90,
+    );
+    expect(drafts).toHaveLength(2);
+    const targets = drafts.map((d) => d.targetMemberId);
+    expect(targets).toContain(null);
+    expect(targets).toContain('m1');
+    // Draft của cả nhà KHÔNG được chứa việc của m1.
+    const household = drafts.find((d) => d.targetMemberId === null);
+    expect(household?.items.every((i) => i.entityType !== 'task')).toBe(true);
+  });
+
+  it('hai việc của CÙNG một người, cùng ngày → gộp thành một thông báo', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        tasks: [
+          taskInstance({ id: 'ti1', taskId: 't1' }),
+          taskInstance({ id: 'ti2', taskId: 't2' }),
+        ],
+        taskTitles: { t1: 'Đổ rác', t2: 'Tưới cây' },
+        taskAssignees: { t1: 'm1', t2: 'm1' },
+      }),
+      TODAY,
+      90,
+    );
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.items).toHaveLength(2);
+  });
+
+  it('hai việc của HAI người khác nhau, cùng ngày → hai thông báo riêng', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        tasks: [
+          taskInstance({ id: 'ti1', taskId: 't1' }),
+          taskInstance({ id: 'ti2', taskId: 't2' }),
+        ],
+        taskTitles: { t1: 'Đổ rác', t2: 'Tưới cây' },
+        taskAssignees: { t1: 'm1', t2: 'm2' },
+      }),
+      TODAY,
+      90,
+    );
+    expect(drafts).toHaveLength(2);
+    expect(drafts.map((d) => d.targetMemberId).sort()).toEqual(['m1', 'm2']);
+    // Không draft nào chứa việc của người kia.
+    expect(drafts.every((d) => d.items.length === 1)).toBe(true);
+  });
+
+  it('sự kiện, giấy tờ, khoản tiền LUÔN gửi cả nhà — đó là việc của nhà', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3 })],
+        documents: [doc()],
+        payments: [payment()],
+      }),
+      TODAY,
+      90,
+    );
+    expect(drafts.every((d) => d.targetMemberId === null)).toBe(true);
   });
 });

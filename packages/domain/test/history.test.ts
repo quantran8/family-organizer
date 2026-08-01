@@ -5,6 +5,7 @@ import {
   diffSnapshots,
   filterByEntityType,
   groupEventsByDay,
+  groupHistoryByMonth,
   withDiffs,
 } from '../src/history/snapshots.js';
 import type { MoneyEvent, MoneySnapshot } from '../src/types/entities.js';
@@ -20,7 +21,6 @@ function snapshot(over: Partial<MoneySnapshot> = {}): MoneySnapshot {
     totalLongTerm: 800_000_000,
     totalDebt: 180_000_000,
     status: 'ok',
-    isManual: true,
     note: null,
     createdBy: null,
     createdAt: '2026-07-30T09:00:00Z',
@@ -203,5 +203,75 @@ describe('filterByEntityType — bộ lọc ở money/changes.tsx', () => {
   it('lọc theo loại khoản', () => {
     expect(filterByEntityType(events, 'asset').map((e) => e.id)).toEqual([1]);
     expect(filterByEntityType(events, 'debt').map((e) => e.id)).toEqual([2]);
+  });
+});
+
+describe('groupHistoryByMonth — count là BẮT BUỘC (03 §13)', () => {
+  it('luôn trả count cùng total', () => {
+    // UI không được hiển thị total mà thiếu count và thiếu chữ "đã ghi":
+    // "Tháng 9 · 5 khoản nhà mình đã ghi · −12.000.000 ₫" đúng theo nghĩa đen;
+    // "Tháng 9 chi 12 triệu" thì không.
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-09-15', delta: -30_000_000 }),
+      moneyEvent({ id: 2, occurredOn: '2026-09-12', delta: -4_000_000 }),
+      moneyEvent({ id: 3, occurredOn: '2026-09-03', delta: 22_000_000 }),
+    ]);
+    expect(r).toHaveLength(1);
+    expect(r[0]?.count).toBe(3);
+    expect(r[0]?.total).toBe(-12_000_000);
+    expect(r[0]?.month).toBe('2026-09-01');
+  });
+
+  it('tháng KHÔNG có bản ghi thì KHÔNG xuất hiện — không trả nhóm total 0', () => {
+    // Một tháng trống trong danh sách nói "nhà mình không ghi gì tháng đó";
+    // một dòng "0 ₫" nói "nhà mình không tiêu gì tháng đó" — rất khác nhau, và
+    // điều thứ hai gần như luôn sai.
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-09-15' }),
+      moneyEvent({ id: 2, occurredOn: '2026-07-15' }),
+    ]);
+    expect(r.map((g) => g.month)).toEqual(['2026-09-01', '2026-07-01']);
+  });
+
+  it('rỗng → mảng rỗng', () => {
+    expect(groupHistoryByMonth([])).toEqual([]);
+  });
+
+  it('cùng số tháng khác NĂM phải là HAI nhóm', () => {
+    // Gom theo 'YYYY-MM', không theo số tháng. Cùng ca biên đã bắt được ở
+    // groupEventsByMonth (G6).
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-09-15' }),
+      moneyEvent({ id: 2, occurredOn: '2025-09-15' }),
+    ]);
+    expect(r).toHaveLength(2);
+    expect(r.map((g) => g.month)).toEqual(['2026-09-01', '2025-09-01']);
+  });
+
+  it('mới nhất trước', () => {
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-05-01' }),
+      moneyEvent({ id: 2, occurredOn: '2026-09-01' }),
+      moneyEvent({ id: 3, occurredOn: '2026-07-01' }),
+    ]);
+    expect(r.map((g) => g.month)).toEqual(['2026-09-01', '2026-07-01', '2026-05-01']);
+  });
+
+  it('delta null KHÔNG cộng vào tổng — nó là thay đổi chưa đo được, không phải 0', () => {
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-09-15', delta: -5_000_000 }),
+      moneyEvent({ id: 2, occurredOn: '2026-09-10', eventType: 'created', delta: null }),
+    ]);
+    expect(r[0]?.total).toBe(-5_000_000);
+    // Nhưng nó VẪN được đếm: nó là một bản ghi nhà mình đã ghi.
+    expect(r[0]?.count).toBe(2);
+  });
+
+  it('giữ nguyên các bản ghi trong items để UI liệt kê', () => {
+    const r = groupHistoryByMonth([
+      moneyEvent({ id: 1, occurredOn: '2026-09-15' }),
+      moneyEvent({ id: 2, occurredOn: '2026-09-12' }),
+    ]);
+    expect(r[0]?.items.map((e) => e.id)).toEqual([1, 2]);
   });
 });

@@ -1,0 +1,34 @@
+-- =============================================================================
+-- SEED: vaccine_schedule_items
+-- =============================================================================
+-- FILE NÀY CỐ Ý ĐỂ TRỐNG. Đọc `supabase/seed/README.md` trước khi điền.
+--
+-- CỔNG CHẶN PHÁT HÀNH (07 §4.2): một người có chuyên môn y tế phải đọc và xác
+-- nhận nội dung file này trước khi ship. Không phải việc nên làm — là điều
+-- kiện chặn.
+--
+-- Không seed từ trí nhớ, không seed từ output của mô hình ngôn ngữ, không seed
+-- từ blog. Nguồn phải là văn bản chính thức (Chương trình Tiêm chủng mở rộng,
+-- Bộ Y tế), và ba cột source_name / source_date / schedule_version phải điền
+-- thật.
+--
+-- Bảng rỗng làm màn hình hiện trạng thái rỗng THÀNH THẬT. Một seed đoán mò làm
+-- nó hiện dữ liệu y tế sai mà TRÔNG NHƯ ĐÚNG — và người dùng không có cách nào
+-- phân biệt.
+--
+-- Chạy bằng service role. Không phải sửa dòng code nào sau khi điền:
+-- buildVaccineSchedule() là hàm thuần của `items`.
+-- =============================================================================
+
+-- Khuôn của một dòng, để lúc điền không phải tra lại thứ tự cột:
+--
+-- insert into vaccine_schedule_items
+--   (code, display_name, dose_label, due_age_months, sort_order,
+--    source_name, source_date, schedule_version)
+-- values
+--   ('<mã>', '<tên vaccine>', '<mũi mấy>', <mốc tuổi tháng>, <thứ tự>,
+--    '<tên văn bản chính thức>', '<ngày ban hành>', '<phiên bản file>');
+--
+-- on conflict (code) do update set ... — để chạy lại được khi lịch cập nhật.
+
+-- (chưa có dòng nào — chờ xác nhận chuyên môn)

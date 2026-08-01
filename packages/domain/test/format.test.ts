@@ -97,7 +97,7 @@ describe('formatLunarLabel (03 §8)', () => {
       id: 'e1',
       title: 'Giỗ ông ngoại',
       kind: 'death_anniversary',
-      side: 'maternal',
+      side: 'wife_family',
       location: null,
       notes: null,
       calendar: 'lunar',

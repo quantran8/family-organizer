@@ -27,6 +27,7 @@ import {
   SectionHeader,
 } from '@/design/components';
 import { useHousehold, useUpdateHousehold } from '@/features/household/queries/use-household';
+import { THRESHOLD_OPTIONS } from '@/features/household/screens/threshold-screen';
 import { useCreateMember, useMembers } from '@/features/member/queries/use-members';
 import { useT } from '@/i18n';
 
@@ -92,6 +93,21 @@ export function HouseholdSettingsScreen() {
           className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
         />
       </Field>
+
+      {/* Ngưỡng ghi — quy ước hai người tự chốt lúc onboarding (06 §2).
+          Sửa được bất cứ lúc nào, và đổi nó KHÔNG làm gì với dữ liệu đã ghi:
+          nó chưa bao giờ là ràng buộc, chỉ là một dòng nhắc dưới ô nhập tiền. */}
+      <SectionHeader title={t.threshold.settingsLabel} />
+      <View className="mb-4">
+        <ChipSelect
+          value={household?.recordThresholdAmount ?? null}
+          onChange={(value) => updateHousehold.mutate({ recordThresholdAmount: value })}
+          options={THRESHOLD_OPTIONS.map((o) => ({
+            value: o.value,
+            label: t.threshold[o.labelKey],
+          }))}
+        />
+      </View>
 
       <SectionHeader title={t.settings.members} />
       {isPending ? (

@@ -138,6 +138,84 @@ export const vi = {
     joining: 'Đang tham gia…',
   },
 
+  /**
+   * Ngưỡng ghi — 05 §3.3.
+   *
+   * Câu hỏi phải nghe như hai vợ chồng hỏi nhau, không như app hỏi người dùng.
+   * "Nhà mình" chứ không "bạn"; "ghi lại" chứ không "nhập liệu" hay "theo dõi".
+   */
+  threshold: {
+    question: 'Khoản từ bao nhiêu trở lên thì nhà mình ghi lại?',
+    body: 'Hai người tự chốt với nhau. App chỉ nhớ hộ, không chặn gì cả.',
+    k500: '500 nghìn',
+    m1: '1 triệu',
+    m2: '2 triệu',
+    own: 'Tự quyết',
+    changeable: 'Đổi lúc nào cũng được.',
+    skip: 'Để sau',
+    /** Nhãn ở Cài đặt → Nhà mình. */
+    settingsLabel: 'Ngưỡng ghi',
+    settingsNone: 'Tự quyết',
+    /** Dòng gợi ý dưới ô nhập tiền. KHÔNG phải cảnh báo — không bao giờ chặn. */
+    hint: 'Nhà mình ghi từ {amount} trở lên',
+  },
+
+  /**
+   * Gói khởi tạo — 05 §3.4.
+   *
+   * Câu mở đầu nói "nhà mình THƯỜNG có", không phải "nhà mình CẦN có": đây là
+   * một quan sát về các gia đình Việt để người dùng đối chiếu, không phải một
+   * danh sách phải hoàn thành.
+   */
+  seed: {
+    title: 'Nhà mình thường có những việc này.',
+    body: 'Chọn cái nào đúng — bỏ qua cũng được, thêm sau lúc nào cũng xong.',
+    tet: 'Tết Nguyên đán',
+    death_anniversary: 'Giỗ',
+    parents_birthday: 'Sinh nhật bố mẹ hai bên',
+    vehicle_inspection: 'Đăng kiểm xe',
+    vehicle_insurance: 'Bảo hiểm xe',
+    tuition: 'Học phí',
+    /** Mục cần ngày: nói luôn là chọn ngày sau, để việc tick không thành một câu hỏi. */
+    needsDateHint: 'chọn ngày sau',
+    submit: 'Thêm vào',
+    skip: 'Để sau',
+    /** Sau khi thêm: nói rõ mục chưa có ngày nằm ở đâu, không để chúng biến mất. */
+    addedNeedsDate: 'Đã thêm. Mục chưa có ngày nằm ở CẦN CHÚ Ý.',
+  },
+
+  /**
+   * Nhập nhanh bằng AI — 06 §6, F4.
+   *
+   * Chữ ở đây tránh mọi từ khiến kết quả đọc như sự thật: "app đọc được" chứ
+   * không phải "app đã ghi", và luôn có một câu nói rõ người dùng phải xem lại.
+   */
+  capture: {
+    title: 'Kiểm lại giúp mình',
+    /** Câu quan trọng nhất màn này: AI đoán, người quyết. */
+    body: 'App đọc được thế này. Sửa lại nếu chưa đúng rồi lưu.',
+    pickImage: 'Chọn ảnh',
+    fromText: 'Dán nội dung',
+    textPlaceholder: 'Dán tin nhắn hoặc gõ nội dung',
+    reading: 'Đang đọc…',
+    /** Không nói "AI không hiểu" — nói việc cần làm tiếp. */
+    nothingFound: 'Chưa đọc được gì từ ảnh này. Nhập tay giúp mình nhé.',
+    manualEntry: 'Nhập tay',
+    save: 'Lưu',
+    discard: 'Bỏ',
+    /** Còn bao nhiêu lượt — nói con số cụ thể, không doạ (04 §8). */
+    left: 'Còn {count} lượt tháng này',
+    /** Hết lượt: nói rõ mất gì và còn gì. Đường nhập tay KHÔNG bao giờ bị chặn. */
+    outOfQuota: 'Hết lượt đọc ảnh tháng này. Vẫn nhập tay được như thường.',
+    /** Chưa cắm nhà cung cấp model — KHÁC hết lượt, và không phải lỗi của người dùng. */
+    notConfigured: 'Đọc ảnh chưa bật. Nhập tay giúp mình nhé.',
+    /** Loại bản ghi mà app đoán được. */
+    asEvent: 'Sự kiện',
+    asTask: 'Việc',
+    asPayment: 'Khoản sắp trả',
+    asDoc: 'Giấy tờ',
+  },
+
   home: {
     greeting: 'Nhà mình có gì hôm nay?',
     sectionToday: 'Hôm nay',
@@ -166,10 +244,92 @@ export const vi = {
     reasonNotEnough: 'Khoản sắp trả trong 30 ngày nhiều hơn tiền đang có sẵn.',
     reasonAttention: 'Có {count} khoản cần hai người xem lại.',
     reasonDueSoon: 'Có {count} khoản đến hạn trong 7 ngày.',
-    reasonStale: 'Số liệu cập nhật lần cuối {days} ngày trước.',
+    // ĐÃ BỎ reasonStale: độ mới của số liệu không còn đổi trạng thái (03 §1).
+    // Nó là một nhãn riêng — xem `declaredAt` bên dưới.
     reasonOk: 'Không có khoản nào cần chuẩn bị gấp.',
     lastUpdated: 'Cập nhật {label}',
     neverUpdated: 'Chưa cập nhật lần nào',
+  },
+
+  /**
+   * Nhãn thời gian cho SỐ KHAI — BẮT BUỘC ở mọi chỗ hiện số tổng (03 §8).
+   *
+   * Con số tài sản là thứ MỘT NGƯỜI ĐÃ NÓI RA TẠI MỘT THỜI ĐIỂM, không phải sự
+   * thật hiện tại. Hai người cùng tin vào một thứ có thể đã sai còn tệ hơn
+   * không có app.
+   *
+   * Hai biến thể vì tên người có thể không biết (người khai đã rời nhà). Nhãn
+   * thời gian mới là phần bắt buộc; tên là phần bổ nghĩa.
+   */
+  declaredAt: {
+    never: 'Chưa có số liệu',
+    today: '{by} cập nhật hôm nay',
+    todayAnon: 'Cập nhật hôm nay',
+    yesterday: '{by} cập nhật hôm qua',
+    yesterdayAnon: 'Cập nhật hôm qua',
+    daysAgo: '{by} cập nhật {days} ngày trước',
+    daysAgoAnon: 'Cập nhật {days} ngày trước',
+    weeksAgo: '{by} cập nhật {weeks} tuần trước',
+    weeksAgoAnon: 'Cập nhật {weeks} tuần trước',
+    monthsAgo: '{by} cập nhật {months} tháng trước',
+    monthsAgoAnon: 'Cập nhật {months} tháng trước',
+  },
+
+  /**
+   * Màn hình "Sắp tới nhà mình cần bao nhiêu" — 05 §6.1, trái tim sản phẩm.
+   *
+   * Cả bảng từ vựng ở đây phải nói rõ MỘT điều: đây là một DỰ TÍNH dựng từ
+   * những khoản hai người đã ghi, không phải một báo cáo về tình hình thật.
+   * Mô hình dữ liệu không biết những gì chưa ai ghi vào, và mọi câu chữ ở màn
+   * này phải trung thực về giới hạn đó.
+   */
+  upcoming: {
+    title: 'Sắp tới',
+    /** Nhãn của con số lớn nhất màn hình. 90 ngày = "ba tháng tới". */
+    heroLabel: 'Ba tháng tới',
+    /**
+     * BẮT BUỘC, KHÔNG ĐƯỢC RÚT GỌN (06 §3).
+     *
+     * Đây là câu phân biệt một dự tính với một báo cáo. Bỏ nó đi thì con số ở
+     * trên tự nhận là bức tranh đầy đủ, và nó sẽ sai mãi mãi vì luôn có khoản
+     * chưa ai ghi. Không rút thành "ước tính" — chữ đó không nói ra ĐIỀU GÌ
+     * làm nó chỉ là ước tính.
+     */
+    basisDeclared: 'theo những khoản nhà mình đã ghi',
+    usable: 'Tài sản dùng ngay',
+    remaining: 'Còn lại dự kiến',
+    /** Thay chỗ `remaining` khi thiếu. KHÔNG kèm lời khuyên nào (05 §6.1). */
+    shortfall: 'Thiếu khoảng {amount}',
+    /**
+     * Dòng hỏi lại số dư — ngoại lệ DUY NHẤT được phép hỏi, và hỏi theo NGỮ
+     * CẢNH chứ không theo lịch (03 §1b). Chỉ hiện khi shouldAskForRefresh()
+     * trả true: có khoản lớn sắp tới VÀ số dư đã cũ.
+     */
+    refreshAsk: 'Tính toán này dựa trên số dư ghi {label} — còn đúng không?',
+    refreshUpdate: 'Cập nhật',
+    /** Bỏ qua thì im 14 ngày. Không push, không badge, không hỏi lại trong phiên. */
+    refreshDismiss: 'Bỏ qua',
+    emptyTitle: 'Chưa có khoản nào sắp tới',
+    emptyBody: 'Ghi một khoản sắp phải trả, hay chi phí dự tính của một sự kiện.',
+  },
+
+  /**
+   * Mua sắm — 05 §5.3.
+   *
+   * Câu chữ ở đây cố ý KHÔNG có chữ nào mang nghĩa giao việc: không "phân
+   * công", không "ai mua", không "nhắc mua". Danh sách này là một tờ giấy dán
+   * tủ lạnh, không phải một hàng đợi công việc.
+   */
+  shopping: {
+    title: 'Mua sắm',
+    /** Ô nhập cố định trên cùng — bàn phím giữ nguyên sau khi thêm. */
+    addPlaceholder: 'Thêm đồ cần mua…',
+    emptyTitle: 'Chưa có gì cần mua',
+    emptyBody: 'Gõ vào ô trên để thêm món đầu tiên.',
+    /** Card trên Nhà mình. Đếm món CHƯA mua, không đếm tổng. */
+    cardTitle: 'Cần mua',
+    itemAdded: 'Đã thêm',
+    itemDeleted: 'Đã xoá món',
   },
 
   task: {
@@ -191,6 +351,14 @@ export const vi = {
     fieldAssigneeNone: 'Chưa phân',
     /** Tiêu đề sheet chọn — dạng câu hỏi, khác nhãn trên dòng (một danh từ). */
     pickAssignee: 'Ai làm?',
+    /**
+     * Gợi ý cho trình đọc màn hình khi chạm chip người phụ trách (06 §7).
+     *
+     * "Đổi người làm", KHÔNG phải "giao việc cho người khác": việc đã tồn tại
+     * và cần được làm; chỉ người làm là biến số. Chữ "giao" đặt một người ở thế
+     * ra lệnh và người kia ở thế nhận lệnh — đúng thứ ranh giới thứ nhất cấm.
+     */
+    cycleAssigneeHint: 'Chạm để đổi người làm',
     pickDate: 'Chọn ngày',
     /** Dòng mở lịch cho ngày xa, nằm dưới bảy ngày gần. */
     otherDate: 'Ngày khác',
@@ -257,7 +425,55 @@ export const vi = {
      */
     pendingDate: 'Đang tính ngày',
     lunarBoth: '{lunar} âm — {weekday} {solar}',
-    lastYear: 'Năm ngoái: {date}',
+
+    /* ── Trí nhớ năm ngoái (06 §5) ───────────────────────────────────────── */
+
+    /**
+     * Tiêu đề khối NĂM NGOÁI ở màn chi tiết — `05 §5.5`.
+     *
+     * Khối này KHÔNG hiện khi chưa có lần diễn ra nào, và cố ý không có câu
+     * "chưa có dữ liệu": một khối trống nói với người dùng rằng họ đang thiếu
+     * thứ gì đó, còn không có khối nào thì không nói gì cả — và ở năm đầu tiên,
+     * không nói gì mới là đúng.
+     */
+    sectionLastYear: 'Năm ngoái',
+    /** Dòng trong khối: "3/10/2025 — thực tế 3.200.000 ₫". */
+    lastYearWithCost: '{date} — thực tế {amount}',
+    /**
+     * Lần diễn ra mà người dùng đã bỏ qua câu hỏi chi phí.
+     *
+     * Vẫn hiện ngày: một dịp đã diễn ra là một dữ kiện thật, và giấu nó đi vì
+     * thiếu con số sẽ làm khối NĂM NGOÁI trống ở đúng năm thứ hai — lúc nó cần
+     * có mặt nhất. Không có chỗ nào mời nhập lại: đã bỏ qua là xong.
+     */
+    lastYearNoCost: '{date} — không ghi chi phí',
+    /** Điền sẵn ô chi phí dự kiến ở form khi đã có số thực tế năm ngoái. */
+    lastYearPrefill: 'Năm ngoái hết {amount}',
+
+    /* ── Hỏi chi phí thực tế — 05 §5.7 ───────────────────────────────────── */
+
+    /**
+     * Sheet hỏi MỘT LẦN sau khi một dịp có chi phí dự kiến trôi qua.
+     *
+     * Câu mở đầu là một lời xác nhận, không phải câu hỏi: "đã xong" nói rằng
+     * app biết chuyện đã qua. Chỉ sau đó mới hỏi. Đảo thứ tự — hỏi trước rồi
+     * mới nói dịp nào — biến nó thành một cuộc thẩm vấn nhỏ.
+     */
+    costAskTitle: '{title} đã xong.',
+    costAskBody: 'Thực tế hết bao nhiêu?',
+    costAskField: 'Chi phí thực tế',
+    costAskSave: 'Lưu',
+    /**
+     * "Bỏ qua", KHÔNG phải "Để sau".
+     *
+     * "Để sau" là một lời hứa app sẽ hỏi lại, và app sẽ không hỏi lại — đúng
+     * theo thiết kế (`cost_asked` bật lên trong cả hai nhánh). Một nút nói sai
+     * việc nó làm là chỗ nhỏ nhất mà niềm tin rò ra.
+     */
+    costAskSkip: 'Bỏ qua',
+    /** Dòng nhỏ dưới hai nút — nói trước hệ quả, để "Bỏ qua" là lựa chọn có hiểu biết. */
+    costAskOnce: 'Chỉ hỏi một lần. Bỏ qua thì thôi, không hỏi lại.',
+
     sectionTasks: 'Việc cần chuẩn bị',
     sectionCosts: 'Chi phí',
     sectionDocs: 'Giấy tờ',
@@ -279,11 +495,14 @@ export const vi = {
     other: 'Khác',
   },
 
-  // Ánh xạ enum family_side của schema — KHÔNG phải husband_family/wife_family
-  // như 02 §1 viết. Schema là bất biến.
+  // Ánh xạ enum family_side (migration 0004 §1).
+  //
+  // Trục là "NHÀ AI", không phải "nội/ngoại" — hai trục đó khác nhau và không
+  // ánh xạ được: với một cặp vợ chồng "nhà nội" là nhà chồng, nhưng "bên nội
+  // của vợ" cũng tồn tại. Chọn trục theo thứ người dùng thật sự nghĩ (06 §0.1).
   familySide: {
-    paternal: 'Nhà nội',
-    maternal: 'Nhà ngoại',
+    husband_family: 'Nhà chồng',
+    wife_family: 'Nhà vợ',
     both: 'Cả hai',
     own: 'Nhà mình',
   },
@@ -297,7 +516,6 @@ export const vi = {
     sectionUpcoming: 'Sắp phải trả',
     sectionAttention: 'Cần trao đổi',
     sectionGoals: 'Mục tiêu',
-    updateSituation: 'Cập nhật tình hình',
     emptyTitle: 'Chưa có gì về tiền',
     emptyBody: 'Thêm một khoản sắp phải trả, hay ghi lại tiền nhà mình đang có.',
 
@@ -309,12 +527,28 @@ export const vi = {
 
     historyTitle: 'Nhà mình qua từng mốc',
     historyEmptyTitle: 'Chưa có mốc nào',
-    historyEmptyBody: 'Lần cập nhật đầu tiên sẽ nằm ở đây.',
-    historyAuto: 'Tự ghi',
+    // Mốc do cron ghi cuối mỗi tháng, người dùng không tạo (06 §1). Câu này
+    // nói ĐIỀU SẼ XẢY RA, không mời họ đi làm gì.
+    historyEmptyBody: 'Cuối tháng nhà mình sẽ có mốc đầu tiên ở đây.',
 
-    changesTitle: 'Nhà mình đã thay đổi gì',
+    changesTitle: 'Lịch sử biến động',
     changesEmptyTitle: 'Chưa có thay đổi nào',
     changesEmptyBody: 'Khi giá trị một khoản đổi, nó sẽ được ghi lại ở đây.',
+    /**
+     * Dòng tổng của một tháng — BẮT BUỘC đủ hai thứ: số lượng bản ghi và chữ
+     * "đã ghi" (08 §1.3).
+     *
+     * "5 khoản nhà mình đã ghi: −12 triệu" đúng theo đúng nghĩa đen của nó, kể
+     * cả khi nhà mình còn mười khoản khác quên ghi. "Tháng 9 chi 12 triệu" thì
+     * tự nhận là đầy đủ và sẽ sai 30–40% mãi mãi.
+     *
+     * Đừng tách `{count}` ra khỏi câu này để dùng riêng: nó với chữ "đã ghi" là
+     * một cặp, và tách ra là lúc con số tổng đi lang thang một mình.
+     */
+    monthlyRecorded: '{count} khoản nhà mình đã ghi',
+    /** Nhãn nhóm tháng: "Tháng 9" · "Tháng 12/2025" khi khác năm hiện tại. */
+    monthLabel: 'Tháng {month}',
+    monthLabelWithYear: 'Tháng {month}/{year}',
     recentChanges: 'Thay đổi gần nhất',
     changeTransition: '{before} → {after}',
     changeInitial: 'Ghi lần đầu {after}',
@@ -422,17 +656,39 @@ export const vi = {
     savedToast: 'Đã lưu khoản nợ',
   },
 
+  /**
+   * Mục tiêu — 05 §6.7, P0 từ `08 §2`.
+   *
+   * BA con số và chỉ ba: đã có, cần đạt, còn thiếu. Bảng từ vựng ở đây CỐ Ý
+   * không có chữ nào cho "mỗi tháng cần góp bao nhiêu", "còn bao lâu theo tốc
+   * độ hiện tại", hay "ai góp bao nhiêu". App không biết thu nhập và không biết
+   * hoàn cảnh; một dòng "bạn đang chậm kế hoạch" với cặp vợ chồng đang chật vật
+   * là sự tàn nhẫn được tự động hoá. Thiếu chuỗi là cách rẻ nhất để tính năng
+   * đó không lặng lẽ mọc lại.
+   */
   goal: {
     title: 'Mục tiêu',
     formTitle: 'Mục tiêu mới',
+    formEditTitle: 'Sửa mục tiêu',
     fieldName: 'Tên mục tiêu',
     fieldNamePlaceholder: 'Mua nhà',
     fieldTarget: 'Cần đạt',
     fieldCurrent: 'Đã có',
     fieldTargetDate: 'Muốn xong trước',
     contribute: 'Góp thêm',
+    contributeTitle: 'Góp thêm vào mục tiêu',
+    contributeField: 'Số tiền góp',
+    contributeSaved: 'Đã ghi khoản góp',
     have: 'Đã có {amount}',
     need: 'Cần thêm {amount}',
+    /** Nhãn ba con số ở màn chi tiết. */
+    labelHave: 'Đã có',
+    labelTarget: 'Cần đạt',
+    labelRemaining: 'Còn thiếu',
+    /** Đã góp đủ. Một câu ghi nhận, không phải một huy hiệu. */
+    reached: 'Đã đủ',
+    history: 'Các lần góp',
+    delete: 'Xoá mục tiêu này',
     emptyTitle: 'Chưa có mục tiêu nào',
     emptyBody: 'Đặt một mục tiêu chung để biết tiền để dành đang đi về đâu.',
   },
@@ -557,6 +813,209 @@ export const vi = {
     other: 'Khác',
   },
 
+  /**
+   * Sổ mừng cưới — 07 §3.
+   *
+   * BẢNG TỪ VỰNG RIÊNG của module này. Không có chữ nào mang nghĩa nợ nần hay
+   * xếp hạng: không "còn thiếu", không "đã trả đủ", không "mừng nhiều nhất",
+   * không "hào phóng". Hai chiều đọc là "Nhà mình nhận" và "Nhà mình đi" —
+   * SONG SONG, không bao giờ trừ nhau (07 §3.4).
+   */
+  gift: {
+    title: 'Sổ mừng',
+    contactsTitle: 'Người quen',
+
+    /** Dòng gợi ý — TOÀN BỘ lý do module này tồn tại (07 §3.3). */
+    suggestLine: '{name} đã mừng nhà mình',
+    suggestUse: 'Dùng số này',
+    /** "2.000.000 ₫ — cưới, 3/2023" */
+    suggestBasis: '{amount} — {occasion}, {date}',
+
+    emptyTitle: 'Sổ mừng còn trống',
+    emptyBody: 'Ghi lại một khoản mừng để lần sau còn nhớ nhà nào đã đi bao nhiêu.',
+    emptyAction: 'Ghi khoản mừng',
+    contactsEmptyTitle: 'Chưa có người quen nào',
+    contactsEmptyBody: 'Thêm tên khi ghi khoản mừng đầu tiên.',
+
+    formTitle: 'Khoản mừng',
+    formEditTitle: 'Sửa khoản mừng',
+    fieldContact: 'Nhà nào',
+    fieldContactPlaceholder: 'Chú Ba',
+    fieldDirection: 'Chiều',
+    fieldOccasion: 'Dịp',
+    fieldAmount: 'Số tiền mừng',
+    fieldDate: 'Ngày',
+    fieldEvent: 'Gắn với đám',
+    /** Quà hiện vật: khi đó số tiền = 0 và không có dòng gợi ý nào. */
+    fieldInKind: 'Quà hiện vật',
+    fieldInKindPlaceholder: 'Một cây vàng',
+    fieldNotes: 'Ghi chú',
+
+    contactFormTitle: 'Người quen',
+    fieldName: 'Tên',
+    fieldNamePlaceholder: 'Chú Ba',
+    fieldRelation: 'Quan hệ',
+    /** Chữ TỰ DO. Không enum hoá quan hệ họ hàng VN — quá nhiều nhánh. */
+    fieldRelationPlaceholder: 'Chú ruột bên nội',
+    fieldSide: 'Bên',
+
+    /** Nhập hàng loạt — ngày cưới nhận 100 phong bì (07 §3.3). */
+    bulkTitle: 'Nhập nhanh',
+    bulkHint: 'Gõ tên rồi số tiền. Xong một dòng thì Enter để sang dòng tiếp.',
+    bulkName: 'Tên',
+    bulkAmount: 'Số tiền',
+    bulkAdd: 'Thêm dòng',
+    bulkSave: 'Lưu {count} dòng',
+    bulkSaved: 'Đã lưu {count} khoản mừng',
+    bulkEmpty: 'Chưa có dòng nào để lưu',
+
+    /** Tổng của MỘT đám — luôn kèm SỐ LƯỢNG bản ghi (ràng buộc #5). */
+    occasionTotal: '{total} — {count} nhà đã ghi',
+
+    /** Hai chiều SONG SONG. Không bao giờ có dòng chênh lệch giữa chúng. */
+    received: 'Nhà mình nhận',
+    given: 'Nhà mình đi',
+    timesReceived: 'Đã mừng nhà mình {count} lần',
+    timesGiven: 'Nhà mình đã đi {count} lần',
+    neverReceived: 'Chưa ghi lần nào',
+
+    sortByDate: 'Theo ngày',
+    /** Tuỳ chọn, KHÔNG BAO GIỜ mặc định, và không có nhãn "nhiều/ít nhất". */
+    sortByAmount: 'Theo số tiền',
+
+    savedToast: 'Đã ghi khoản mừng',
+    deletedToast: 'Đã xoá khoản mừng',
+    deleteConfirm: 'Xoá khoản mừng này?',
+    contactSavedToast: 'Đã lưu người quen',
+  },
+
+  giftDirection: {
+    received: 'Nhà mình nhận',
+    given: 'Nhà mình đi',
+  },
+
+  giftOccasion: {
+    wedding: 'Cưới',
+    engagement: 'Ăn hỏi',
+    funeral: 'Tang lễ',
+    death_anniversary: 'Giỗ',
+    full_month: 'Đầy tháng',
+    birthday: 'Sinh nhật',
+    housewarming: 'Tân gia',
+    other: 'Khác',
+  },
+
+  contactSide: {
+    husband_family: 'Nhà chồng',
+    wife_family: 'Nhà vợ',
+    shared: 'Cả hai',
+    other: 'Khác',
+  },
+
+  /**
+   * Hồ sơ con — 07 §4. PHẦN CẨN THẬN NHẤT CỦA CẢ APP.
+   *
+   * Ba ràng buộc về CHỮ ở đây, mỗi cái đều có hậu quả thật:
+   *
+   * 1. `scheduleDisclaimer` phải hiện ở MỌI màn có lịch tiêm — app đưa ra một
+   *    lịch tham khảo, không phải một chỉ định y tế.
+   * 2. Mũi trễ đọc là "quá lịch", KHÔNG dùng chữ trách móc ("bạn đã bỏ lỡ",
+   *    "chưa hoàn thành"), và luôn kèm một việc LÀM ĐƯỢC: liên hệ cơ sở tiêm.
+   * 3. Không có chuỗi nào cho việc hoãn, bỏ, hay đổi thứ tự mũi — vì không có
+   *    tính năng đó, và sẽ không bao giờ có (07 §4.2).
+   */
+  child: {
+    title: 'Hồ sơ con',
+    /** "Bé An · 14 tháng" */
+    header: '{name} · {age}',
+    ageMonths: '{count} tháng',
+    ageYears: '{count} tuổi',
+
+    sectionUpcoming: 'Sắp tới',
+    sectionDone: 'Đã tiêm',
+    sectionGrowth: 'Chiều cao · cân nặng',
+    sectionDocs: 'Giấy tờ',
+    sectionSchool: 'Trường lớp',
+
+    doseCount: '{count} mũi',
+    docCount: '{count} mục',
+
+    /** BẮT BUỘC ở mọi màn có lịch tiêm — 07 §4.2. */
+    scheduleDisclaimer:
+      'Lịch tham khảo theo Chương trình Tiêm chủng mở rộng. Hãy xác nhận với cơ sở tiêm chủng.',
+    /** Nguồn + phiên bản của file seed — để một năm sau còn truy được. */
+    scheduleSource: 'Nguồn: {source}, {date}',
+
+    /**
+     * Bảng tham chiếu chưa seed. Nói THẬT là app chưa có lịch, không bịa ra
+     * một mốc nào — 07 §4.2 và `supabase/seed/README.md`.
+     */
+    scheduleEmptyTitle: 'Chưa có lịch tiêm trong app',
+    scheduleEmptyBody:
+      'Lịch tiêm cần được người có chuyên môn y tế xác nhận trước khi đưa vào app. Trong lúc chờ, vẫn ghi tay được từng mũi đã tiêm.',
+
+    birthdayNeededTitle: 'Chưa có ngày sinh',
+    birthdayNeededBody: 'Thêm ngày sinh để app dựng các mốc tiêm.',
+    birthdayNeededAction: 'Thêm ngày sinh',
+
+    generateSchedule: 'Dựng lịch tiêm',
+    scheduleGenerated: 'Đã dựng {count} mốc tiêm',
+
+    dosesEmptyTitle: 'Chưa ghi mũi nào',
+    dosesEmptyBody: 'Ghi lại những mũi đã tiêm để không phải nhớ.',
+
+    /** "còn 9 ngày" · "quá lịch 12 ngày" · "đã tiêm 5/10/2025" */
+    doseIn: 'còn {days} ngày',
+    doseToday: 'hôm nay',
+    doseOverdue: 'quá lịch {days} ngày',
+    doseNoDate: 'chưa hẹn ngày',
+    doseDone: 'đã tiêm {date}',
+
+    /** Mũi trễ: một việc LÀM ĐƯỢC, không phải một lời trách. */
+    overdueHint: 'Liên hệ cơ sở tiêm chủng để tiêm bù.',
+
+    markDone: 'Đã tiêm',
+    markDoneTitle: 'Ghi mũi đã tiêm',
+    fieldAdministeredOn: 'Ngày tiêm',
+    fieldFacility: 'Nơi tiêm',
+    fieldFacilityPlaceholder: 'Trạm y tế phường',
+    doseDoneToast: 'Đã ghi mũi tiêm',
+    undoDose: 'Bỏ đánh dấu',
+    undoDoseToast: 'Đã bỏ đánh dấu',
+
+    /** Mũi ngoài lịch: dịch vụ, tiêm bù. */
+    addDose: 'Thêm mũi ngoài lịch',
+    fieldDoseName: 'Tên mũi',
+    fieldDoseNamePlaceholder: 'Cúm mùa',
+    fieldDueDate: 'Ngày hẹn',
+
+    /**
+     * Chiều cao cân nặng: GHI VÀ VẼ, KHÔNG DIỄN GIẢI (07 §4.3).
+     * Không có chuỗi nào cho bách phân vị, chuẩn WHO, hay đánh giá.
+     */
+    growthTitle: 'Chiều cao · cân nặng',
+    growthEmptyTitle: 'Chưa có số đo nào',
+    growthEmptyBody: 'Ghi lại chiều cao và cân nặng sau mỗi lần khám.',
+    addGrowth: 'Thêm số đo',
+    fieldMeasuredOn: 'Ngày đo',
+    fieldHeight: 'Chiều cao (cm)',
+    fieldWeight: 'Cân nặng (kg)',
+    growthSavedToast: 'Đã ghi số đo',
+    growthDeleteConfirm: 'Xoá số đo này?',
+
+    /** ĐẦU VÀO của buildVaccineSchedule() — app hỏi, không đoán. */
+    fieldBirthday: 'Ngày sinh',
+    fieldSchoolName: 'Trường',
+    fieldSchoolClass: 'Lớp',
+    fieldInsuranceNo: 'Số thẻ BHYT',
+    infoSavedToast: 'Đã lưu',
+
+    /** Danh sách con trên tab Giấy tờ. */
+    listTitle: 'Con',
+    listEmptyTitle: 'Chưa có con trong nhà mình',
+    listEmptyBody: 'Thêm con ở phần Thành viên để theo dõi lịch tiêm và giấy tờ.',
+  },
+
   settings: {
     title: 'Cài đặt',
     household: 'Nhà mình',
@@ -658,6 +1117,9 @@ export const vi = {
     payment: 'Khoản sắp trả',
     asset: 'Khoản tiền',
     doc: 'Giấy tờ',
+    /** Nhập nhanh bằng AI (06 §6). "Từ ảnh" chứ không "AI": người dùng quan tâm
+        họ đưa vào cái gì, không quan tâm app dùng kỹ thuật nào. */
+    capture: 'Từ ảnh',
   },
 
   // 04 §8 — nói rõ chuyện gì và cách sửa. Không xin lỗi, không mơ hồ.

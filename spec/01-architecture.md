@@ -1,6 +1,6 @@
 # 01 — Kiến trúc Client
 
-Phạm vi: app chạy thế nào. **Không** chứa schema (xem `schema.sql`), **không** chứa quy tắc nghiệp vụ (xem `03-business-logic.md`), **không** chứa mô tả màn hình (xem `04-frontend-spec.md`).
+Phạm vi: app chạy thế nào. **Không** chứa schema (xem `schema.sql`), **không** chứa quy tắc nghiệp vụ (xem `03-business-logic.md`), **không** chứa mô tả màn hình (xem `04-design-system.md`).
 
 ---
 

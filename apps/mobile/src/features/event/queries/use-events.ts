@@ -73,3 +73,59 @@ export function useDeleteEvent() {
     },
   });
 }
+
+/**
+ * Trí nhớ năm ngoái — 06 §5.
+ *
+ * `LIMIT` nhỏ có chủ ý: màn chi tiết chỉ hiện MỘT dòng (lần gần nhất), và form
+ * chỉ cần một số để điền sẵn. Lấy nhiều hơn là dựng sẵn nguyên liệu cho một
+ * biểu đồ chi phí theo năm — thứ `ràng buộc #5` cấm vẽ.
+ */
+export function useEventOccurrences(eventId: UUID, limit = 3) {
+  const hh = useHouseholdId();
+  return useQuery({
+    queryKey: queryKeys.events.occurrences(hh, eventId),
+    queryFn: () => eventRepository.occurrences(hh, eventId, limit),
+  });
+}
+
+/**
+ * Dịp đã qua còn chờ câu hỏi chi phí — nguồn của sheet ở `05 §5.7`.
+ *
+ * `staleTime: Infinity` + không refetch nền: dữ liệu này chỉ đổi khi cron đêm
+ * chạy hoặc khi chính người dùng vừa trả lời. Một refetch giữa chừng trả về
+ * một dịp khác sẽ làm sheet đang mở đổi nội dung dưới tay người dùng — họ gõ
+ * số cho giỗ ông ngoại rồi bấm Lưu vào một sự kiện khác.
+ */
+export function usePendingCostAsk() {
+  const hh = useHouseholdId();
+  return useQuery({
+    queryKey: queryKeys.events.pendingCostAsk(hh),
+    queryFn: () => eventRepository.pendingCostAsk(hh),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+}
+
+/**
+ * Ghi chi phí thực tế, hoặc bỏ qua (`amount === null`).
+ *
+ * KHÔNG optimistic: đây là một form có nút, thuộc nhóm "chờ được" (01 §3). Bù
+ * lại, cache của câu hỏi được đặt về `null` NGAY khi thành công thay vì chờ
+ * refetch — nếu không, người dùng đóng sheet rồi thấy nó bật lại lần nữa.
+ */
+export function useRecordActualCost() {
+  const hh = useHouseholdId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ occurrenceId, amount }: { occurrenceId: UUID; amount: number | null }) =>
+      eventRepository.recordActualCost(hh, occurrenceId, amount),
+    onSuccess: () => {
+      qc.setQueryData(queryKeys.events.pendingCostAsk(hh), null);
+      // Khối NĂM NGOÁI ở màn chi tiết vừa có số mới. Không biết eventId ở đây
+      // nên quét cả nhánh `events` — rẻ, và chỉ xảy ra vài lần một năm.
+      void qc.invalidateQueries({ queryKey: queryKeys.events.all(hh) });
+    },
+  });
+}

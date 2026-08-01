@@ -12,7 +12,7 @@
  */
 
 import type { ISODate, MoneyEntityType, MoneyEvent, UUID } from '@family-organizer/domain';
-import { groupEventsByDay } from '@family-organizer/domain';
+import { groupHistoryByMonth } from '@family-organizer/domain';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';
@@ -22,13 +22,22 @@ import { useHouseholdId } from '@/stores/session';
 const PAGE_SIZE = 30;
 
 /**
- * Timeline chung cho `money/changes.tsx`.
+ * Timeline chung cho `money/changes.tsx` — màn "Lịch sử biến động".
  *
  * Phân trang theo `occurred_on desc` bằng con trỏ ngày (index
  * `money_events_timeline_idx`), không phải offset — offset trượt khi có event
  * mới ghi vào giữa lúc đang cuộn.
+ *
+ * **Gộp theo THÁNG, không theo ngày** (05 §6.8). Đổi từ `groupEventsByDay` ở
+ * G13: nhóm ngày trả lời "hôm nay có gì mới", nhóm tháng trả lời "tháng trước
+ * nhà mình đã ghi những gì" — và câu thứ hai mới là thứ khiến người không giữ
+ * tiền cảm thấy nắm tình hình.
+ *
+ * `MonthlyHistoryGroup` mang theo `count`, và `count` là thứ khiến `total` được
+ * phép hiện: "5 khoản nhà mình đã ghi: −12 triệu" trung thực kể cả khi còn mười
+ * khoản chưa ghi, còn "tháng 9 chi 12 triệu" thì không (08 §1.3).
  */
-export function useMoneyEventTimeline(entityType: MoneyEntityType | undefined, today: ISODate) {
+export function useMoneyEventTimeline(entityType: MoneyEntityType | undefined) {
   const hh = useHouseholdId();
   return useInfiniteQuery({
     queryKey: queryKeys.moneyEvents.timeline(hh, entityType),
@@ -37,8 +46,8 @@ export function useMoneyEventTimeline(entityType: MoneyEntityType | undefined, t
       moneyEventRepository.timeline(hh, { entityType, limit: PAGE_SIZE, before: pageParam }),
     getNextPageParam: (lastPage: MoneyEvent[]) =>
       lastPage.length < PAGE_SIZE ? undefined : lastPage[lastPage.length - 1]?.occurredOn,
-    // Gộp theo ngày Ở ĐÂY bằng hàm thuần có test, không phải trong component.
-    select: (data) => groupEventsByDay(data.pages.flat(), today),
+    // Gộp Ở ĐÂY bằng hàm thuần có test, không phải trong component.
+    select: (data) => groupHistoryByMonth(data.pages.flat()),
   });
 }
 

@@ -55,8 +55,28 @@ const TABLES = [
   'debts',
   'upcoming_payments',
   'goals',
+  'shopping_items',
   'members',
 ] as const;
+
+/**
+ * Mục mua sắm đã tick biến mất khỏi danh sách chính sau 24 GIỜ (06 §4).
+ *
+ * Đây là một bước KHÁC với retention 30 ngày ở trên, và thứ tự giữa hai bước
+ * không quan trọng vì chúng làm hai việc khác nhau:
+ *
+ *   tick + 24 giờ  → XOÁ MỀM (đặt `deleted_at`) — biến mất khỏi danh sách
+ *   xoá mềm + 30 ngày → XOÁ CỨNG — cùng đường với mọi bảng khác
+ *
+ * Vì sao không xoá cứng luôn sau 24h: mục đã tick vẫn là dữ liệu người dùng
+ * tạo ra, và 30 ngày hoàn tác là lời hứa chung của cả schema (§3). Một ngoại lệ
+ * ở đây sẽ là một chỗ duy nhất trong app xoá thật mà không hoàn tác được.
+ *
+ * Client cũng lọc theo cùng con số 24 giờ, nên mục cũ biến mất ngay cả khi cron
+ * chưa chạy. Hai vế phải cùng con số — lệch thì mục đã tick sẽ nhấp nháy quay
+ * lại giữa hai lần cron.
+ */
+const SHOPPING_DONE_HOURS = 24;
 
 Deno.serve(async () => {
   const supabase = serviceClient();
@@ -66,6 +86,21 @@ Deno.serve(async () => {
   const purged: Record<string, number> = {};
   let r2Deleted = 0;
   let r2Skipped = 0;
+
+  // ── Bước 0: xoá MỀM mục mua sắm đã tick quá 24h ──
+  // Chạy TRƯỚC bước 2 để một mục tick từ 31 ngày trước đi hết cả hai chặng
+  // trong cùng một lần chạy, thay vì phải chờ thêm một đêm nữa.
+  const doneCutoff = new Date(Date.now() - SHOPPING_DONE_HOURS * 3_600_000).toISOString();
+  const { data: sweptShopping, error: sweepError } = await supabase
+    .from('shopping_items')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('is_done', true)
+    .is('deleted_at', null)
+    .lt('done_at', doneCutoff)
+    .select('id');
+
+  if (sweepError) return jsonResponse({ error: `shopping sweep: ${sweepError.message}` }, 500);
+  const shoppingSwept = (sweptShopping ?? []).length;
 
   // ── Bước 1: file trên R2 (xem đầu file về thứ tự) ──
   const { data: staleFiles, error: staleError } = await supabase
@@ -108,5 +143,5 @@ Deno.serve(async () => {
     purged[table] = (data ?? []).length;
   }
 
-  return jsonResponse({ purged, r2Deleted, r2Skipped, cutoff });
+  return jsonResponse({ purged, shoppingSwept, r2Deleted, r2Skipped, cutoff });
 });

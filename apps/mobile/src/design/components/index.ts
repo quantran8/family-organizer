@@ -62,6 +62,7 @@ export { MemberAvatar, type MemberAvatarProps } from './member-avatar';
 export { NavRow, type NavRowProps } from './nav-row';
 export { PasswordToggle, type PasswordToggleProps } from './password-toggle';
 export { PickerSheet, type PickerSheetProps } from './picker-sheet';
+export { ProgressBar, progressPct, type ProgressBarProps } from './progress-bar';
 export { MoneyText, type MoneySize, type MoneyTextProps, type MoneyTone } from './money-text';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './segmented';
 export { Sheet, type SheetProps } from './sheet';

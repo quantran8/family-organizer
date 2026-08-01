@@ -70,9 +70,12 @@ function CreateHouseholdForm({ onBack }: { onBack: () => void }) {
   const onSubmit = handleSubmit(({ displayName }) =>
     create.mutate(
       { displayName },
+      // Người TẠO nhà đi qua bước ngưỡng ghi (05 §3.3); người vào bằng mã mời
+      // thì KHÔNG — quy ước đó nhà đã chốt rồi, hỏi lại là hỏi sai người.
+      //
       // Gate ở _layout nạp lại `my_households` rồi tự đưa vào (app); đẩy thẳng
       // ở đây để không phải chờ thêm một vòng render.
-      { onSuccess: () => router.replace('/(app)/home') },
+      { onSuccess: () => router.replace('/(auth)/threshold') },
     ),
   );
 

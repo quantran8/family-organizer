@@ -3,11 +3,18 @@
  */
 
 import { unwrap, unwrapMaybe, unwrapVoid } from '@/data/shared/errors';
-import { fromRecurrence, toEvent } from '@/data/shared/mappers';
+import { fromRecurrence, toEvent, toEventOccurrence } from '@/data/shared/mappers';
 import { currentProfileId } from '@/data/shared/session';
-import type { EventRow } from '@/lib/database.types';
+import type { EventOccurrenceRow, EventRow } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import type { EventInput, EventRepository } from './event-repository.interface';
+
+/** Ba cột lấy kèm ở `pendingCostAsk` — đủ để dựng câu hỏi, không hơn. */
+interface EventJoin {
+  title: string;
+  estimated_cost: number | null;
+  deleted_at: string | null;
+}
 
 function toRow(input: Partial<EventInput>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
@@ -106,6 +113,61 @@ export const eventRepository: EventRepository = {
         .from('events')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('household_id', hh),
+    );
+  },
+
+  async occurrences(hh, eventId, limit) {
+    const rows = await unwrap<EventOccurrenceRow[]>(
+      supabase
+        .from('event_occurrences')
+        .select('*')
+        .eq('household_id', hh)
+        .eq('event_id', eventId)
+        // Mới nhất trước: "năm ngoái" là dòng đầu tiên, và `lastYearFor` cũng
+        // tự chọn lại lần gần nhất nên thứ tự này chỉ để cắt `limit` cho đúng.
+        .order('occurred_on', { ascending: false })
+        .limit(limit),
+    );
+    return rows.map(toEventOccurrence);
+  },
+
+  async pendingCostAsk(hh) {
+    const row = await unwrapMaybe<EventOccurrenceRow & { events: EventJoin | null }>(
+      supabase
+        .from('event_occurrences')
+        .select('*, events(title, estimated_cost, deleted_at)')
+        .eq('household_id', hh)
+        .eq('cost_asked', false)
+        // Dịp gần nhất trước: nếu có nhiều lần chưa hỏi thì hỏi về cái người
+        // dùng còn nhớ rõ nhất. Những cái cũ hơn sẽ tới lượt ở lần mở app sau.
+        .order('occurred_on', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    );
+
+    if (!row) return null;
+    // Sự kiện đã xoá mềm: dòng occurrence vẫn còn (cascade chỉ chạy khi xoá
+    // CỨNG), nhưng hỏi về một dịp người dùng vừa xoá là vô nghĩa.
+    if (!row.events || row.events.deleted_at !== null) return null;
+
+    return {
+      occurrence: toEventOccurrence(row),
+      eventTitle: row.events.title,
+      estimatedCost: row.events.estimated_cost,
+    };
+  },
+
+  async recordActualCost(hh, occurrenceId, amount) {
+    await unwrapVoid(
+      supabase
+        .from('event_occurrences')
+        .update({
+          actual_cost: amount,
+          // Luôn true, kể cả khi bỏ qua (amount === null) — xem interface.
+          cost_asked: true,
+        })
+        .eq('id', occurrenceId)
         .eq('household_id', hh),
     );
   },

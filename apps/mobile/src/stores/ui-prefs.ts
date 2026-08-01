@@ -14,7 +14,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type PlanTab = 'task' | 'event';
+/**
+ * Thứ tự CÓ Ý NGHĨA: Việc | Mua sắm | Sự kiện (05 §5).
+ *
+ * Mua sắm nằm giữa vì nó là bề mặt hằng ngày; đặt nó cuối thì thao tác thường
+ * xuyên nhất lại là thao tác xa nhất.
+ */
+export type PlanTab = 'task' | 'shopping' | 'event';
 
 /** Cùng union với `DocumentFilter` ở repository — khai lại để store không phụ
  *  thuộc vào tầng dữ liệu chỉ vì một union ba chuỗi. */
@@ -25,6 +31,16 @@ interface UIPrefsState {
   setPlanTab: (tab: PlanTab) => void;
   docFilter: DocFilter;
   setDocFilter: (filter: DocFilter) => void;
+  /**
+   * Ngày (ISO) mà dòng hỏi lại số dư ở màn "Sắp tới" được phép hiện lại.
+   * null = chưa từng bỏ qua.
+   *
+   * Ở đây chứ không ở DB vì đây là trạng thái của MỘT MÁY: người kia bỏ qua
+   * trên máy họ không có nghĩa mình cũng đã thấy câu hỏi. Đẩy lên server sẽ
+   * biến một cử chỉ "để tôi yên" thành một quyết định thay cho cả hai người.
+   */
+  refreshAskSnoozedUntil: string | null;
+  snoozeRefreshAsk: (until: string) => void;
 }
 
 export const useUIPrefs = create<UIPrefsState>()(
@@ -39,6 +55,9 @@ export const useUIPrefs = create<UIPrefsState>()(
       // vừa lưu ba giấy tờ trông như app làm mất dữ liệu.
       docFilter: 'all',
       setDocFilter: (docFilter) => set({ docFilter }),
+
+      refreshAskSnoozedUntil: null,
+      snoozeRefreshAsk: (refreshAskSnoozedUntil) => set({ refreshAskSnoozedUntil }),
     }),
     {
       name: 'family-organizer.ui-prefs',

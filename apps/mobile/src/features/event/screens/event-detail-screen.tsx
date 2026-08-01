@@ -10,14 +10,22 @@
  * và bấm "Thêm việc", thế là xong. Nếu ba nút này mở form trống không mang
  * `eventId`, cả màn hình mất lý do tồn tại.
  *
- * Lặp hằng năm hiện dòng "Năm ngoái: 6/10/2025" — tính bằng
- * `previousLunarOccurrence`, chỉ để đọc, không ghi xuống đâu cả.
+ * ## Khối NĂM NGOÁI — 06 §5, G14
+ *
+ * Đây là **lý do người dùng không hủy gói vào năm thứ hai**: một dữ kiện không
+ * ai khác giữ hộ được. Trước G14 dòng này được TÍNH ra bằng
+ * `previousLunarOccurrence` — nó chỉ nói được *ngày*, và ngày thì cuốn lịch nào
+ * cũng có. Giờ nó ĐỌC từ `event_occurrences`, nên nói được cả số tiền.
+ *
+ * Không hiện gì khi chưa có lần diễn ra nào: `lastYearFor` trả `null` và cả
+ * khối biến mất. Một khối trống kèm "chưa có dữ liệu" nói với người dùng năm
+ * đầu rằng họ đang thiếu thứ gì đó, trong khi họ không thiếu gì cả.
  */
 
 import {
   formatLunarLabel,
+  lastYearFor,
   parseISODate,
-  previousLunarOccurrence,
   weekdayOf,
   type UUID,
 } from '@family-organizer/domain';
@@ -34,11 +42,16 @@ import {
   Screen,
   SectionHeader,
 } from '@/design/components';
+import { useCurrency } from '@/design/use-currency';
 import { useDocumentsByEvent } from '@/features/document/queries/use-documents';
-import { useDeleteEvent, useEvent } from '@/features/event/queries/use-events';
+import {
+  useDeleteEvent,
+  useEvent,
+  useEventOccurrences,
+} from '@/features/event/queries/use-events';
 import { usePaymentsByEvent } from '@/features/payment/queries/use-payments';
 import { useSetTaskDone, useTasksByEvent } from '@/features/task/queries/use-tasks';
-import { fullSolarDate, useT, weekdayName } from '@/i18n';
+import { fullSolarDate, moneyText, useT, weekdayName } from '@/i18n';
 import { useToday } from '@/lib/use-today';
 
 export function EventDetailScreen() {
@@ -48,7 +61,9 @@ export function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const eventId = id as UUID;
 
+  const currency = useCurrency();
   const { data: event, isPending, isError, refetch } = useEvent(eventId);
+  const { data: occurrences } = useEventOccurrences(eventId);
   const { data: tasks } = useTasksByEvent(eventId);
   const { data: payments } = usePaymentsByEvent(eventId);
   const { data: eventDocs } = useDocumentsByEvent(eventId);
@@ -77,18 +92,8 @@ export function EventDetailScreen() {
   const lunar = formatLunarLabel(event);
   const solar = event.nextOccurrenceDate;
 
-  // "Năm ngoái: 6/10/2025" — chỉ có nghĩa với sự kiện âm lịch lặp hằng năm.
-  const lastYear =
-    event.calendar === 'lunar' && event.lunarDay !== null && event.lunarMonth !== null
-      ? previousLunarOccurrence(
-          {
-            day: event.lunarDay,
-            month: event.lunarMonth,
-            isLeapMonth: event.lunarLeapMonth,
-          },
-          today,
-        )
-      : null;
+  // Lần diễn ra gần nhất TRƯỚC hôm nay — `null` thì cả khối không hiện.
+  const lastYear = lastYearFor(event, occurrences ?? [], today);
 
   const confirmDelete = (): void => {
     Alert.alert(event.title, t.common.delete, [
@@ -130,14 +135,26 @@ export function EventDetailScreen() {
         </Text>
       </View>
 
-      {lastYear ? (
-        <Text className="mt-1 text-caption text-subtle">
-          {f(t.event.lastYear, { date: fullSolarDate(lastYear) })}
-        </Text>
-      ) : null}
-
       {event.notes ? (
         <Text className="mt-4 text-body text-muted">{event.notes}</Text>
+      ) : null}
+
+      {/* ── NĂM NGOÁI ── Đứng TRƯỚC "việc cần chuẩn bị" có chủ ý: người mở màn
+          này để chuẩn bị cho dịp sắp tới, và câu hỏi đầu tiên trong đầu họ là
+          "lần trước hết bao nhiêu". Đặt nó dưới danh sách việc là chôn đúng
+          thứ khiến màn hình này đáng nhớ. */}
+      {lastYear ? (
+        <View>
+          <SectionHeader title={t.event.sectionLastYear} />
+          <Text className="text-body text-ink">
+            {lastYear.actualCost === null
+              ? f(t.event.lastYearNoCost, { date: fullSolarDate(lastYear.occurredOn) })
+              : f(t.event.lastYearWithCost, {
+                  date: fullSolarDate(lastYear.occurredOn),
+                  amount: moneyText(lastYear.actualCost, currency),
+                })}
+          </Text>
+        </View>
       ) : null}
 
       {/* ── VIỆC CẦN CHUẨN BỊ ── */}
