@@ -7,10 +7,13 @@
  * có hai lớp nền và cử chỉ vuốt không còn đóng được. Ở đây chỉ còn: tiêu đề,
  * nút đóng, và tránh bàn phím.
  *
- * KHÔNG `flex-1` ở gốc: `sheetAllowedDetents: 'fitToContents'` đo chiều cao
- * nội dung để quyết định sheet cao bao nhiêu, mà `flex-1` nghĩa là "chiếm hết
- * chỗ cha cho" — đo một thứ co giãn vô định thì ra chiều cao vô định. Sheet co
- * theo nội dung, và nội dung dài thì `scroll` lo phần còn lại.
+ * `flex-1` ở gốc: navigator ghim detent theo từng form, tức hệ điều hành
+ * đã quyết chiều cao — việc của sheet là LẤP ĐẦY chỗ được cấp.
+ * Không có nó thì cả khối co theo nội dung và nằm lửng ở trên, phần dưới hở ra
+ * nền trắng, còn `actions` trôi lên giữa màn hình thay vì ghim đáy.
+ *
+ * (Trước đây là `fitToContents` nên đúng luật ngược lại — `flex-1` khi ấy làm hệ
+ * điều hành đo phải một thứ co giãn vô định. Đổi detent thì phải đổi cả chỗ này.)
  *
  * `SheetActions` ghim ở đáy chứ không cuộn cùng nội dung — nút chính của một
  * sheet phải luôn với tới được, kể cả khi bàn phím đang che nửa màn hình.
@@ -29,6 +32,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useT } from '@/i18n';
 
+import { Icon, ICON_COLOR } from './icon';
+
 export interface SheetProps {
   title: string;
   children: ReactNode;
@@ -45,9 +50,14 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
   const body = scroll ? (
     // `bounces={false}`: sheet đã vuốt-xuống-để-đóng, nên nội dung nảy thêm một
     // nhịp nữa làm hai cử chỉ tranh nhau và người dùng không biết mình đang kéo
-    // cái gì. `maxHeight` chặn sheet cao quá màn hình khi nội dung dài.
+    // cái gì.
+    //
+    // `flex-1` để vùng cuộn ăn hết phần giữa: chiều cao sheet đã do
+    // detent cố định, nên phần nào không phải tiêu đề hay `actions` đều thuộc về
+    // nội dung. Thiếu nó thì `ScrollView` co theo nội dung, form ngắn để lại một
+    // mảng trắng giữa nội dung và cụm nút.
     <ScrollView
-      style={{ maxHeight: '100%' }}
+      className="flex-1"
       contentContainerClassName="px-4 pb-6"
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -56,32 +66,56 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
       {children}
     </ScrollView>
   ) : (
-    <View className="px-4">{children}</View>
+    <View className="flex-1 px-4">{children}</View>
   );
 
   return (
-    <SafeAreaView className="bg-white" edges={['bottom']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView className="flex-1 bg-white" edges={['bottom']}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         {/* Thanh nắm do hệ điều hành vẽ — xem `(modals)/_layout.tsx`. Vẽ thêm
-            một cái ở đây là hai thanh nắm chồng nhau. */}
-        <View className="flex-row items-center justify-between px-4 pb-4 pt-6">
-          <Text className="text-title2 font-semibold text-ink">{title}</Text>
+            một cái ở đây là hai thanh nắm chồng nhau.
+
+            Ba cột chứ không phải `justify-between`: tiêu đề căn giữa MÀN HÌNH,
+            không phải giữa khoảng trống còn lại. Ô rỗng bên trái rộng đúng bằng
+            nút bên phải, nên tiêu đề không bị nút đẩy lệch — và nó vẫn ở đúng
+            chỗ khi nhãn dài ngắn khác nhau. */}
+        <View className="flex-row items-center px-4 pb-4 pt-6">
+          <View className="min-w-touch" />
+
+          {/* `flex-1` + `text-center`: tiêu đề chiếm hết phần giữa rồi tự căn
+              giữa trong đó. `numberOfLines` giữ header luôn một dòng — tiêu đề
+              dài xuống hai dòng sẽ đẩy lệch chiều cao header giữa các form. */}
+          <Text
+            numberOfLines={1}
+            className="flex-1 text-center text-title2 font-semibold text-ink"
+          >
+            {title}
+          </Text>
+
+          {/* Nền tròn `bg-soft`: một icon ✕ trần trên nền trắng là vùng chạm vô
+              hình — người dùng phải đoán nó bắt đầu và kết thúc ở đâu. Vòng tròn
+              nói rõ ranh giới mà không cần thêm viền. */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.a11y.close}
             hitSlop={12}
             onPress={onClose}
-            className="min-h-touch min-w-touch items-end justify-center"
+            className="h-11 w-11 items-center justify-center rounded-full bg-soft active:bg-line"
           >
-            <Text className="text-body text-muted">{t.common.close}</Text>
+            <Icon name="close" size={18} color={ICON_COLOR.ink} />
           </Pressable>
         </View>
 
         {body}
 
-        {actions ? (
-          <View className="border-t border-line px-4 pb-2 pt-3">{actions}</View>
-        ) : null}
+        {/* Không viền trên, không nền riêng: nút Lưu đã là một khối đen đặc,
+            tự nó đủ nặng để đọc ra là hành động chính. Thêm một đường kẻ và một
+            dải nền phía sau là dựng một thanh công cụ quanh một nút duy nhất —
+            design.md §8 nói dùng khoảng trắng trước khi thêm container. */}
+        {actions ? <View className="px-4 pb-2 pt-3">{actions}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

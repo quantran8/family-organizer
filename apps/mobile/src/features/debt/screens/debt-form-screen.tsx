@@ -36,6 +36,7 @@ import {
 } from '@/features/debt/queries/use-debts';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useT } from '@/i18n';
+import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
 import { showToast } from '@/stores/toast';
 
@@ -58,6 +59,8 @@ export function DebtFormScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const debtId = (params.id ?? null) as UUID | null;
   const isEdit = debtId !== null;
+  // Bàn phím bật SAU khi sheet trượt xong — xem `use-sheet-autofocus`.
+  const titleRef = useSheetAutoFocus(!isEdit);
 
   const { data: existing } = useDebt(debtId);
   const { data: members } = useMembers();
@@ -174,7 +177,7 @@ export function DebtFormScreen() {
         value={name}
         onChangeText={setName}
         placeholder={t.debt.fieldNamePlaceholder}
-        autoFocus={!isEdit}
+        ref={titleRef}
         maxLength={120}
       />
 

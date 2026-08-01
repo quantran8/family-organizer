@@ -10,4 +10,5 @@
  */
 
 export { EventRow, type EventRowProps } from './event-row';
+export { EventCalendar, type EventCalendarProps } from './event-calendar';
 export { LunarDatePicker, type LunarDatePickerProps } from './lunar-date-picker';

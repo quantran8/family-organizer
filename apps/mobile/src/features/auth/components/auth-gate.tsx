@@ -16,10 +16,12 @@
  * gesture handler. Trộn hai thứ làm file gốc phình lên 176 dòng và không ai biết
  * nên mở nó ra để sửa cái gì.
  *
- * Render `<Slot />`: Expo Router điền màn hình con vào đây theo route hiện tại.
+ * Render `<Stack>`: Expo Router điền màn hình con vào đây theo route hiện tại.
+ * Phải là `Stack` chứ không `Slot` vì đây cũng là cấp mà `(modals)` được present
+ * như bottom sheet — xem chú thích ở chỗ return.
  */
 
-import { Slot, SplashScreen, useRouter, useSegments } from 'expo-router';
+import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useMyHouseholds, useRestoreSession } from '@/features/auth/queries/use-auth';
@@ -64,8 +66,26 @@ export function AuthGate() {
   const atRoot = path.length === 0;
   const inJoin = path[1] === 'join';
 
+  /**
+   * `(modals)` KHÔNG được coi là rời khỏi `(app)`.
+   *
+   * Sheet đẩy lên trên màn hình đang đứng chứ không thay thế nó, nhưng
+   * `segments` vẫn đổi thành `['(modals)', …]` — và mọi giá trị dẫn xuất ở trên
+   * đổi theo, làm gate render lại cả cây `(app)` (HomeScreen + toàn bộ query của
+   * nó) đúng lúc sheet cần JS thread để trượt lên. Đó là nửa giây khựng khi mở
+   * form từ menu [+].
+   *
+   * Giữ nguyên trạng thái gate trong lúc modal mở: nó là lớp phủ, không phải một
+   * nhánh onboarding khác.
+   */
+  const inModal = path[0] === '(modals)';
+
   useEffect(() => {
     if (!isReady) return;
+    // Modal là lớp phủ trên màn hình đang đứng — không có quyết định điều hướng
+    // nào ở đây, và chạy lại nhánh dưới trong lúc sheet đang mở chỉ tốn một lượt
+    // trên JS thread mà sheet đang cần.
+    if (inModal) return;
     // Chờ biết có nhà hay không rồi mới điều hướng — điều hướng sớm sẽ đẩy
     // người đã có nhà sang màn setup rồi mới giật ngược lại.
 
@@ -88,7 +108,7 @@ export function AuthGate() {
       return;
     }
     if (inAuth || atRoot) router.replace('/(app)/home');
-  }, [isReady, session, effectiveHouseholdId, inAuth, atRoot, inJoin, router]);
+  }, [isReady, session, effectiveHouseholdId, inAuth, atRoot, inJoin, inModal, router]);
 
   useEffect(() => {
     if (isReady) {
@@ -99,7 +119,7 @@ export function AuthGate() {
   }, [isReady]);
 
   /**
-   * Được phép render `<Slot />` chưa?
+   * Được phép render cây con chưa?
    *
    * `useEffect` điều hướng chạy SAU khi cây con đã render xong một lần. Nên nếu
    * ở đây render vô điều kiện, người mở app thẳng vào `/(app)/home` sẽ dựng
@@ -116,11 +136,40 @@ export function AuthGate() {
    * `(auth)` và route rỗng là hai chỗ effect sắp rời đi, nên cũng không dựng.
    */
   const hasHousehold = session !== null && effectiveHouseholdId !== null;
-  const canRender = isReady && (hasHousehold ? !inAuth && !atRoot : inAuth);
+  // `inModal` đi cùng nhánh có nhà: modal chỉ mở được từ trong `(app)`, nên tới
+  // được đây là đã qua gate rồi. Nói tường minh để lần sau siết điều kiện không
+  // vô tình chặn mất cây đang có sheet nằm trên.
+  const canRender = isReady && (hasHousehold ? inModal || (!inAuth && !atRoot) : inAuth);
 
   // Splash vẫn đang phủ kín màn hình lúc `isReady` còn false, nên `null` ở đây
   // không tạo ra một khoảnh khắc trắng — nó chỉ ngăn cây con dựng quá sớm.
   if (!canRender) return null;
 
-  return <Slot />;
+  /**
+   * `Stack` chứ không `Slot` — đây là chỗ `(modals)` được present như sheet.
+   *
+   * `Slot` render route con mà KHÔNG tạo navigator. Ba nhóm `(app)`, `(auth)`,
+   * `(modals)` là anh em cùng cấp, nên không có navigator ở cấp này thì không có
+   * gì đọc `presentation` của chúng: `(modals)` bị dựng như một màn hình thường,
+   * phủ kín màn hình. `presentation: 'formSheet'` khai trong `(modals)/_layout.tsx`
+   * chỉ áp cho các route BÊN TRONG nhóm đó, không áp cho chính nhóm lúc nó được
+   * đẩy lên — đó là lý do sheet vẫn fullscreen dù đã ghim detent.
+   */
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(app)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen
+        name="(modals)"
+        options={{
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.7],
+          sheetGrabberVisible: true,
+          // Cùng bán kính với `rounded-status` của Card (04 §6): sheet đọc như
+          // một thẻ lớn trượt lên, không phải cửa sổ của hệ điều hành khác.
+          sheetCornerRadius: 24,
+        }}
+      />
+    </Stack>
+  );
 }

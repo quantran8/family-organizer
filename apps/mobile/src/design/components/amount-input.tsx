@@ -60,10 +60,20 @@ export interface AmountInputProps
   /** Ký hiệu ₫ cuối ô — mặc định hiện, vì nó nói rõ ô này là tiền. */
   showSymbol?: boolean;
   hasError?: boolean;
+  /** Dạng phẳng để đặt trong row có divider của form. */
+  variant?: 'control' | 'row';
 }
 
 export const AmountInput = forwardRef<TextInput, AmountInputProps>(function AmountInput(
-  { value, onChangeValue, showSymbol = true, hasError = false, className, ...rest },
+  {
+    value,
+    onChangeValue,
+    showSymbol = true,
+    hasError = false,
+    variant = 'control',
+    className,
+    ...rest
+  },
   ref,
 ) {
   const currency = useCurrency();
@@ -93,10 +103,11 @@ export const AmountInput = forwardRef<TextInput, AmountInputProps>(function Amou
   return (
     <View
       className={[
-        'flex-row items-center rounded-control border bg-white px-4',
+        'flex-row items-center',
+        variant === 'row' ? 'bg-transparent' : 'rounded-control border bg-white px-4',
         // Vùng chạm ≥ 44px — mức sàn không thương lượng (design.md §14).
         'min-h-touch',
-        hasError ? 'border-critical' : 'border-line',
+        variant === 'control' ? (hasError ? 'border-critical' : 'border-line') : '',
         className,
       ]
         .filter(Boolean)
@@ -112,14 +123,14 @@ export const AmountInput = forwardRef<TextInput, AmountInputProps>(function Amou
         numberOfLines={1}
         style={{
           fontVariant: ['tabular-nums'],
-          fontSize: fontSizeFor(toDigits(text).length),
+          fontSize: variant === 'row' ? 16 : fontSizeFor(toDigits(text).length),
         }}
         className="flex-1 py-3 text-ink"
         placeholderTextColor="#A4A4AD"
         {...rest}
       />
       {showSymbol && currency === 'VND' ? (
-        <Text className="pl-2 text-heading text-muted">₫</Text>
+        <Text className="pl-2 text-heading text-muted">{'₫'}</Text>
       ) : null}
     </View>
   );

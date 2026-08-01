@@ -1,17 +1,23 @@
 /**
  * Stack cho các route trong `(modals)/`.
  *
- * `formSheet` chứ không phải `modal`: `modal` trượt lên gần kín màn hình và che
- * mất chỗ người dùng đang đứng, trong khi thêm một thứ là thao tác PHỤ
- * (design.md §9). `formSheet` chỉ cao bằng nội dung, nền phía sau còn thấy —
- * đúng nghĩa "không rời khỏi chỗ đang đứng".
+ * KHÔNG khai `presentation` ở đây. Nhóm `(modals)` được present như `formSheet`
+ * ở cấp CHA — trong `AuthGate`, nơi ba nhóm `(app)` / `(auth)` / `(modals)` là
+ * anh em cùng một `Stack`. Đó là cấp duy nhất có navigator đọc được `presentation`
+ * của cả nhóm.
  *
- * `fitToContents` chứ không phải một mảng tỉ lệ cứng: menu Thêm nhanh chỉ có 5
- * dòng, còn form sự kiện dài gấp ba. Ghim `[0.5, 0.9]` sẽ làm cái này hụt và
- * cái kia thừa một khoảng trắng lớn ở đáy.
+ * Khai lại `formSheet` ở đây thì mỗi form thành một sheet CON nằm trong sheet
+ * cha — hai lớp bo góc, hai thanh nắm, và detent của lớp trong tính theo lớp
+ * ngoài chứ không theo màn hình. Stack này chỉ còn lo việc điều hướng giữa các
+ * form và nền trắng.
  *
- * Thanh nắm do HỆ ĐIỀU HÀNH vẽ (`sheetGrabberVisible`), nên `Sheet` không tự vẽ
- * nữa — hai thanh nắm chồng nhau là lỗi thị giác rõ nhất của bố cục này.
+ * `flex: 1` ở `contentStyle`: detent đã ghim chiều cao, nên `Sheet` phải có chỗ
+ * thật mà lấp đầy. Thiếu nó thì `flex-1` bên trong `Sheet` không có gì để bám và
+ * cụm nút trôi khỏi đáy.
+ *
+ * Thanh nắm do HỆ ĐIỀU HÀNH vẽ (`sheetGrabberVisible`, khai ở cấp cha), nên
+ * `Sheet` không tự vẽ nữa — hai thanh nắm chồng nhau là lỗi thị giác rõ nhất của
+ * bố cục này.
  */
 
 import { Stack } from 'expo-router';
@@ -20,14 +26,8 @@ export default function ModalsLayout() {
   return (
     <Stack
       screenOptions={{
-        presentation: 'formSheet',
         headerShown: false,
-        sheetAllowedDetents: 'fitToContents',
-        sheetGrabberVisible: true,
-        // Cùng bán kính với `rounded-status` của Card (04 §6): sheet đọc như một
-        // thẻ lớn trượt lên, không phải một cửa sổ của hệ điều hành khác.
-        sheetCornerRadius: 24,
-        contentStyle: { backgroundColor: '#FFFFFF' },
+        contentStyle: { backgroundColor: '#FFFFFF', flex: 1 },
       }}
     />
   );

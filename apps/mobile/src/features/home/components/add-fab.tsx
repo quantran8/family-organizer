@@ -29,11 +29,15 @@ export function AddFab() {
   /**
    * FAB thật có đang ẩn không — trạng thái RIÊNG, không suy ra từ `open`.
    *
-   * `open` thành false ngay lúc bấm đóng, nhưng panel còn 180ms nữa mới co hết
-   * về hình dạng nút. Nếu FAB hiện lại theo `open` thì suốt 180ms đó có hai vật
-   * đen tròn ở cùng một góc, và cảm giác "panel thu lại thành nút" vỡ — đúng
-   * triệu chứng nút bật ra tức thì. Nên: ẩn NGAY khi mở, chỉ hiện lại khi
+   * `open` thành false ngay lúc bấm đóng, nhưng panel còn cả một nhịp spring nữa
+   * mới co hết về hình dạng nút. Nếu FAB hiện lại theo `open` thì suốt nhịp đó có
+   * hai vật đen tròn ở cùng một góc, và cảm giác "panel thu lại thành nút" vỡ —
+   * đúng triệu chứng nút bật ra tức thì. Nên: ẩn NGAY khi mở, chỉ hiện lại khi
    * `FabMenu` báo đã co xong.
+   *
+   * Đây cũng là thứ xâu chuỗi hai chuyển động: `onClosed` bắn lúc panel về đúng
+   * hình nút, nút mount lại ngay tại đó và nảy lên bằng spring của riêng nó, nên
+   * mắt đọc thành một mạch liên tục chứ không thành hai hiệu ứng rời.
    */
   const [fabHidden, setFabHidden] = useState(false);
 
@@ -54,16 +58,26 @@ export function AddFab() {
   // khoản sắp trả → khoản tiền → giấy tờ. Giấy tờ đứng cuối vì nó là thứ thêm
   // thưa nhất, vài lần một năm chứ không phải vài lần một tuần.
   const items: FabMenuItem[] = [
-    { key: 'task', label: t.quickAdd.task, glyph: '✓', onPress: () => router.push('/(modals)/task-form') },
-    { key: 'event', label: t.quickAdd.event, glyph: '☰', onPress: () => router.push('/(modals)/event-form') },
+    { key: 'task', label: t.quickAdd.task, icon: 'task', onPress: () => router.push('/(modals)/task-form') },
+    {
+      key: 'event',
+      label: t.quickAdd.event,
+      icon: 'event',
+      onPress: () => router.push('/(modals)/event-form'),
+    },
     {
       key: 'payment',
       label: t.quickAdd.payment,
-      glyph: '◆',
+      icon: 'bell',
       onPress: () => router.push('/(modals)/payment-form'),
     },
-    { key: 'asset', label: t.quickAdd.asset, glyph: '₫', onPress: () => router.push('/(modals)/asset-form') },
-    { key: 'doc', label: t.quickAdd.doc, glyph: '⧉', onPress: () => router.push('/(modals)/doc-form') },
+    {
+      key: 'asset',
+      label: t.quickAdd.asset,
+      icon: 'money',
+      onPress: () => router.push('/(modals)/asset-form'),
+    },
+    { key: 'doc', label: t.quickAdd.doc, icon: 'doc', onPress: () => router.push('/(modals)/doc-form') },
   ];
 
   return (
@@ -72,7 +86,9 @@ export function AddFab() {
         open={open}
         items={items}
         onClose={() => setOpen(false)}
-        // Chỉ tới đây nút mới được hiện lại — panel đã co hết về hình dạng nút.
+        // Nút hiện lại lúc panel vừa co TỚI hình nút — không đợi panel tháo hẳn.
+        // Đoạn chồng lấn ngắn sau đó là chủ ý: panel mờ đi trong khi nút nảy lên,
+        // nên mắt đọc thành một mạch. Xem `frameStyle` trong `fab-menu.tsx`.
         onClosed={() => setFabHidden(false)}
         bottomOffset={FAB_BOTTOM}
       />

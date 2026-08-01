@@ -34,6 +34,7 @@ import {
   useUpdatePayment,
 } from '@/features/payment/queries/use-payments';
 import { useT } from '@/i18n';
+import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
 
 export function PaymentFormScreen() {
@@ -44,6 +45,8 @@ export function PaymentFormScreen() {
   const params = useLocalSearchParams<{ id?: string; eventId?: string }>();
   const paymentId = (params.id ?? null) as UUID | null;
   const isEdit = paymentId !== null;
+  // Bàn phím bật SAU khi sheet trượt xong — xem `use-sheet-autofocus`.
+  const titleRef = useSheetAutoFocus(!isEdit);
 
   /**
    * Ngữ cảnh sự kiện — form mở từ "Thêm khoản" trên màn chi tiết sự kiện
@@ -130,7 +133,7 @@ export function PaymentFormScreen() {
         value={name}
         onChangeText={setName}
         placeholder={t.payment.fieldNamePlaceholder}
-        autoFocus={!isEdit}
+        ref={titleRef}
         maxLength={120}
       />
 

@@ -46,11 +46,22 @@ export { DateTile, type DateTileProps } from './date-tile';
 export { FAB, type FABProps } from './fab';
 export { FabMenu, type FabMenuItem, type FabMenuProps } from './fab-menu';
 export { Field, type FieldProps } from './field';
+export { FormRow, type FormRowProps } from './form-row';
+export {
+  Icon,
+  ICON_COLOR,
+  TabIcon,
+  type IconName,
+  type IconProps,
+  type TabIconName,
+  type TabIconProps,
+} from './icon';
 export { Card, Divider, Row, Screen, SectionHeader } from './layout';
 export type { CardProps, RowProps, ScreenProps, SectionHeaderProps } from './layout';
 export { MemberAvatar, type MemberAvatarProps } from './member-avatar';
 export { NavRow, type NavRowProps } from './nav-row';
 export { PasswordToggle, type PasswordToggleProps } from './password-toggle';
+export { PickerSheet, type PickerSheetProps } from './picker-sheet';
 export { MoneyText, type MoneySize, type MoneyTextProps, type MoneyTone } from './money-text';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './segmented';
 export { Sheet, type SheetProps } from './sheet';

@@ -41,6 +41,7 @@ import {
 } from '@/features/document/queries/use-documents';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useT } from '@/i18n';
+import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { showToast } from '@/stores/toast';
 import { useToday } from '@/lib/use-today';
 
@@ -53,6 +54,8 @@ export function DocumentFormScreen() {
   const docId = (params.id ?? null) as UUID | null;
   const eventId = (params.eventId ?? null) as UUID | null;
   const isEdit = docId !== null;
+  // Bàn phím bật SAU khi sheet trượt xong — xem `use-sheet-autofocus`.
+  const titleRef = useSheetAutoFocus(!isEdit);
 
   const { data: existing } = useDocument(docId);
   const { data: members } = useMembers();
@@ -176,7 +179,7 @@ export function DocumentFormScreen() {
         value={title}
         onChangeText={setTitle}
         placeholder={t.doc.fieldTitlePlaceholder}
-        autoFocus={!isEdit}
+        ref={titleRef}
         maxLength={120}
       />
 

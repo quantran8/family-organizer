@@ -1,29 +1,51 @@
 /**
- * Chọn ngày cho việc nhà.
+ * Chọn ngày — bộ chọn CỦA HỆ ĐIỀU HÀNH.
  *
- * CỐ Ý không dùng `@react-native-community/datetimepicker`: nó là native module,
- * cần build lại app, và G3 mới kiểm được bundle hiện tại. Quan trọng hơn — với
- * việc nhà, gần như mọi ngày cần chọn là "hôm nay / mai / cuối tuần", và một
- * bánh xe lịch bắt cuộn qua 30 ngày để chọn "ngày mai" là chậm hơn một chạm.
+ * Trước đây đây là một lưới chip tự dựng, với lý do: `datetimepicker` là native
+ * module cần build lại app, và với việc nhà thì gần như mọi ngày cần chọn là
+ * "hôm nay / mai / cuối tuần" nên một bánh xe lịch là chậm hơn một chạm.
  *
- * Ba chip nhanh + một hàng ngày kế tiếp. Ngày xa hơn hai tuần thì gõ thẳng —
- * ô nhập `YYYY-MM-DD` nằm sau nút cuối, hiếm dùng nhưng không được thiếu.
+ * Vế thứ hai vẫn đúng, nên ba chip nhanh Ở LẠI. Nhưng bánh xe tự dựng thì thua
+ * bánh xe hệ thống ở mọi mặt còn lại: cử chỉ, Dynamic Type, VoiceOver, định dạng
+ * ngày theo vùng, và quan trọng nhất — nó là thứ người dùng đã biết dùng từ mọi
+ * app khác trên máy (design.md §2.2 "familiar controls behave as expected").
  *
- * Số học ngày đi qua `addDays` của domain, KHÔNG qua `new Date()`: cả app neo
- * vào UTC+7 và `new Date()` phân giải theo múi giờ máy (xem date/civil.ts).
+ * Nên: chip nhanh cho ba ngày phổ biến, native picker cho mọi ngày còn lại.
+ *
+ * ── Ranh giới `Date` ↔ `ISODate` ──
+ *
+ * `DateTimePicker` nói bằng `Date` (có giờ, có múi giờ máy); app nói bằng
+ * `ISODate` (chuỗi `YYYY-MM-DD`, neo UTC+7). Chuyển đổi CHỈ xảy ra trong file
+ * này, ở hai hàm dưới, và luôn đọc/ghi thành phần LỊCH ĐỊA PHƯƠNG của `Date` —
+ * không bao giờ `toISOString()`, vì nó quy về UTC và làm lệch một ngày với mọi
+ * người dùng ở phía đông GMT sau 17:00 giờ Việt Nam.
  */
 
-import { addDays, compareISODate, parseISODate, weekdayOf, type ISODate } from '@family-organizer/domain';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import {
+  addDays,
+  compareISODate,
+  formatISODate,
+  parseISODate,
+  weekdayOf,
+  type ISODate,
+} from '@family-organizer/domain';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { useT, weekdayShort } from '@/i18n';
+
+import { Icon, ICON_COLOR } from './icon';
 
 export interface DatePickerProps {
   value: ISODate | null;
   onChange: (next: ISODate | null) => void;
   /** Hôm nay, truyền vào tường minh — component không đọc đồng hồ. */
   today: ISODate;
+  /** Chỉ hiện native picker, không hiện chip nhanh hay dòng "Ngày khác". */
+  nativeOnly?: boolean;
+  /** Android tự đóng dialog sau khi chọn/huỷ; báo cha để unmount picker. */
+  onNativeClose?: () => void;
 }
 
 /** Chủ nhật gần nhất tính từ `d`; nếu `d` đã là Chủ nhật thì lấy chính nó. */
@@ -32,11 +54,29 @@ function nextWeekend(d: ISODate): ISODate {
   return wd === 0 ? d : addDays(d, 7 - wd);
 }
 
-const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** `ISODate` → `Date` ở giữa trưa giờ địa phương. */
+function toDate(d: ISODate): Date {
+  const c = parseISODate(d);
+  // 12:00 chứ không phải 00:00: nếu máy đang ở múi giờ có DST và ngày đó là ngày
+  // đổi giờ, mốc nửa đêm có thể không tồn tại và `Date` nhảy sang ngày khác.
+  // Giữa trưa cách xa mọi ranh giới đó.
+  return new Date(c.year, c.month - 1, c.day, 12, 0, 0);
+}
 
-export function DatePicker({ value, onChange, today }: DatePickerProps) {
+/** `Date` → `ISODate`, đọc thành phần lịch địa phương (KHÔNG qua UTC). */
+function fromDate(d: Date): ISODate {
+  return formatISODate({ year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() });
+}
+
+export function DatePicker({
+  value,
+  onChange,
+  today,
+  nativeOnly = false,
+  onNativeClose,
+}: DatePickerProps) {
   const { t } = useT();
-  const [typed, setTyped] = useState(false);
+  const [open, setOpen] = useState(nativeOnly);
 
   const quick: { label: string; date: ISODate }[] = [
     { label: t.dueLabel.today, date: today },
@@ -44,83 +84,71 @@ export function DatePicker({ value, onChange, today }: DatePickerProps) {
     { label: t.home.sectionWeekend, date: nextWeekend(today) },
   ];
 
-  // Bảy ngày kế tiếp, bỏ những ngày đã có mặt trong chip nhanh để không hiện
-  // cùng một ngày hai lần với hai cái tên khác nhau.
-  const upcoming: ISODate[] = [];
-  for (let i = 0; i < 14 && upcoming.length < 7; i += 1) {
-    const d = addDays(today, i + 2);
-    if (!quick.some((q) => q.date === d)) upcoming.push(d);
-  }
-
   const select = (d: ISODate): void => {
     // Chạm lại chính ngày đang chọn = bỏ chọn. Việc không có hạn là trạng thái
     // hợp lệ ("Không có hạn" là một nhóm thật), nên phải quay về được.
     onChange(value === d ? null : d);
   };
 
-  const isCustom =
-    value !== null && !quick.some((q) => q.date === value) && !upcoming.includes(value);
+  const handleNative = (event: DateTimePickerEvent, picked?: Date): void => {
+    // Android vẽ dialog riêng và tự đóng; iOS vẽ inline nên phải tự quản.
+    if (Platform.OS === 'android') {
+      setOpen(false);
+      onNativeClose?.();
+    }
+    // `dismissed` = bấm huỷ. Không đụng tới giá trị đang có.
+    if (event.type === 'dismissed' || !picked) return;
+    onChange(fromDate(picked));
+  };
 
   return (
-    <View className="gap-2">
-      <View className="flex-row flex-wrap gap-2">
-        {quick.map((q) => (
-          <Chip key={q.date} label={q.label} active={value === q.date} onPress={() => select(q.date)} />
-        ))}
-      </View>
-
-      <View className="flex-row flex-wrap gap-2">
-        {upcoming.map((d) => {
-          const c = parseISODate(d);
-          return (
+    <View className={nativeOnly ? 'my-2 rounded-featured bg-soft px-3 py-2' : 'gap-3'}>
+      {!nativeOnly ? (
+        <View className="flex-row flex-wrap gap-2">
+          {quick.map((q) => (
             <Chip
-              key={d}
-              label={`${weekdayShort(weekdayOf(d))} ${c.day}/${c.month}`}
-              active={value === d}
-              onPress={() => select(d)}
+              key={q.date}
+              label={q.label}
+              active={value === q.date}
+              onPress={() => select(q.date)}
             />
-          );
-        })}
-        <Chip
-          label={t.common.add}
-          active={isCustom}
-          onPress={() => setTyped((s) => !s)}
-        />
-      </View>
-
-      {typed || isCustom ? (
-        <TextInput
-          value={value ?? ''}
-          onChangeText={(raw) => {
-            if (raw === '') {
-              onChange(null);
-              return;
-            }
-            // Chỉ nhận khi đã đủ hình dạng VÀ parse được — `parseISODate` ném
-            // với ngày như 2026-02-30, và một ngày không tồn tại đi xuống DB sẽ
-            // hỏng ở tận nơi ghi.
-            if (!ISO_RE.test(raw)) return;
-            try {
-              parseISODate(raw);
-              onChange(raw);
-            } catch {
-              /* chưa hợp lệ — giữ nguyên giá trị cũ, không báo lỗi khi đang gõ */
-            }
-          }}
-          placeholder="2026-12-31"
-          placeholderTextColor="#A4A4AD"
-          accessibilityLabel={t.task.fieldDueDate}
-          keyboardType="numbers-and-punctuation"
-          maxLength={10}
-          className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
-        />
+          ))}
+        </View>
       ) : null}
 
-      {/* Nhãn xác nhận: chip đang sáng đã nói "cái nào", dòng này nói "ngày mấy". */}
-      {value !== null ? (
-        <Text className="text-caption text-subtle">
-          {`${weekdayShort(weekdayOf(value))} ${parseISODate(value).day}/${parseISODate(value).month}/${parseISODate(value).year}`}
-        </Text>
+      {/* Dòng mở lịch hệ thống — cho mọi ngày không nằm trong ba chip trên. */}
+      {!nativeOnly ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.task.otherDate}
+          onPress={() => setOpen((s) => !s)}
+          className="min-h-touch flex-row items-center gap-3 border-t border-line pt-3 active:bg-soft"
+        >
+          <View className="w-8 items-center">
+            <Icon name="date" color={ICON_COLOR.brand} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-body font-medium text-ink">{t.task.otherDate}</Text>
+            {value !== null ? (
+              <Text className="mt-0.5 text-caption text-muted">
+                {`${weekdayShort(weekdayOf(value))}, ${parseISODate(value).day}/${parseISODate(value).month}/${parseISODate(value).year}`}
+              </Text>
+            ) : null}
+          </View>
+          <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
+        </Pressable>
+      ) : null}
+
+      {open ? (
+        <DateTimePicker
+          value={toDate(value ?? today)}
+          mode="date"
+          // `inline` trên iOS: một tấm lịch tháng đầy đủ, chạm thẳng vào ngày —
+          // nhanh hơn `spinner` vốn bắt cuộn ba bánh xe rời nhau.
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          onChange={handleNative}
+          locale="vi-VN"
+        />
       ) : null}
 
       {value !== null && compareISODate(value, today) < 0 ? (

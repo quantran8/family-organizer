@@ -8,14 +8,17 @@
  *
  * Badge: CHỈ trên tab Tiền, CHỈ khi trạng thái `tight`, và không đếm số. Một
  * con số đỏ trên tab Việc biến việc nhà thành danh sách nợ phải trả.
+ *
+ * Icon dùng `TabIcon` (Ionicons) chứ không phải `Icon` (Feather) như phần còn
+ * lại của app: tab đang mở phải đổi HÌNH sang nét đặc, không chỉ đổi màu
+ * (design.md §11.2, và §15 cấm dùng màu một mình) — mà Feather không có bản đặc.
+ * Xem chú thích ở `design/components/icon.tsx`.
  */
 
 import { Tabs } from 'expo-router';
-import { Text, type ColorValue } from 'react-native';
 
+import { TabIcon } from '@/design/components';
 import { useT } from '@/i18n';
-
-const ICON = { home: '⌂', plan: '☰', money: '₫', docs: '⧉' } as const;
 
 export default function AppLayout() {
   const { t } = useT();
@@ -32,19 +35,31 @@ export default function AppLayout() {
     >
       <Tabs.Screen
         name="home"
-        options={{ title: t.tabs.home, tabBarIcon: ({ color }) => <TabIcon glyph={ICON.home} color={color} /> }}
+        options={{
+          title: t.tabs.home,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="plan"
-        options={{ title: t.tabs.plan, tabBarIcon: ({ color }) => <TabIcon glyph={ICON.plan} color={color} /> }}
+        options={{
+          title: t.tabs.plan,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="plan" color={color} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="money"
-        options={{ title: t.tabs.money, tabBarIcon: ({ color }) => <TabIcon glyph={ICON.money} color={color} /> }}
+        options={{
+          title: t.tabs.money,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="money" color={color} focused={focused} />,
+        }}
       />
       <Tabs.Screen
         name="docs"
-        options={{ title: t.tabs.docs, tabBarIcon: ({ color }) => <TabIcon glyph={ICON.docs} color={color} /> }}
+        options={{
+          title: t.tabs.docs,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="docs" color={color} focused={focused} />,
+        }}
       />
       {/*
         Cài đặt KHÔNG chiếm một tab (05 §2) — đúng bốn nhóm thông tin, không
@@ -55,14 +70,4 @@ export default function AppLayout() {
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
-}
-
-/**
- * Icon tạm bằng ký tự.
- *
- * Bộ icon thật (SVG qua react-native-svg) làm ở cuối G3 — dựng luồng trước, tô
- * sau: một tab bar có icon đẹp mà không đi tới đâu thì không kiểm được gì.
- */
-function TabIcon({ glyph, color }: { glyph: string; color: ColorValue }) {
-  return <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
 }

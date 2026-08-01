@@ -36,6 +36,7 @@ import {
 } from '@/features/asset/queries/use-assets';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useT } from '@/i18n';
+import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
 
 export function AssetFormScreen() {
@@ -46,6 +47,8 @@ export function AssetFormScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const assetId = (params.id ?? null) as UUID | null;
   const isEdit = assetId !== null;
+  // Bàn phím bật SAU khi sheet trượt xong — xem `use-sheet-autofocus`.
+  const titleRef = useSheetAutoFocus(!isEdit);
 
   const { data: existing } = useAsset(assetId);
   const { data: members } = useMembers();
@@ -143,7 +146,7 @@ export function AssetFormScreen() {
         value={name}
         onChangeText={setName}
         placeholder={t.asset.fieldNamePlaceholder}
-        autoFocus={!isEdit}
+        ref={titleRef}
         maxLength={120}
       />
 

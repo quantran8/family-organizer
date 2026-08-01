@@ -107,6 +107,10 @@ module.exports = {
         },
       ],
       'expo-secure-store',
+      // Bộ chọn ngày CỦA HỆ ĐIỀU HÀNH. Là native module nên phải qua prebuild —
+      // sau khi thêm dòng này cần `expo prebuild` rồi build lại, reload JS không
+      // đủ (xem `date-picker.tsx`).
+      '@react-native-community/datetimepicker',
       [
         'expo-image-picker',
         {

@@ -189,6 +189,12 @@ export const vi = {
     fieldTitlePlaceholder: 'Đổ rác',
     fieldAssignee: 'Ai làm',
     fieldAssigneeNone: 'Chưa phân',
+    /** Tiêu đề sheet chọn — dạng câu hỏi, khác nhãn trên dòng (một danh từ). */
+    pickAssignee: 'Ai làm?',
+    pickDate: 'Chọn ngày',
+    /** Dòng mở lịch cho ngày xa, nằm dưới bảy ngày gần. */
+    otherDate: 'Ngày khác',
+    noDueDate: 'Không có hạn',
     fieldDueDate: 'Ngày',
     fieldDueTime: 'Giờ',
     fieldRecur: 'Lặp lại',
@@ -207,11 +213,12 @@ export const vi = {
     emptyTitle: 'Chưa có sự kiện nào',
     emptyBody: 'Thêm ngày giỗ, sinh nhật, hay dịp quan trọng của hai bên.',
     emptyAction: 'Thêm sự kiện',
-    formTitle: 'Sự kiện mới',
+    formTitle: 'Thêm sự kiện',
     formEditTitle: 'Sửa sự kiện',
     fieldTitle: 'Tên sự kiện',
-    fieldTitlePlaceholder: 'Giỗ ông ngoại',
+    fieldTitlePlaceholder: 'Giỗ, sinh nhật hoặc dịp gia đình',
     fieldKind: 'Loại',
+    fieldDate: 'Ngày',
     fieldSide: 'Bên gia đình',
     fieldCalendar: 'Lịch',
     calendarSolar: 'Dương lịch',
@@ -221,6 +228,15 @@ export const vi = {
     fieldLeapMonth: 'Tháng nhuận',
     fieldLocation: 'Địa điểm',
     fieldEstimatedCost: 'Chi phí dự kiến',
+    calendarBasisLunar: 'Lặp theo ngày âm',
+    calendarBasisSolar: 'Theo ngày dương',
+    previousMonth: 'Tháng trước',
+    nextMonth: 'Tháng sau',
+    currentMonth: 'Về tháng hiện tại',
+    month: 'Tháng',
+    sectionFamily: 'Gia đình',
+    sectionDetails: 'Chi tiết',
+    pastDate: 'Ngày này đã ở trong quá khứ.',
     /**
      * Dòng xem trước — không có nó người dùng sẽ không tin app hiểu lịch âm.
      *
