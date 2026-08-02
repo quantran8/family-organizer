@@ -332,7 +332,7 @@ function FileTile({
       )}
 
       {busy ? (
-        <View className="absolute inset-0 items-center justify-center bg-white/70">
+        <View className="absolute inset-0 items-center justify-center bg-surface/70">
           <ActivityIndicator size="small" color="#101014" />
         </View>
       ) : null}

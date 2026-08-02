@@ -140,7 +140,7 @@ export function PaymentDetailScreen() {
           bấm gì — người dùng cần biết điều này lúc đang cân nhắc, không phải
           lúc đã ở trong hộp thoại xác nhận. */}
       {debt && debtAfter !== null && !isPaid ? (
-        <View className="mt-4 rounded-status border border-brand-soft bg-white p-4">
+        <View className="mt-4 rounded-status border border-brand-soft bg-surface p-4">
           <Text className="text-body text-ink">
             {f(t.payment.debtAfter, {
               name: debt.name,

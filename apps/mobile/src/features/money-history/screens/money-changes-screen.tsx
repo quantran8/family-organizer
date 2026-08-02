@@ -99,7 +99,7 @@ export function MoneyChangesScreen() {
 
   if (isError) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ErrorState
           message={t.error.unknown}
           retryLabel={t.common.retry}
@@ -110,7 +110,7 @@ export function MoneyChangesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       {filter}
 
       <ScrollView

@@ -32,7 +32,7 @@ export function ShoppingRow({ title, note = null, done, onToggle, onDelete }: Sh
   const { t } = useT();
 
   const row = (
-    <View className="min-h-touch flex-row items-center gap-3 bg-white py-3">
+    <View className="min-h-touch flex-row items-center gap-3 bg-surface py-3">
       <Checkbox checked={done} onToggle={onToggle} />
       <View className="flex-1">
         <Text

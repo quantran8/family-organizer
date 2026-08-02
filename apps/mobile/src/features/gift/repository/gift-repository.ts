@@ -9,7 +9,12 @@
 import { unwrap, unwrapVoid } from '@/data/shared/errors';
 import { toContact, toGiftEntry, toGiftHistory } from '@/data/shared/mappers';
 import { currentProfileId } from '@/data/shared/session';
-import type { ContactRow, GiftEntryRow, GiftHistoryRow } from '@/lib/database.types';
+import type {
+  ContactRow,
+  GiftEntryRow,
+  GiftHistoryRow,
+  GiftOutstandingRow,
+} from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import type { GiftEntryInput, GiftRepository } from './gift-repository.interface';
 
@@ -29,6 +34,8 @@ function entryRow(input: GiftEntryInput) {
     event_id: input.eventId ?? null,
     in_kind_note: input.inKindNote ?? null,
     notes: input.notes ?? null,
+    reciprocates_id: input.reciprocatesId ?? null,
+    no_reciprocity_needed: input.noReciprocityNeeded ?? false,
   };
 }
 
@@ -183,6 +190,12 @@ export const giftRepository: GiftRepository = {
           ...(input.eventId === undefined ? {} : { event_id: input.eventId }),
           ...(input.inKindNote === undefined ? {} : { in_kind_note: input.inKindNote }),
           ...(input.notes === undefined ? {} : { notes: input.notes }),
+          ...(input.reciprocatesId === undefined
+            ? {}
+            : { reciprocates_id: input.reciprocatesId }),
+          ...(input.noReciprocityNeeded === undefined
+            ? {}
+            : { no_reciprocity_needed: input.noReciprocityNeeded }),
         })
         .eq('id', id)
         .eq('household_id', hh),
@@ -196,6 +209,73 @@ export const giftRepository: GiftRepository = {
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
         .eq('household_id', hh),
+    );
+  },
+
+  // --- Nghĩa vụ đáp lễ (07 §3.2) ---
+
+  /**
+   * Bốn bất biến (cùng contact, đúng chiều, không phải tang lễ, chưa đánh dấu
+   * không cần đáp) do trigger `gift_entries_reciprocity_check` ép ở DB. KHÔNG
+   * kiểm lại ở đây: hai chỗ kiểm cùng một luật là hai chỗ để chúng trôi khỏi
+   * nhau, và chỗ đúng là chỗ không bỏ qua được.
+   */
+  async linkReciprocity(hh, givenId, receivedId) {
+    await unwrapVoid(
+      supabase
+        .from('gift_entries')
+        .update({ reciprocates_id: receivedId })
+        .eq('id', givenId)
+        .eq('household_id', hh),
+    );
+  },
+
+  async setNoReciprocityNeeded(hh, id, value) {
+    await unwrapVoid(
+      supabase
+        .from('gift_entries')
+        .update({ no_reciprocity_needed: value })
+        .eq('id', id)
+        .eq('household_id', hh),
+    );
+  },
+
+  /**
+   * Đọc từ view `gift_outstanding` — nơi ba cái lọc (chưa ghép cặp, không phải
+   * tang lễ, chưa đánh dấu không cần đáp) nằm cạnh nhau ở một chỗ duy nhất.
+   *
+   * Sắp theo NGÀY NHẬN, cũ nhất trước: nghĩa vụ lâu nhất nằm trên. Không bao
+   * giờ có `.order('amount')` ở đây — 07 §3.6.
+   */
+  async listOutstanding(hh, contactId) {
+    let q = supabase.from('gift_outstanding').select('*').eq('household_id', hh);
+    if (contactId !== undefined) q = q.eq('contact_id', contactId);
+
+    const rows = await unwrap<GiftOutstandingRow[]>(
+      q.order('occurred_on', { ascending: true }),
+    );
+
+    // View trả cột của cả contact lẫn entry; chỉ lấy phần entry. `entry_id` là
+    // id của khoản nhận, dùng để ghép cặp.
+    return rows.map((r) =>
+      toGiftEntry({
+        id: r.entry_id,
+        household_id: r.household_id,
+        contact_id: r.contact_id,
+        direction: 'received',
+        occasion: r.occasion,
+        amount: r.amount,
+        occurred_on: r.occurred_on,
+        event_id: null,
+        in_kind_note: r.in_kind_note,
+        notes: null,
+        reciprocates_id: null,
+        no_reciprocity_needed: false,
+        created_by: '',
+        created_at: '',
+        updated_at: '',
+        deleted_at: null,
+      }),
     );
   },
 

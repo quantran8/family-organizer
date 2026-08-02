@@ -103,7 +103,7 @@ export function DocumentListScreen() {
 
   if (isPending) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
         {header}
         <View className="px-4">
           <ListSkeleton rows={5} />
@@ -114,7 +114,7 @@ export function DocumentListScreen() {
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
         {header}
         <View className="px-4">
           <ErrorState
@@ -130,7 +130,7 @@ export function DocumentListScreen() {
   const rows = docs ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
       {header}
 
       {rows.length === 0 ? (

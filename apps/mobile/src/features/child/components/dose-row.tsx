@@ -39,7 +39,7 @@ export function DoseRow({ dose, status, label, onMarkDone, onUndo }: DoseRowProp
   const overdue = status === 'overdue';
 
   return (
-    <View className="border-b border-line bg-white py-3">
+    <View className="border-b border-line bg-surface py-3">
       <View className="min-h-touch flex-row items-center gap-3">
         <Checkbox
           checked={done}

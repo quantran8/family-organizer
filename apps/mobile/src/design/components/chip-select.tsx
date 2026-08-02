@@ -35,7 +35,7 @@ export function ChipSelect<T>({ options, value, onChange, scroll = false }: Chip
         accessibilityLabel={o.label}
         onPress={() => onChange(o.value)}
         className={`min-h-touch justify-center rounded-full border px-4 ${
-          active ? 'border-brand bg-brand-soft' : 'border-line bg-white active:bg-soft'
+          active ? 'border-brand bg-brand-soft' : 'border-line bg-surface active:bg-soft'
         }`}
       >
         <Text className={`text-label font-medium ${active ? 'text-brand-deep' : 'text-ink'}`}>

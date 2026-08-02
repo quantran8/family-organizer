@@ -56,7 +56,7 @@ export function ShoppingListScreen() {
     <View className="flex-1">
       {/* Ô nhập CỐ ĐỊNH trên cùng, không cuộn theo danh sách: trong siêu thị,
           thêm một món là thao tác thường xuyên hơn đọc lại cả danh sách. */}
-      <View className="border-b border-line bg-white px-4 py-3">
+      <View className="border-b border-line bg-surface px-4 py-3">
         <TextInput
           ref={inputRef}
           value={draft}

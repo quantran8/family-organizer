@@ -31,6 +31,8 @@ import type { ColorValue } from 'react-native';
 const GLYPH = {
   task: 'check-square',
   event: 'calendar',
+  eventKind: 'grid',
+  family: 'users',
   date: 'calendar',
   assignee: 'user',
   money: 'dollar-sign',
@@ -44,6 +46,7 @@ const GLYPH = {
   repeat: 'repeat',
   bell: 'bell',
   plus: 'plus',
+  submit: 'arrow-up',
 } as const;
 
 export type IconName = keyof typeof GLYPH;
@@ -67,6 +70,7 @@ export const ICON_COLOR = {
   // nên đây cũng theo §17. Đổi thì phải đổi cả hai chỗ cùng lúc.
   brand: '#6257F6',
   critical: '#D64545',
+  disabled: '#8B8B94',
   white: '#FFFFFF',
 } as const;
 

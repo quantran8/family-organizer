@@ -1,5 +1,5 @@
 /**
- * Hợp đồng đọc/ghi của Sổ mừng cưới — 02 §11, 07 §3.
+ * Hợp đồng đọc/ghi của Sổ hiếu hỉ — 02 §11, 07 §3.
  *
  * Module này ghi DỮ LIỆU VỀ NGƯỜI KHÁC — họ hàng, người không có tài khoản và
  * không bao giờ thấy được thứ được ghi về mình. Mọi ràng buộc dưới đây bắt
@@ -10,7 +10,13 @@
  * `balanceFor(contactId)` — chênh lệch đi–nhận của một nhà. Dữ liệu đủ để tính
  * (view `gift_history` có cả `total_given` lẫn `total_received`), và đó chính
  * là lý do phải nói rõ là không có: nó biến quan hệ họ hàng thành sổ nợ. App
- * hiện hai chiều SONG SONG, người dùng tự cân — 07 §3.4.
+ * hiện hai chiều SONG SONG, người dùng tự cân — 07 §3.6.
+ *
+ * `listOutstanding()` bên dưới KHÔNG phải ngoại lệ của điều này, và ranh giới
+ * hẹp: nó trả về trạng thái của TỪNG KHOẢN ("chú Ba mừng cưới mình 3/2023,
+ * chưa đáp lễ") — thứ biến mất khi đáp xong và không cộng dồn. Số dư nợ là một
+ * con số của CẢ MỐI QUAN HỆ, luôn hiện. Phép thử ở 07 §3.6: bỏ hết số tiền đi
+ * mà thông tin vẫn còn giá trị thì đó là nghĩa vụ.
  *
  * `listRankedByAmount()` — xếp hạng contact theo số tiền. Xếp hạng họ hàng theo
  * độ hào phóng là thứ khiến người dùng thấy app bẩn.
@@ -18,7 +24,7 @@
  * `export()` / `share()` — dữ liệu này lộ ra ngoài household là một sự cố xã
  * hội thật, không phải một rò rỉ kỹ thuật.
  *
- * Một `search()` riêng: `list()` đã trả cả sổ và lọc ở client. Sổ mừng cưới của
+ * Một `search()` riêng: `list()` đã trả cả sổ và lọc ở client. Sổ hiếu hỉ của
  * một nhà là vài trăm dòng, không phải vài chục nghìn — một round-trip cho mỗi
  * ký tự gõ vào ô tìm khi đang nhập 100 phong bì thì tệ hơn nhiều so với việc
  * giữ cả danh sách trong bộ nhớ.
@@ -30,6 +36,10 @@ import type { Contact, ContactSide, GiftEntry, GiftHistory, UUID } from '@family
 export interface GiftEntryInput {
   contactId: UUID;
   direction: GiftEntry['direction'];
+  /**
+   * KHÔNG CÓ MẶC ĐỊNH. Cưới chỉ là một trong tám dịp — để `'wedding'` làm mặc
+   * định là biến bảy dịp còn lại thành ngoại lệ (07 §3).
+   */
   occasion: GiftEntry['occasion'];
   /** 0 khi là quà hiện vật — khi đó `inKindNote` phải có chữ. */
   amount: number;
@@ -37,6 +47,10 @@ export interface GiftEntryInput {
   eventId?: UUID | null;
   inKindNote?: string | null;
   notes?: string | null;
+  /** Ghép cặp ngay lúc ghi: khoản đi này đáp lại khoản nhận nào — 07 §3.3. */
+  reciprocatesId?: UUID | null;
+  /** Chỉ có nghĩa ở khoản `received` — 07 §3.4b. */
+  noReciprocityNeeded?: boolean;
 }
 
 export interface ContactInput {
@@ -86,6 +100,38 @@ export interface GiftRepository {
 
   updateEntry(hh: UUID, id: UUID, input: Partial<GiftEntryInput>): Promise<void>;
   softDeleteEntry(hh: UUID, id: UUID): Promise<void>;
+
+  // --- Nghĩa vụ đáp lễ (07 §3.2) ---
+
+  /**
+   * Ghép một khoản ĐI vào khoản NHẬN mà nó đáp lại. `receivedId = null` để gỡ.
+   *
+   * Bốn bất biến (cùng contact, đúng chiều, không phải tang lễ, chưa đánh dấu
+   * không cần đáp) do trigger ở migration 0006 ép — client không kiểm lại. Ghép
+   * sai là hỏng dữ liệu quan hệ họ hàng và người dùng không tự phát hiện được,
+   * nên chỗ quyết định phải là DB.
+   */
+  linkReciprocity(hh: UUID, givenId: UUID, receivedId: UUID | null): Promise<void>;
+
+  /**
+   * Bật/tắt "không cần đáp lễ" cho một khoản NHẬN — 07 §3.4b.
+   *
+   * Bố mẹ mừng con, người trên mừng người dưới, người đã mất. Thiếu đường này
+   * thì danh sách chưa đáp lễ đầy dần những dòng không bao giờ đóng được.
+   */
+  setNoReciprocityNeeded(hh: UUID, id: UUID, value: boolean): Promise<void>;
+
+  /**
+   * Các khoản nhận CHƯA ĐÁP LỄ — nguồn của mục "Chưa đáp lễ".
+   *
+   * Sắp theo NGÀY NHẬN, cũ nhất trước. Không bao giờ theo số tiền.
+   *
+   * KHÔNG CÓ `countOutstanding()` HAY `totalOutstanding()`. Một tổng số tiền
+   * các khoản đang chờ chính là số dư nợ mặc áo khác — 07 §3.6. Repository trả
+   * danh sách; nếu UI cần biết "còn mấy khoản" thì đếm độ dài mảng, và không
+   * bao giờ cộng tiền.
+   */
+  listOutstanding(hh: UUID, contactId?: UUID): Promise<GiftEntry[]>;
 
   // --- View gift_history ---
 

@@ -64,7 +64,7 @@ export function PickerSheet({ open, title, onClose, children }: PickerSheetProps
             là thứ duy nhất tách panel khỏi form phía dưới. */}
         <SafeAreaView
           edges={['bottom']}
-          className="max-h-[80%] rounded-t-sheet bg-white shadow-sheet"
+          className="max-h-[80%] rounded-t-sheet bg-surface shadow-sheet"
         >
           {/* Thanh nắm tự vẽ — khác `Sheet`, `Modal` không được hệ điều hành
               trang trí, nên ở đây KHÔNG có chuyện hai thanh nắm chồng nhau. */}

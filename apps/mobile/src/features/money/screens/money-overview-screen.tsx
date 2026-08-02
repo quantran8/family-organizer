@@ -68,7 +68,7 @@ export function MoneyOverviewScreen() {
   return (
     // Tab gốc, `headerShown: false` — không có header nào che notch. Cạnh dưới
     // để tab bar lo, xem chú thích cùng chỗ ở `home-screen`.
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-24"

@@ -1,15 +1,16 @@
 /**
- * Form Sự kiện — một lịch tháng thống nhất, hiển thị cả ngày dương và âm.
+ * Form thêm Sự kiện — các nhóm thông tin nằm trong card trên nền canvas.
  *
- * Loại sự kiện quyết định cơ sở lặp: giỗ/sinh nhật lưu theo âm lịch,
- * các loại còn lại lưu theo dương lịch. Người dùng không phải chuyển qua
- * lại hai bộ chọn ngày khác nhau.
+ * Lịch dương/âm dùng chung một lưới tháng. Card ngày chỉ mở lịch khi người dùng
+ * yêu cầu và tự thu lại ngay sau khi chọn, để phần còn lại của form luôn gần.
  */
 
 import {
   EVENT_KINDS,
   FAMILY_SIDES,
+  parseISODate,
   solarToLunar,
+  weekdayOf,
   type CalendarType,
   type EventKind,
   type FamilySide,
@@ -17,7 +18,7 @@ import {
 } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
 
 import {
   AmountInput,
@@ -25,12 +26,13 @@ import {
   Icon,
   ICON_COLOR,
   PickerSheet,
+  Segmented,
   Sheet,
   type IconName,
 } from '@/design/components';
 import { EventCalendar } from '@/features/event/components';
 import { useCreateEvent } from '@/features/event/queries/use-events';
-import { useT } from '@/i18n';
+import { useT, weekdayShort } from '@/i18n';
 import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
 
@@ -52,8 +54,9 @@ export function EventFormScreen() {
 
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<EventKind>('death_anniversary');
-  // UI mẫu chọn sẵn hôm nay; giữ nó là default không làm form thành dirty.
   const [selectedDate, setSelectedDate] = useState<ISODate | null>(today);
+  const [calendar, setCalendar] = useState<CalendarType>('lunar');
+  const [repeatEnabled, setRepeatEnabled] = useState(true);
   const [side, setSide] = useState<FamilySide | null>(null);
   const [location, setLocation] = useState('');
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
@@ -61,13 +64,15 @@ export function EventFormScreen() {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [picker, setPicker] = useState<null | 'kind' | 'side' | 'reminder'>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  const calendar = calendarFor(kind);
   const trimmed = title.trim();
   const dirty =
     trimmed !== '' ||
     kind !== 'death_anniversary' ||
     selectedDate !== today ||
+    calendar !== 'lunar' ||
+    !repeatEnabled ||
     side !== null ||
     location !== '' ||
     estimatedCost !== null ||
@@ -90,6 +95,9 @@ export function EventFormScreen() {
     if (trimmed === '' || selectedDate === null || createEvent.isPending) return;
 
     const lunar = solarToLunar(selectedDate);
+    // Sự kiện không lặp là đúng MỘT ngày dương đã chọn. Chỉ khi bật lặp thì
+    // `calendar` mới là cơ sở để tính lần hằng năm tiếp theo.
+    const storedCalendar: CalendarType = repeatEnabled ? calendar : 'solar';
     createEvent.mutate(
       {
         title: trimmed,
@@ -97,14 +105,14 @@ export function EventFormScreen() {
         side,
         location: location.trim() === '' ? null : location.trim(),
         notes: notes.trim() === '' ? null : notes.trim(),
-        calendar,
-        solarDate: calendar === 'solar' ? selectedDate : null,
-        lunarDay: calendar === 'lunar' ? lunar.day : null,
-        lunarMonth: calendar === 'lunar' ? lunar.month : null,
-        lunarLeapMonth: calendar === 'lunar' ? lunar.isLeapMonth : false,
+        calendar: storedCalendar,
+        solarDate: storedCalendar === 'solar' ? selectedDate : null,
+        lunarDay: storedCalendar === 'lunar' ? lunar.day : null,
+        lunarMonth: storedCalendar === 'lunar' ? lunar.month : null,
+        lunarLeapMonth: storedCalendar === 'lunar' ? lunar.isLeapMonth : false,
         startTime: null,
         isAllDay: true,
-        recur: null,
+        recur: repeatEnabled ? { freq: 'yearly', intervalN: 1 } : null,
         remindLeadDays,
         estimatedCost,
       },
@@ -114,135 +122,227 @@ export function EventFormScreen() {
 
   const titleError = submitted && trimmed === '' ? t.validation.eventTitle : undefined;
   const dateError = submitted && selectedDate === null ? t.validation.eventDate : undefined;
-  const sideName =
-    side === null ? t.common.all : t.familySide[side];
+  const sideName = side === null ? t.common.all : t.familySide[side];
   const reminderName =
     remindLeadDays === 0
       ? t.dueLabel.today
       : f(t.dueLabel.inDays, { days: remindLeadDays });
 
+  const selectedLunar = selectedDate === null ? null : solarToLunar(selectedDate);
+  const selectedDatePrimary = (() => {
+    if (selectedDate === null) return t.task.pickDate;
+    if (selectedDate === today) return t.dueLabel.today;
+    const date = parseISODate(selectedDate);
+    return `${weekdayShort(weekdayOf(selectedDate))} · ${date.day}/${date.month}/${date.year}`;
+  })();
+  const selectedDateSecondary = selectedLunar
+    ? `${selectedLunar.day}/${selectedLunar.month} ${t.event.lunarSuffix}${
+        selectedLunar.isLeapMonth ? ` · ${t.event.fieldLeapMonth.toLowerCase()}` : ''
+      }`
+    : t.event.calendarLunar;
+
+  const openPicker = (next: 'kind' | 'side' | 'reminder'): void => {
+    setDatePickerOpen(false);
+    setPicker(next);
+  };
+
   return (
     <Sheet
       title={t.event.formTitle}
       onClose={close}
-      actions={<Button label={t.common.save} loading={createEvent.isPending} onPress={save} />}
+      background="canvas"
+      actions={
+        <Button
+          label={t.common.save}
+          loading={createEvent.isPending}
+          disabled={trimmed === ''}
+          className="min-h-[56px]"
+          onPress={save}
+        />
+      }
     >
-      <View className="pt-5">
-        <View className="flex-row items-end justify-between gap-4">
-          <Text className="text-caption font-semibold text-muted">{t.event.fieldTitle}</Text>
-          <Text className="text-caption font-medium tabular-nums text-subtle">
-            {`${title.length}/120`}
-          </Text>
-        </View>
-        <TextInput
-          ref={titleRef}
-          value={title}
-          onChangeText={setTitle}
-          placeholder={t.event.fieldTitlePlaceholder}
-          placeholderTextColor="#A4A4AD"
-          accessibilityLabel={t.event.fieldTitle}
-          maxLength={120}
-          className={`min-h-[52px] border-b bg-transparent p-0 text-title2 font-semibold text-ink ${
-            titleError ? 'border-critical' : 'border-line'
-          }`}
-        />
-        {titleError ? (
-          <Text className="mt-2 text-caption font-medium text-critical">{titleError}</Text>
-        ) : null}
-
-        <EventSelectRow
-          icon="event"
-          label={t.event.fieldKind}
-          value={t.eventKind[kind]}
-          onPress={() => setPicker('kind')}
-          className="mt-4"
-        />
-      </View>
-
-      <View className="mt-8">
-        <EventCalendar
-          value={selectedDate}
-          onChange={setSelectedDate}
-          today={today}
-          calendar={calendar}
-          error={dateError}
-        />
-      </View>
-
-      <View className="mt-8">
-        <Text className="text-caption font-semibold text-muted">{t.event.sectionFamily}</Text>
-        <EventSelectRow
-          icon="assignee"
-          label={t.event.fieldSide}
-          value={sideName}
-          onPress={() => setPicker('side')}
-          className="mt-1"
-        />
-        <EventSelectRow
-          icon="bell"
-          label={t.task.fieldRemindLead}
-          value={reminderName}
-          onPress={() => setPicker('reminder')}
-        />
-      </View>
-
-      <View className="mt-8">
-        <Text className="text-caption font-semibold text-muted">{t.event.sectionDetails}</Text>
-
-        <View className="mt-1 min-h-[58px] flex-row items-center gap-3 border-b border-line">
-          <Icon name="location" color={ICON_COLOR.muted} />
-          <TextInput
-            value={location}
-            onChangeText={setLocation}
-            placeholder={t.event.fieldLocation}
-            placeholderTextColor="#A4A4AD"
-            accessibilityLabel={t.event.fieldLocation}
-            maxLength={200}
-            className="min-h-[56px] min-w-0 flex-1 p-0 text-heading font-medium text-ink"
-          />
-        </View>
-
-        <View className="min-h-[58px] flex-row items-center gap-3 border-b border-line">
-          <Icon name="money" color={ICON_COLOR.muted} />
-          <AmountInput
-            variant="row"
-            value={estimatedCost}
-            onChangeValue={setEstimatedCost}
-            placeholder={t.event.fieldEstimatedCost}
-            accessibilityLabel={t.event.fieldEstimatedCost}
-            className="min-w-0 flex-1"
-          />
-        </View>
-
-        <View className="mt-5">
-          <View className="flex-row items-end justify-between gap-4">
-            <Text className="text-caption font-semibold text-muted">{t.common.note}</Text>
-            <Text className="text-caption font-medium tabular-nums text-subtle">
-              {`${notes.length}/${NOTES_MAX.toLocaleString('vi-VN')}`}
-            </Text>
+      <View className="gap-3 pt-2">
+        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+          <View className="px-4 pb-3 pt-4">
+            <Text className="text-[13px] font-semibold text-muted">{t.event.fieldTitle}</Text>
+            <TextInput
+              ref={titleRef}
+              value={title}
+              onChangeText={setTitle}
+              placeholder={t.event.fieldTitlePlaceholder}
+              placeholderTextColor="#A4A4AD"
+              accessibilityLabel={t.event.fieldTitle}
+              maxLength={120}
+              className="h-12 p-0 text-[19px] font-semibold leading-7 text-ink"
+            />
+            {titleError ? (
+              <Text className="text-caption font-medium text-critical">{titleError}</Text>
+            ) : null}
           </View>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t.common.notePlaceholder}
-            placeholderTextColor="#A4A4AD"
-            accessibilityLabel={t.common.note}
-            multiline
-            numberOfLines={4}
-            maxLength={NOTES_MAX}
-            className="mt-2 min-h-[104px] rounded-featured bg-soft px-4 py-3 text-heading font-medium text-ink"
-            style={{ textAlignVertical: 'top' }}
+
+          <CardSelectRow
+            icon="eventKind"
+            iconTone="brand"
+            label={t.event.fieldKind}
+            value={t.eventKind[kind]}
+            divider
+            onPress={() => openPicker('kind')}
           />
         </View>
-      </View>
 
-      {createEvent.isError ? (
-        <View className="mt-5 border-l-4 border-critical bg-critical-soft px-4 py-3">
-          <Text className="text-caption font-semibold text-critical">{t.error.unknown}</Text>
+        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.event.fieldDate}: ${selectedDatePrimary}, ${selectedDateSecondary}`}
+            accessibilityState={{ expanded: datePickerOpen }}
+            onPress={() => {
+              setPicker(null);
+              setDatePickerOpen((open) => !open);
+            }}
+            className="min-h-[76px] flex-row items-center gap-3 px-4 active:bg-soft"
+          >
+            <IconWell icon="date" tone="brand" />
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-semibold text-muted">{t.event.fieldDate}</Text>
+              <Text numberOfLines={1} className="mt-0.5 text-heading font-semibold text-ink">
+                {selectedDatePrimary}
+              </Text>
+              <Text numberOfLines={1} className="mt-0.5 text-caption font-medium text-muted">
+                {selectedDateSecondary}
+              </Text>
+            </View>
+            <View style={{ transform: [{ rotate: datePickerOpen ? '-90deg' : '90deg' }] }}>
+              <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
+            </View>
+          </Pressable>
+
+          {datePickerOpen ? (
+            <View className="border-t border-line px-2 pb-3 pt-2">
+              <EventCalendar
+                embedded
+                value={selectedDate}
+                onChange={(date) => {
+                  setSelectedDate(date);
+                  setDatePickerOpen(false);
+                }}
+                today={today}
+                calendar={calendar}
+                error={dateError}
+              />
+            </View>
+          ) : dateError ? (
+            <Text className="px-4 pb-3 text-caption font-medium text-critical">{dateError}</Text>
+          ) : null}
+
+          <View className="flex-row items-center gap-3 px-4">
+            <IconWell icon="repeat" />
+            <View className="min-h-[68px] min-w-0 flex-1 flex-row items-center gap-3 border-t border-line">
+              <View className="min-w-0 flex-1">
+                <Text className="text-body font-semibold text-ink">{t.event.repeatYearly}</Text>
+                <Text className="mt-0.5 text-caption font-medium text-muted">
+                  {repeatEnabled
+                    ? calendar === 'lunar'
+                      ? t.event.repeatLunar
+                      : t.event.repeatSolar
+                    : t.event.repeatNone}
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel={t.event.repeatYearly}
+                accessibilityState={{ checked: repeatEnabled }}
+                value={repeatEnabled}
+                onValueChange={setRepeatEnabled}
+                trackColor={{ false: '#D8D8DE', true: '#6257F6' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+
+          {repeatEnabled ? (
+            <View className="px-4 pb-4">
+              <Segmented
+                value={calendar}
+                onChange={setCalendar}
+                options={[
+                  { value: 'solar', label: t.event.repeatSolar },
+                  { value: 'lunar', label: t.event.repeatLunar },
+                ]}
+              />
+            </View>
+          ) : null}
         </View>
-      ) : null}
 
-      <View className="h-4" />
+        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+          <SectionTitle label={t.event.sectionFamily} />
+          <CardSelectRow
+            icon="family"
+            label={t.event.fieldSide}
+            value={sideName}
+            onPress={() => openPicker('side')}
+          />
+          <CardSelectRow
+            icon="bell"
+            label={t.task.fieldRemindLead}
+            value={reminderName}
+            divider
+            onPress={() => openPicker('reminder')}
+          />
+        </View>
+
+        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+          <SectionTitle label={t.event.sectionDetails} />
+          <CardInputRow icon="location">
+            <TextInput
+              value={location}
+              onChangeText={setLocation}
+              placeholder={t.event.fieldLocation}
+              placeholderTextColor="#A4A4AD"
+              accessibilityLabel={t.event.fieldLocation}
+              maxLength={200}
+              className="min-h-[56px] min-w-0 flex-1 p-0 text-heading font-semibold text-ink"
+            />
+          </CardInputRow>
+          <CardInputRow icon="money" divider>
+            <AmountInput
+              variant="row"
+              value={estimatedCost}
+              onChangeValue={setEstimatedCost}
+              placeholder={t.event.fieldEstimatedCost}
+              accessibilityLabel={t.event.fieldEstimatedCost}
+              className="min-w-0 flex-1"
+            />
+          </CardInputRow>
+
+          <View className="border-t border-line px-4 pb-4 pt-3">
+            <View className="flex-row items-end justify-between gap-4">
+              <Text className="text-[13px] font-semibold text-muted">{t.common.note}</Text>
+              {notes.length > NOTES_MAX - 200 ? (
+                <Text className="text-caption font-medium tabular-nums text-subtle">
+                  {`${notes.length}/${NOTES_MAX.toLocaleString('vi-VN')}`}
+                </Text>
+              ) : null}
+            </View>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t.common.notePlaceholder}
+              placeholderTextColor="#A4A4AD"
+              accessibilityLabel={t.common.note}
+              multiline
+              numberOfLines={4}
+              maxLength={NOTES_MAX}
+              className="mt-2 min-h-[112px] rounded-[18px] bg-soft px-4 py-3 text-heading font-medium leading-6 text-ink"
+              style={{ textAlignVertical: 'top' }}
+            />
+          </View>
+        </View>
+
+        {createEvent.isError ? (
+          <View className="border-l-4 border-critical bg-critical-soft px-4 py-3">
+            <Text className="text-caption font-semibold text-critical">{t.error.unknown}</Text>
+          </View>
+        ) : null}
+      </View>
 
       <PickerSheet
         open={picker === 'kind'}
@@ -257,6 +357,7 @@ export function EventFormScreen() {
               selected={kind === option}
               onPress={() => {
                 setKind(option);
+                setCalendar(calendarFor(option));
                 setPicker(null);
               }}
             />
@@ -316,33 +417,82 @@ export function EventFormScreen() {
   );
 }
 
-function EventSelectRow({
+function SectionTitle({ label }: { label: string }) {
+  return <Text className="px-4 pb-1 pt-4 text-[13px] font-semibold text-muted">{label}</Text>;
+}
+
+function IconWell({ icon, tone = 'neutral' }: { icon: IconName; tone?: 'brand' | 'neutral' }) {
+  return (
+    <View
+      className={`h-10 w-10 shrink-0 items-center justify-center rounded-icon ${
+        tone === 'brand' ? 'bg-brand-soft' : 'bg-soft'
+      }`}
+    >
+      <Icon
+        name={icon}
+        size={20}
+        color={tone === 'brand' ? ICON_COLOR.brand : ICON_COLOR.muted}
+      />
+    </View>
+  );
+}
+
+function CardSelectRow({
   icon,
+  iconTone = 'neutral',
   label,
   value,
   onPress,
-  className = '',
+  divider = false,
 }: {
   icon: IconName;
+  iconTone?: 'brand' | 'neutral';
   label: string;
   value: string;
   onPress: () => void;
-  className?: string;
+  divider?: boolean;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      onPress={onPress}
-      className={`relative min-h-[58px] flex-row items-center gap-3 border-b border-line active:bg-soft ${className}`}
-    >
-      <Icon name={icon} color={ICON_COLOR.muted} />
-      <Text className="flex-1 text-heading font-semibold text-ink">{label}</Text>
-      <Text numberOfLines={1} className="max-w-[44%] text-body font-medium text-muted">
-        {value}
-      </Text>
-      <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
-    </Pressable>
+    <View className="flex-row items-center gap-3 px-4">
+      <IconWell icon={icon} tone={iconTone} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value}`}
+        onPress={onPress}
+        className={`min-h-[68px] min-w-0 flex-1 flex-row items-center gap-3 active:bg-soft ${
+          divider ? 'border-t border-line' : ''
+        }`}
+      >
+        <Text className="flex-1 text-heading font-semibold text-ink">{label}</Text>
+        <Text numberOfLines={1} className="max-w-[42%] text-body font-semibold text-muted">
+          {value}
+        </Text>
+        <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
+      </Pressable>
+    </View>
+  );
+}
+
+function CardInputRow({
+  icon,
+  divider = false,
+  children,
+}: {
+  icon: IconName;
+  divider?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <View className="flex-row items-center gap-3 px-4">
+      <IconWell icon={icon} />
+      <View
+        className={`min-h-[64px] min-w-0 flex-1 flex-row items-center ${
+          divider ? 'border-t border-line' : ''
+        }`}
+      >
+        {children}
+      </View>
+    </View>
   );
 }
 

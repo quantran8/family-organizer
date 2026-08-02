@@ -82,7 +82,7 @@ function SocialButton({ label, icon, disabled = false, onPress }: SocialButtonPr
       disabled={disabled}
       onPress={onPress}
       className={[
-        'min-h-touch flex-1 flex-row items-center justify-center gap-2 rounded-full border border-line bg-white px-4 py-3',
+        'min-h-touch flex-1 flex-row items-center justify-center gap-2 rounded-full border border-line bg-surface px-4 py-3',
         disabled ? 'opacity-40' : 'active:bg-soft',
       ].join(' ')}
     >

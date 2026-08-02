@@ -78,7 +78,7 @@ export function GrowthFormScreen() {
           keyboardType="decimal-pad"
           accessibilityLabel={t.child.fieldHeight}
           maxLength={6}
-          className="min-h-touch rounded-control border border-line bg-white px-4 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 text-body text-ink"
         />
       </Field>
 
@@ -89,7 +89,7 @@ export function GrowthFormScreen() {
           keyboardType="decimal-pad"
           accessibilityLabel={t.child.fieldWeight}
           maxLength={6}
-          className="min-h-touch rounded-control border border-line bg-white px-4 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 text-body text-ink"
         />
       </Field>
 

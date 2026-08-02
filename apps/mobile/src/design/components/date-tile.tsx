@@ -24,7 +24,7 @@ const TONE = {
   // phải một màu module riêng.
   event: { box: 'bg-brand-soft', day: 'text-brand-deep', month: 'text-brand-deep' },
   // Trên thẻ nổi bật nền tối (design.md §9.3).
-  inverted: { box: 'bg-white/15', day: 'text-white', month: 'text-white/70' },
+  inverted: { box: 'bg-on-brand/15', day: 'text-on-brand', month: 'text-on-brand/70' },
 } as const;
 
 export function DateTile({ day, monthLabel, tone = 'default' }: DateTileProps) {

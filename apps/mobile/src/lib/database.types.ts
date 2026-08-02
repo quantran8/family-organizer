@@ -508,7 +508,7 @@ type TableOf<Row, Rels extends readonly unknown[] = []> = {
  * Không liệt kê hết mọi FK của schema: phần còn lại không nhúng ở đâu cả, và
  * một danh sách dài không ai kiểm chỉ là chỗ để sai.
  */
-// --- Sổ mừng cưới (0005 §1) ---
+// --- Sổ hiếu hỉ (0005 §1) ---
 
 /**
  * CỐ Ý THIẾU TRƯỜNG: không phone, không địa chỉ, không ảnh, không ngày sinh,
@@ -538,6 +538,10 @@ export type GiftEntryRow = {
   event_id: string | null;
   in_kind_note: string | null;
   notes: string | null;
+  /** Khoản `received` mà khoản `given` này đáp lại — 07 §3.3. */
+  reciprocates_id: string | null;
+  /** Khoản nhận không sinh nghĩa vụ đáp lễ — 07 §3.4b. */
+  no_reciprocity_needed: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -562,6 +566,26 @@ export type GiftHistoryRow = {
   total_given: number;
   last_received_on: string | null;
   last_given_on: string | null;
+};
+
+/**
+ * View `gift_outstanding` (0006 §4) — khoản nhận CHƯA ĐÁP LỄ.
+ *
+ * CỐ Ý KHÔNG CÓ: cột tổng tiền ("còn 5 nhà, tổng 8 triệu" là số dư nợ mặc áo
+ * khác), số ngày quá hạn (nghĩa vụ đáp lễ KHÔNG CÓ HẠN — nó chờ đến khi nhà đó
+ * có việc), và bất kỳ cột nào để sắp theo số tiền. Xem 07 §3.6.
+ */
+export type GiftOutstandingRow = {
+  entry_id: string;
+  household_id: string;
+  contact_id: string;
+  display_name: string;
+  relation_note: string | null;
+  side: string;
+  occasion: string;
+  amount: number;
+  in_kind_note: string | null;
+  occurred_on: string;
 };
 
 // --- Hồ sơ con (0005 §2) ---
@@ -671,6 +695,7 @@ export interface Database {
       upcoming_needs: ViewOf<UpcomingNeedRow>;
       money_history: ViewOf<MoneyHistoryRow>;
       gift_history: ViewOf<GiftHistoryRow>;
+      gift_outstanding: ViewOf<GiftOutstandingRow>;
     };
     Functions: {
       // RPC nguyên tử ở 0001 §12

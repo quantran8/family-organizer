@@ -93,6 +93,38 @@ module.exports = {
       },
     },
     {
+      // Màu: không có class màu gốc của Tailwind nào trong code app.
+      //
+      // `bg-white` vẫn dựng ra đúng màu trắng, nên nó không bao giờ tự lộ ra —
+      // nó chỉ đơn giản là không tra ngược được về bảng token trong design.md,
+      // và vì thế sống sót qua mọi lần rà lại bảng màu. Hôm nào nền màn hình
+      // đổi khỏi trắng, những chỗ này ở lại phía sau.
+      //
+      // Dùng token: `bg-surface` · `bg-canvas` · `bg-soft` cho nền,
+      // `text-on-action` / `text-on-brand` cho chữ trên nền tối (design.md §5.1).
+      files: UI_LAYER_TSX,
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            // Bắt cả `className="..."` lẫn chuỗi trong biểu thức điều kiện —
+            // phần lớn chỗ dùng màu nằm trong tam nguyên, không phải literal
+            // thẳng trên thuộc tính.
+            selector:
+              'Literal[value=/(^|\\s)(bg|text|border|ring|divide|from|via|to)-(white|black|gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(-\\d{2,3})?(\\/\\d{1,3})?(\\s|$)/]',
+            message:
+              'Không dùng class màu gốc của Tailwind. Dùng token trong tailwind.config.js: nền là bg-surface/bg-canvas/bg-soft, chữ trên nền tối là text-on-action/text-on-brand (design.md §5.1).',
+          },
+          {
+            selector:
+              'TemplateElement[value.raw=/(^|\\s)(bg|text|border|ring|divide|from|via|to)-(white|black|gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(-\\d{2,3})?(\\/\\d{1,3})?(\\s|$)/]',
+            message:
+              'Không dùng class màu gốc của Tailwind. Dùng token trong tailwind.config.js: nền là bg-surface/bg-canvas/bg-soft, chữ trên nền tối là text-on-action/text-on-brand (design.md §5.1).',
+          },
+        ],
+      },
+    },
+    {
       // i18n: không có chuỗi hiển thị nào viết thẳng trong JSX.
       // Bảng từ vựng 04 §7 phải kiểm được bằng một lần grep trong vi.ts.
       files: UI_LAYER_TSX,

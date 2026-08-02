@@ -735,7 +735,7 @@ xong từ G11 nhưng không có đường nào nhìn thấy nó.
 DB (`0005_local_modules.sql`) và 5 hàm domain đã có từ G11; G15 dựng phần app.
 Nguồn: `spec/07-local-modules.md`.
 
-### Sổ mừng cưới (`07 §3`)
+### Sổ hiếu hỉ (`07 §3`)
 
 - [x] `database.types.ts` — `ContactRow` · `GiftEntryRow` · `GiftHistoryRow` + đăng ký vào `Database`
 - [x] Mapper `toContact` · `toGiftEntry` · `toGiftHistory`; query key `gifts` · `contacts`
@@ -859,6 +859,76 @@ DB (`ingest_drafts` ở `0004`) và type `IngestDraft` đã có từ G11; G16 d�
 - [ ] Quota AI đếm theo bản nháp **đã tạo**, không theo bản nháp được xác nhận — client và
       Edge phải đếm **giống hệt nhau**. Đổi một bên mà quên bên kia thì người dùng thấy
       "còn 3 lượt" rồi bị từ chối
+
+---
+
+## G17 · Sổ hiếu hỉ — nghĩa vụ đáp lễ — **xong code, chưa deploy migration**
+
+Sửa hai chỗ sai của thiết kế v2.1 trong module sổ mừng cưới. Cả hai đều về **khung
+nhìn** chứ không về dữ liệu — enum `gift_occasion` đã có đủ tám dịp từ `0005`.
+
+### 1. Tên module đóng khung sai (`07 §3`)
+
+- [x] "Sổ mừng cưới" → **"Sổ hiếu hỉ"**. Cưới chỉ là một trong tám dịp; tân gia, đầy
+      tháng, giỗ, thôi nôi là **dịp ngang hàng**, không phải ngoại lệ của cưới
+- [x] Bỏ `default 'wedding'` ở cột `occasion` và bỏ `useState('wedding')` ở **cả hai**
+      form (đơn và nhập nhanh) — không có dịp nào là dịp mặc định. Người nhập một khoản
+      tân gia mà chip "Cưới" đã chọn sẵn sẽ ghi nhầm, và không ai phát hiện ra.
+      Ở màn nhập nhanh nặng hơn: dịp chọn **một lần cho cả mẻ**, nên chọn sẵn sai là
+      sai 100 dòng cùng lúc
+
+### 2. Tiền mừng là **nghĩa vụ**, không phải nhật ký (`07 §3.2`)
+
+Chỗ sai nghiêm trọng hơn: module được dựng như một **sổ ghi chép** — hai chiều song
+song, không chiều nào tham chiếu chiều nào. Với người Việt, một khoản mừng nhận được
+**không phải sự kiện đã khép lại**; nó mở ra một nghĩa vụ. Bản cũ ghi được lịch sử
+nhưng **không biểu diễn được nghĩa vụ**, nên không trả lời được câu hỏi mà người dùng
+thật sự mang trong đầu: *nhà nào mình còn chưa đi lại?*
+
+- [x] `0006_gift_reciprocity.sql` — `reciprocates_id` (unique, `on delete set null`),
+      `no_reciprocity_needed`, view `gift_outstanding`, 2 trigger ép 5 bất biến
+- [x] `listOutstandingObligations()` trả **mảng trần**, không `{count, total}` như
+      `summarizeOccasion`: kiểu trả về **không có chỗ nào để nhét tổng tiền vào**, và
+      đó là chủ ý — một tổng các khoản đang chờ chính là số dư nợ mặc áo khác
+- [x] Ghép **chéo dịp** hợp lệ (nghĩa vụ thuộc về *nhà*, không thuộc về *dịp*); ghép cặp
+      là xong **bất kể số tiền hai bên** — app không bao giờ nói "đi chưa đủ"
+- [x] Gợi ý số **chỉ khi cùng dịp**. Khác dịp → hiện dữ kiện, ẩn nút `[Dùng số này]`:
+      mức tiền gắn với dịp, 2 triệu đám cưới không dịch được sang mừng tân gia
+- [x] `funeral` ghi và hiện trong lịch sử, nhưng **không bao giờ** gợi ý số và **không
+      bao giờ** vào danh sách chưa đáp lễ — đáp lễ một đám tang nghĩa là chờ nhà đó có tang
+- [x] Nhắc **chỉ khi có dịp** (trong form ghi khoản đi). Không thông báo đẩy, không nhắc
+      định kỳ — không có dịp thì không làm gì được, và lời nhắc không hành động được
+      chỉ tạo áy náy
+
+### 3. Có khoản chỉ nhận, không cần trả (`07 §3.4b`)
+
+Chỗ dễ sai nhất: *"chưa có khoản đi nào ghép vào"* trông y hệt *"còn nợ"* trong dữ liệu,
+nhưng ngoài đời là hai chuyện khác hẳn.
+
+- [x] Cờ `no_reciprocity_needed` **ở từng khoản, không ở contact** — cùng một người vừa
+      sinh nghĩa vụ vừa không: bố mẹ mừng cưới là *cho*, bố mẹ mừng tân gia thì có đi có lại
+- [x] Ô tích ngay ở **form tạo** (chiều nhận, dịp ≠ tang lễ), không chỉ ở màn chi tiết:
+      người ghi biết ngay lúc nhập rằng đây là bố mẹ mừng con
+- [x] **Không** có ô tích cho cả mẻ ở màn nhập nhanh — một mẻ 100 phong bì gồm cả bố mẹ
+      lẫn họ hàng, một cái tích chung sẽ tắt sạch nghĩa vụ của 99 nhà để đúng cho một nhà
+- [x] **App không bao giờ tự đoán**: không suy từ `side`, không đọc `relation_note` tìm
+      chữ "bố mẹ", không suy từ số tiền. Đoán sai vai vế là xúc phạm, không phải bất tiện
+- [x] Thiếu cờ này thì **tính năng hỏng chứ không phải thiếu tiện nghi**: danh sách chưa
+      đáp lễ đầy dần những dòng không bao giờ đóng được, và một danh sách nghĩa vụ không
+      xoá được dạy người dùng bỏ qua cả mục
+
+### Ranh giới với sổ nợ — vẫn giữ nguyên mọi lệnh cấm cũ
+
+`giftBalance` vẫn cấm. Thêm 4 hàm cấm ở `03 §11.3`: `totalOutstanding`,
+`sortOutstandingByAmount`, `reciprocityShortfall`, `suggestAcrossOccasions`.
+
+Phép thử ở `07 §3.6`: **bỏ hết số tiền đi mà thông tin vẫn còn giá trị thì đó là nghĩa
+vụ; bỏ số tiền đi mà nó thành vô nghĩa thì đó là số dư nợ.**
+
+- [x] **311 test xanh** (288 → 311: +23 cho dịp, tang lễ, ghép cặp, ba trạng thái) ·
+      typecheck sạch · lint 0 error
+- [ ] `pnpm db:push` — migration `0006` **chưa chạy**. Không có Docker local nên không
+      tập dượt được; kiểm qua `supabase/tests/smoke.sql` sau khi đẩy
 
 ---
 

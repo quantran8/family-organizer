@@ -64,7 +64,7 @@ export function SettingsScreen() {
           placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.settings.displayName}
           maxLength={50}
-          className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 py-3 text-body text-ink"
         />
       </Field>
 

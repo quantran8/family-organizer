@@ -5,7 +5,12 @@ import {
   doseStatus,
   formatDoseLabel,
 } from '../src/child/vaccine.js';
-import { suggestGiftAmount, summarizeOccasion } from '../src/gifts/suggest.js';
+import {
+  listOutstandingObligations,
+  reciprocityStatus,
+  suggestGiftAmount,
+  summarizeOccasion,
+} from '../src/gifts/suggest.js';
 import { lastYearFor } from '../src/events/last-year.js';
 import * as domain from '../src/index.js';
 import type {
@@ -34,6 +39,8 @@ function gift(over: Partial<GiftEntry> = {}): GiftEntry {
     eventId: null,
     inKindNote: null,
     notes: null,
+    reciprocatesId: null,
+    noReciprocityNeeded: false,
     ...over,
   };
 }
@@ -56,17 +63,17 @@ describe('suggestGiftAmount — vòng lặp quan trọng nhất (03 §13)', () =
   it('trả null khi contact CHƯA TỪNG mừng nhà mình', () => {
     // UI khi đó không hiện gì cả — không hiện "chưa có dữ liệu".
     const h = history({ timesReceived: 0, totalReceived: 0, lastReceivedOn: null });
-    expect(suggestGiftAmount(h, [])).toBeNull();
+    expect(suggestGiftAmount(h, [], 'wedding')).toBeNull();
   });
 
   it('trả null khi không có lịch sử nào', () => {
-    expect(suggestGiftAmount(null, [])).toBeNull();
+    expect(suggestGiftAmount(null, [], 'wedding')).toBeNull();
   });
 
   it('trả lần NHẬN gần nhất kèm bản ghi làm căn cứ', () => {
     const older = gift({ id: 'g0', amount: 1_000_000, occurredOn: '2021-08-01' });
     const newer = gift({ id: 'g1', amount: 2_000_000, occurredOn: '2023-03-15' });
-    const r = suggestGiftAmount(history(), [older, newer]);
+    const r = suggestGiftAmount(history(), [older, newer], 'wedding');
     expect(r?.amount).toBe(2_000_000);
     expect(r?.basis.id).toBe('g1');
   });
@@ -75,26 +82,181 @@ describe('suggestGiftAmount — vòng lặp quan trọng nhất (03 §13)', () =
     // App đưa ra một DỮ KIỆN, người dùng quyết định. Số trả về phải khớp
     // nguyên văn bản ghi, kể cả khi nó lẻ.
     const odd = gift({ amount: 1_234_567 });
-    const r = suggestGiftAmount(history({ totalReceived: 1_234_567 }), [odd]);
+    const r = suggestGiftAmount(history({ totalReceived: 1_234_567 }), [odd], 'wedding');
     expect(r?.amount).toBe(1_234_567);
   });
 
   it('bỏ qua chiều "given" — chỉ nhìn lần nhà mình NHẬN', () => {
     const given = gift({ id: 'g9', direction: 'given', amount: 5_000_000, occurredOn: '2026-01-01' });
     const received = gift({ id: 'g1', amount: 2_000_000, occurredOn: '2023-03-15' });
-    const r = suggestGiftAmount(history(), [given, received]);
+    const r = suggestGiftAmount(history(), [given, received], 'wedding');
     expect(r?.amount).toBe(2_000_000);
   });
 
   it('bỏ qua contact khác', () => {
     const other = gift({ id: 'gx', contactId: 'c2', amount: 9_000_000, occurredOn: '2026-01-01' });
     const mine = gift({ id: 'g1', amount: 2_000_000 });
-    expect(suggestGiftAmount(history(), [other, mine])?.amount).toBe(2_000_000);
+    expect(suggestGiftAmount(history(), [other, mine], 'wedding')?.amount).toBe(2_000_000);
   });
 
   it('quà hiện vật (amount = 0) KHÔNG sinh gợi ý "đi 0 đồng"', () => {
     const inKind = gift({ amount: 0, inKindNote: 'một cây vàng' });
-    expect(suggestGiftAmount(history({ totalReceived: 0 }), [inKind])).toBeNull();
+    // Vẫn có `basis` để UI hiện ghi chú hiện vật — chỉ không có con số.
+    const r = suggestGiftAmount(history({ totalReceived: 0 }), [inKind], 'wedding');
+    expect(r?.amount).toBeNull();
+    expect(r?.basis.inKindNote).toBe('một cây vàng');
+  });
+
+  // --- Dịp: mức tiền gắn với DỊP, không gắn với NHÀ (07 §3.4) ---
+
+  it('KHÁC DỊP → có dữ kiện nhưng KHÔNG có số đề xuất', () => {
+    // Hai triệu ở đám cưới không dịch được sang mừng tân gia. App hiện dữ kiện
+    // (nhà đó đã mừng mình, chưa đáp lễ) nhưng không đề xuất con số.
+    const w = gift({ occasion: 'wedding', amount: 2_000_000 });
+    const r = suggestGiftAmount(history(), [w], 'housewarming');
+    expect(r?.basis.id).toBe('g1');
+    expect(r?.amount).toBeNull();
+    expect(r?.status).toBe('outstanding');
+  });
+
+  it('CÙNG DỊP → có số đề xuất', () => {
+    const hw = gift({ occasion: 'housewarming', amount: 500_000 });
+    const r = suggestGiftAmount(history(), [hw], 'housewarming');
+    expect(r?.amount).toBe(500_000);
+  });
+
+  it('module KHÔNG đóng khung vào đám cưới — mọi dịp đều chạy', () => {
+    for (const o of ['full_month', 'birthday', 'death_anniversary', 'engagement'] as const) {
+      const g = gift({ occasion: o, amount: 300_000 });
+      expect(suggestGiftAmount(history(), [g], o)?.amount).toBe(300_000);
+    }
+  });
+
+  // --- Tang lễ (07 §3.5) ---
+
+  it('đang nhập TANG LỄ → không bao giờ có số đề xuất', () => {
+    // Đề xuất một con số vào đúng lúc nhà người ta có tang là thứ app không
+    // được phép làm, kể cả khi căn cứ cũng là tang lễ.
+    const f = gift({ occasion: 'funeral', amount: 1_000_000 });
+    expect(suggestGiftAmount(history(), [f], 'funeral')).toBeNull();
+  });
+
+  it('khoản PHÚNG VIẾNG nhận được không làm căn cứ cho dịp khác', () => {
+    const funeral = gift({ id: 'gf', occasion: 'funeral', amount: 1_000_000, occurredOn: '2025-01-01' });
+    const wedding = gift({ id: 'gw', occasion: 'wedding', amount: 2_000_000, occurredOn: '2023-03-15' });
+    // Phúng viếng mới hơn nhưng bị bỏ qua; căn cứ là khoản cưới cũ hơn.
+    const r = suggestGiftAmount(history(), [funeral, wedding], 'wedding');
+    expect(r?.basis.id).toBe('gw');
+    expect(r?.amount).toBe(2_000_000);
+  });
+
+  // --- Trạng thái đáp lễ (07 §3.2, §3.4b) ---
+
+  it('đã có khoản đi ghép vào → status "reciprocated"', () => {
+    const received = gift({ id: 'r1' });
+    const paid = gift({ id: 'p1', direction: 'given', reciprocatesId: 'r1', occurredOn: '2026-05-01' });
+    expect(suggestGiftAmount(history(), [received, paid], 'wedding')?.status).toBe('reciprocated');
+  });
+
+  it('đã đánh dấu không cần đáp → status "not_needed"', () => {
+    const parents = gift({ id: 'r1', noReciprocityNeeded: true });
+    expect(suggestGiftAmount(history(), [parents], 'wedding')?.status).toBe('not_needed');
+  });
+});
+
+describe('listOutstandingObligations — nghĩa vụ đáp lễ (07 §3.2)', () => {
+  it('khoản nhận chưa ai đáp → nằm trong danh sách', () => {
+    const r = listOutstandingObligations([gift({ id: 'r1' })]);
+    expect(r.map((g) => g.id)).toEqual(['r1']);
+  });
+
+  it('khoản đã được ghép cặp → biến mất khỏi danh sách', () => {
+    const received = gift({ id: 'r1' });
+    const paid = gift({ id: 'p1', direction: 'given', reciprocatesId: 'r1' });
+    expect(listOutstandingObligations([received, paid])).toEqual([]);
+  });
+
+  it('ĐÁP LỄ KHÔNG CẦN BẰNG TIỀN — ghép cặp là xong, bất kể số tiền', () => {
+    // App không bao giờ nói "đi chưa đủ"; người đi ít hơn thường có lý do mà
+    // app không biết (07 §3.6).
+    const received = gift({ id: 'r1', amount: 2_000_000 });
+    const paid = gift({ id: 'p1', direction: 'given', reciprocatesId: 'r1', amount: 200_000 });
+    expect(listOutstandingObligations([received, paid])).toEqual([]);
+  });
+
+  it('GHÉP CHÉO DỊP hợp lệ — nghĩa vụ thuộc về NHÀ, không thuộc về dịp', () => {
+    // Chú Ba mừng cưới mình, mình đi tân gia nhà chú Ba → xong.
+    const received = gift({ id: 'r1', occasion: 'wedding' });
+    const paid = gift({
+      id: 'p1',
+      direction: 'given',
+      occasion: 'housewarming',
+      reciprocatesId: 'r1',
+    });
+    expect(listOutstandingObligations([received, paid])).toEqual([]);
+  });
+
+  it('sắp theo NGÀY NHẬN, cũ nhất trước — không bao giờ theo số tiền', () => {
+    const small = gift({ id: 'old', amount: 100_000, occurredOn: '2020-01-01' });
+    const big = gift({ id: 'new', amount: 9_000_000, occurredOn: '2025-01-01' });
+    expect(listOutstandingObligations([big, small]).map((g) => g.id)).toEqual(['old', 'new']);
+  });
+
+  it('lọc theo contact khi được yêu cầu', () => {
+    const mine = gift({ id: 'r1', contactId: 'c1' });
+    const other = gift({ id: 'r2', contactId: 'c2' });
+    expect(listOutstandingObligations([mine, other], 'c1').map((g) => g.id)).toEqual(['r1']);
+  });
+
+  it('TANG LỄ không bao giờ nằm trong danh sách chưa đáp lễ (07 §3.5)', () => {
+    // Đáp lễ một đám tang nghĩa là chờ nhà đó có tang — app không được nói ra
+    // điều đó, kể cả bằng cách xếp một dòng vào mục này.
+    const funeral = gift({ id: 'rf', occasion: 'funeral' });
+    expect(listOutstandingObligations([funeral])).toEqual([]);
+  });
+
+  // --- Khoản chỉ nhận, không cần trả (07 §3.4b) ---
+
+  it('khoản đánh dấu KHÔNG CẦN ĐÁP → không nằm trong danh sách', () => {
+    // Bố mẹ mừng con là cho, không phải trao đổi. Thiếu cái lọc này thì danh
+    // sách đầy dần những nghĩa vụ không bao giờ đóng được.
+    const parents = gift({ id: 'r1', noReciprocityNeeded: true });
+    expect(listOutstandingObligations([parents])).toEqual([]);
+  });
+
+  it('cờ ở TỪNG KHOẢN, không ở contact — cùng một người có thể vừa có vừa không', () => {
+    // Bố mẹ mừng cưới là cho; bố mẹ mừng tân gia thì có đi có lại.
+    const wedding = gift({ id: 'r1', occasion: 'wedding', noReciprocityNeeded: true });
+    const housewarming = gift({ id: 'r2', occasion: 'housewarming', occurredOn: '2025-06-01' });
+    const out = listOutstandingObligations([wedding, housewarming]);
+    expect(out.map((g) => g.id)).toEqual(['r2']);
+  });
+
+  it('chiều "given" không bao giờ là nghĩa vụ', () => {
+    expect(listOutstandingObligations([gift({ id: 'p1', direction: 'given' })])).toEqual([]);
+  });
+});
+
+describe('reciprocityStatus — ba trạng thái, không phải hai (07 §3.3)', () => {
+  it('mặc định là chưa đáp lễ', () => {
+    const g = gift({ id: 'r1' });
+    expect(reciprocityStatus(g, [g])).toBe('outstanding');
+  });
+
+  it('"không cần đáp" thắng cả khi chưa ai ghép vào', () => {
+    // Thứ tự kiểm có ý nghĩa: một khoản đã đánh dấu không cần đáp thì không có
+    // nghĩa vụ nào để nói là chưa xong.
+    const g = gift({ id: 'r1', noReciprocityNeeded: true });
+    expect(reciprocityStatus(g, [g])).toBe('not_needed');
+  });
+
+  it('phân biệt được "đã đáp" với "không cần đáp"', () => {
+    // Hai trạng thái này đọc lên khác hẳn nhau, nên không được gộp thành một cờ.
+    const done = gift({ id: 'r1' });
+    const paid = gift({ id: 'p1', direction: 'given', reciprocatesId: 'r1' });
+    const skip = gift({ id: 'r2', noReciprocityNeeded: true });
+    expect(reciprocityStatus(done, [done, paid, skip])).toBe('reciprocated');
+    expect(reciprocityStatus(skip, [done, paid, skip])).toBe('not_needed');
   });
 });
 
@@ -111,13 +273,30 @@ describe('summarizeOccasion — tổng của một đám (03 §11.1)', () => {
   });
 });
 
-describe('KHÔNG TỒN TẠI hàm chênh lệch đi–nhận (03 §9, 07 §3.4)', () => {
+describe('KHÔNG TỒN TẠI hàm chênh lệch đi–nhận (03 §9, 07 §3.6)', () => {
   it('không export hàm nào tên giftBalance hay tương tự', () => {
     // Dữ liệu đủ để tính, và đó chính là lý do phải khẳng định là không tính:
     // nó biến quan hệ họ hàng thành sổ nợ.
     const names = Object.keys(domain);
     expect(names).not.toContain('giftBalance');
-    expect(names.filter((n) => /balance|owed|deficit/i.test(n))).toEqual([]);
+    expect(names.filter((n) => /balance|owed|deficit|shortfall/i.test(n))).toEqual([]);
+  });
+
+  it('không có hàm tổng hợp nghĩa vụ đang chờ', () => {
+    // "Còn 5 nhà chưa đáp lễ, tổng 8 triệu" CHÍNH LÀ số dư nợ mặc áo khác: nó
+    // cộng dồn đúng cái mà thiết kế cố ý giữ ở dạng từng khoản rời (07 §3.6).
+    const names = Object.keys(domain);
+    expect(names).not.toContain('totalOutstanding');
+    expect(names.filter((n) => /^total|Total$/.test(n) && /outstanding|obligation/i.test(n)))
+      .toEqual([]);
+  });
+
+  it('listOutstandingObligations trả MẢNG TRẦN — không có chỗ nhét tổng vào', () => {
+    // Khác summarizeOccasion có chủ ý: kiểu trả về là ràng buộc thiết kế, không
+    // phải lựa chọn tiện tay.
+    const out = listOutstandingObligations([gift({ id: 'r1' }), gift({ id: 'r2' })]);
+    expect(Array.isArray(out)).toBe(true);
+    expect(out).toHaveLength(2);
   });
 });
 

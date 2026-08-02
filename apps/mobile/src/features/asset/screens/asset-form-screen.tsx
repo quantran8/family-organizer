@@ -231,7 +231,7 @@ export function AssetFormScreen() {
           multiline
           numberOfLines={2}
           maxLength={2000}
-          className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 py-3 text-body text-ink"
           style={{ textAlignVertical: 'top' }}
         />
       </Field>

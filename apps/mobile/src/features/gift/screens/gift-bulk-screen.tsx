@@ -51,7 +51,14 @@ export function GiftBulkScreen() {
 
   // Chọn MỘT LẦN cho cả mẻ.
   const [direction, setDirection] = useState<GiftDirection>('received');
-  const [occasion, setOccasion] = useState<GiftOccasion>('wedding');
+  /**
+   * KHÔNG MẶC ĐỊNH 'wedding' — 07 §3.
+   *
+   * Ở đây hậu quả nặng hơn form đơn: một mẻ là 100 phong bì, và chip "Cưới"
+   * sáng sẵn trong lúc người nhập đang tập trung gõ tên với số tiền sẽ ghi sai
+   * dịp cho CẢ MẺ mà không ai nhìn lại.
+   */
+  const [occasion, setOccasion] = useState<GiftOccasion | null>(null);
   // Nullable vì `DatePicker` cho bỏ chọn — `save` chặn khi null.
   const [occurredOn, setOccurredOn] = useState<string | null>(today);
 
@@ -85,7 +92,7 @@ export function GiftBulkScreen() {
   const filled = rows.filter((r) => r.name.trim() !== '' && Number(r.amount) > 0);
 
   const save = (): void => {
-    if (filled.length === 0 || occurredOn === null || bulk.isPending) return;
+    if (filled.length === 0 || occurredOn === null || occasion === null || bulk.isPending) return;
     bulk.mutate(
       filled.map((r) => ({
         name: r.name.trim(),
@@ -100,7 +107,7 @@ export function GiftBulkScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-32 pt-4"
@@ -127,6 +134,12 @@ export function GiftBulkScreen() {
             options={GIFT_OCCASIONS.map((o) => ({ value: o, label: t.giftOccasion[o] }))}
           />
         </Field>
+
+        {/* CỐ Ý KHÔNG CÓ ô "không cần đáp lễ" cho cả mẻ — 07 §3.4b.
+            Một mẻ 100 phong bì ở đám cưới mình gồm cả bố mẹ (không cần đáp) lẫn
+            họ hàng bạn bè (có nghĩa vụ). Một cái tích cho cả mẻ sẽ tắt sạch
+            nghĩa vụ của 99 nhà để đúng cho một nhà, và không ai đi kiểm lại 100
+            dòng. Tắt từng khoản ở màn chi tiết từng nhà — chậm hơn nhưng đúng. */}
 
         <Field label={t.gift.fieldDate}>
           <DatePicker value={occurredOn} onChange={setOccurredOn} today={today} />
@@ -185,15 +198,20 @@ export function GiftBulkScreen() {
         ) : null}
       </ScrollView>
 
-      <View className="border-t border-line bg-white px-4 py-3">
+      <View className="border-t border-line bg-surface px-4 py-3">
+        {/* Nút NÓI RA vì sao chưa lưu được, thay vì mờ đi không lý do. Thiếu dịp
+            xét trước thiếu dòng: người nhập gõ dòng trước rồi mới ngước lên chọn
+            dịp, nên khi cả hai cùng thiếu thì "Chọn dịp" là việc còn lại. */}
         <Button
           label={
-            filled.length === 0
-              ? t.gift.bulkEmpty
-              : f(t.gift.bulkSave, { count: filled.length })
+            occasion === null
+              ? t.validation.giftOccasion
+              : filled.length === 0
+                ? t.gift.bulkEmpty
+                : f(t.gift.bulkSave, { count: filled.length })
           }
           loading={bulk.isPending}
-          disabled={filled.length === 0}
+          disabled={filled.length === 0 || occasion === null}
           onPress={save}
         />
       </View>

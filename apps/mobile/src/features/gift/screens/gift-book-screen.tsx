@@ -76,7 +76,7 @@ export function GiftBookScreen() {
 
   return (
     <View className="flex-1">
-      <View className="border-b border-line bg-white px-4 py-3">
+      <View className="border-b border-line bg-surface px-4 py-3">
         <Segmented<Tab>
           options={[
             { value: 'entries', label: t.gift.title },

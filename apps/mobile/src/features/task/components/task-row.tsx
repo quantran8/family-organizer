@@ -77,7 +77,7 @@ export function TaskRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 bg-white py-3 active:bg-soft"
+      className="min-h-touch flex-row items-center gap-3 bg-surface py-3 active:bg-soft"
     >
       <Checkbox checked={done} onToggle={onToggle} />
 

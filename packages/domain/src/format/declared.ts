@@ -34,7 +34,18 @@ export function formatDeclaredAt(
   byDisplayName: string | null,
   today: ISODate,
 ): DeclaredLabel {
-  if (asOf === null) return { kind: 'never' };
+  // `== null` bắt CẢ `undefined`, không chỉ `null`.
+  //
+  // Kiểu nói là `ISODate | null`, nên `undefined` là giá trị NGOÀI hợp đồng —
+  // nhưng nó tới được: cache đĩa (persist 7 ngày) khôi phục một hàng view được
+  // lưu TRƯỚC khi migration thêm cột, và hàng cũ đó không có trường này. Lúc
+  // đó `parseISODate` ném `RangeError` và nguyên màn hình trắng.
+  //
+  // Hàm này bắt buộc ở MỌI chỗ hiện số tổng (03 §8), nên nó là chỗ một dữ liệu
+  // lệch hình dạng gây thiệt hại lớn nhất. "Chưa có số liệu" là câu trả lời
+  // trung thực cho một ngày không đọc được — và trung thực hơn hẳn một màn hình
+  // vỡ, vốn không nói được gì cho người dùng.
+  if (asOf == null) return { kind: 'never' };
 
   const by = byDisplayName;
   // Số ngày ĐÃ TRÔI QUA kể từ lúc khai. daysBetween(today, asOf) âm khi asOf ở

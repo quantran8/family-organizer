@@ -10,20 +10,28 @@
  * Không có dòng chênh lệch. Không có "còn thiếu 500k", không có "đã đi đủ",
  * không có màu nào nói bên nào nặng hơn. Dữ liệu đủ để tính — view
  * `gift_history` có cả hai tổng nằm cạnh nhau — và đó chính là lý do phải nói
- * rõ là không tính (07 §3.4).
+ * rõ là không tính (07 §3.6).
  *
  * Hai tổng ở đầu màn đứng cạnh nhau, cùng cỡ chữ, cùng màu, không có phép toán
  * nào nối chúng lại. Người dùng tự cân; app không cân hộ.
+ *
+ * Trạng thái đáp lễ hiện ở TỪNG DÒNG, và KHÔNG CÓ TỔNG NÀO của các khoản đang
+ * chờ — "còn 3 khoản, tổng 5 triệu" chính là số dư nợ mặc áo khác (07 §3.6).
  */
 
-import type { UUID } from '@family-organizer/domain';
+import { reciprocityStatus, type UUID } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { EmptyState, ErrorState, ListSkeleton } from '@/design/components';
 import { useCurrency } from '@/design/use-currency';
 import { GiftEntryRow } from '@/features/gift/components';
-import { useContacts, useGiftEntries, useGiftHistory } from '@/features/gift/queries/use-gifts';
+import {
+  useContacts,
+  useGiftEntries,
+  useGiftHistory,
+  useSetNoReciprocityNeeded,
+} from '@/features/gift/queries/use-gifts';
 import { moneyText, useT } from '@/i18n';
 
 export function ContactGiftsScreen() {
@@ -40,6 +48,26 @@ export function ContactGiftsScreen() {
 
   const contact = (contacts ?? []).find((c) => c.id === contactId) ?? null;
   const h = (history ?? []).find((x) => x.contactId === contactId) ?? null;
+
+  const setNotNeeded = useSetNoReciprocityNeeded();
+
+  /**
+   * Bật/tắt "không cần đáp lễ" — 07 §3.4b.
+   *
+   * Hỏi lại trước khi bật vì đây là một khẳng định về QUAN HỆ, không phải một
+   * thao tác dữ liệu: người dùng đang nói "nhà này mình không phải đi lại". Tắt
+   * thì không hỏi — bỏ một đánh dấu luôn an toàn.
+   */
+  const toggleNotNeeded = (id: UUID, current: boolean): void => {
+    if (current) {
+      setNotNeeded.mutate({ id, value: false });
+      return;
+    }
+    Alert.alert(t.gift.markNotNeeded, t.gift.notNeededHint, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.gift.markNotNeeded, onPress: () => setNotNeeded.mutate({ id, value: true }) },
+    ]);
+  };
 
   return (
     <View className="flex-1">
@@ -110,7 +138,19 @@ export function ContactGiftsScreen() {
               amount={g.amount}
               occurredOn={g.occurredOn}
               inKindNote={g.inKindNote}
+              // Chỉ khoản NHẬN mới có nghĩa vụ; tang lễ không sinh nghĩa vụ nên
+              // cũng không hiện trạng thái nào (07 §3.5).
+              status={
+                g.direction === 'received' && g.occasion !== 'funeral'
+                  ? reciprocityStatus(g, entries.data ?? [])
+                  : undefined
+              }
               currency={currency}
+              onPress={
+                g.direction === 'received' && g.occasion !== 'funeral'
+                  ? () => toggleNotNeeded(g.id, g.noReciprocityNeeded)
+                  : undefined
+              }
             />
           ))}
         </View>

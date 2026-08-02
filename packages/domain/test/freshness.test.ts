@@ -71,6 +71,17 @@ describe('formatDeclaredAt — nhãn thời gian bắt buộc (03 §8)', () => {
     expect(formatDeclaredAt(null, 'Anh', TODAY)).toEqual({ kind: 'never' });
   });
 
+  it('`undefined` KHÔNG ném — đọc như chưa có số liệu', () => {
+    // Ngoài hợp đồng kiểu (`ISODate | null`) nhưng tới được thật: cache đĩa
+    // khôi phục một hàng view lưu TRƯỚC khi migration thêm cột. Trước khi có
+    // nhánh này, `parseISODate` ném RangeError và nguyên màn Nhà mình trắng.
+    // Hàm này bắt buộc ở MỌI chỗ hiện số tổng, nên nó phải chịu được dữ liệu
+    // lệch hình dạng thay vì kéo sập màn hình.
+    expect(formatDeclaredAt(undefined as unknown as null, 'Anh', TODAY)).toEqual({
+      kind: 'never',
+    });
+  });
+
   it('hôm nay, kèm tên người khai', () => {
     expect(formatDeclaredAt(TODAY, 'Em', TODAY)).toEqual({ kind: 'today', by: 'Em' });
   });

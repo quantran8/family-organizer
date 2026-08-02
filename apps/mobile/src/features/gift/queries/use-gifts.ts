@@ -1,5 +1,5 @@
 /**
- * Hook cho Sổ mừng cưới — 07 §3.
+ * Hook cho Sổ hiếu hỉ — 07 §3.
  *
  * KHÔNG optimistic ở bất kỳ mutation nào. Đây là module có form, không phải
  * thao tác một chạm (01 §3): người dùng gõ tên, gõ số tiền, chọn ngày — họ đã
@@ -51,6 +51,60 @@ export function useGiftHistory() {
   return useQuery({
     queryKey: queryKeys.gifts.history(hh),
     queryFn: () => giftRepository.listHistory(hh),
+  });
+}
+
+/**
+ * Khoản nhận CHƯA ĐÁP LỄ — 07 §3.2.
+ *
+ * KHÔNG CÓ hook nào trả về tổng số tiền của danh sách này. Nếu UI cần biết "còn
+ * mấy khoản" thì đếm `data.length`; cộng tiền lại là dựng lại số dư nợ mà cả
+ * thiết kế tránh (07 §3.6).
+ */
+export function useOutstandingGifts(contactId?: UUID) {
+  const hh = useHouseholdId();
+  return useQuery({
+    queryKey: queryKeys.gifts.outstanding(hh, contactId),
+    queryFn: () => giftRepository.listOutstanding(hh, contactId),
+  });
+}
+
+/**
+ * Ghép một khoản ĐI vào khoản NHẬN mà nó đáp lại — 07 §3.3.
+ *
+ * Không optimistic: cùng lý do với mọi mutation khác trong module này, và thêm
+ * một lý do riêng — bốn bất biến do trigger ở DB ép, nên một ghép cặp sai sẽ bị
+ * từ chối và hiện ra rồi biến mất là trải nghiệm tệ hơn chờ 200ms.
+ */
+export function useLinkReciprocity() {
+  const hh = useHouseholdId();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ givenId, receivedId }: { givenId: UUID; receivedId: UUID | null }) =>
+      giftRepository.linkReciprocity(hh, givenId, receivedId),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.gifts.all(hh) });
+    },
+  });
+}
+
+/**
+ * Bật/tắt "không cần đáp lễ" cho một khoản NHẬN — 07 §3.4b.
+ *
+ * Bố mẹ mừng con, người trên mừng người dưới, người đã mất. App KHÔNG BAO GIỜ
+ * tự bật cờ này; nó chỉ đổi khi người dùng chạm vào.
+ */
+export function useSetNoReciprocityNeeded() {
+  const hh = useHouseholdId();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, value }: { id: UUID; value: boolean }) =>
+      giftRepository.setNoReciprocityNeeded(hh, id, value),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.gifts.all(hh) });
+    },
   });
 }
 

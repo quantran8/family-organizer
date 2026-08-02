@@ -54,7 +54,7 @@ export function Toast() {
       {/* `accessibilityLiveRegion`: trình đọc màn hình đọc lên mà KHÔNG chuyển
           tiêu điểm — chuyển tiêu điểm sang thứ sắp biến mất sau 2 giây là cách
           chắc chắn để người dùng mất chỗ đang đứng. */}
-      <Text accessibilityLiveRegion="polite" className="text-label text-white">
+      <Text accessibilityLiveRegion="polite" className="text-label text-on-action">
         {message}
       </Text>
     </View>

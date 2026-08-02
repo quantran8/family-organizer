@@ -53,7 +53,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           <TextInput
             ref={ref}
             className={[
-              'min-h-touch rounded-control border bg-white py-3 pl-4 text-body text-ink',
+              'min-h-touch rounded-control border bg-surface py-3 pl-4 text-body text-ink',
               trailing ? 'pr-14' : 'pr-4',
               error ? 'border-critical' : 'border-line',
               className,

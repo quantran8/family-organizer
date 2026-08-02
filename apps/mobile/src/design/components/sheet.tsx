@@ -42,10 +42,23 @@ export interface SheetProps {
   actions?: ReactNode;
   /** Nội dung ngắn (một ô nhập) thì không cần cuộn. */
   scroll?: boolean;
+  /** Form nhập nhanh chỉ cần nút đóng; tiêu đề đã nằm trong ngữ cảnh mở sheet. */
+  header?: 'title' | 'close';
+  /** Nền canvas dành cho form được chia thành các card trắng. */
+  background?: 'surface' | 'canvas';
 }
 
-export function Sheet({ title, children, onClose, actions, scroll = true }: SheetProps) {
+export function Sheet({
+  title,
+  children,
+  onClose,
+  actions,
+  scroll = true,
+  header = 'title',
+  background = 'surface',
+}: SheetProps) {
   const { t } = useT();
+  const backgroundClass = background === 'canvas' ? 'bg-canvas' : 'bg-surface';
 
   const body = scroll ? (
     // `bounces={false}`: sheet đã vuốt-xuống-để-đóng, nên nội dung nảy thêm một
@@ -70,7 +83,7 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['bottom']}>
+    <SafeAreaView className={`flex-1 ${backgroundClass}`} edges={['bottom']}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -82,32 +95,48 @@ export function Sheet({ title, children, onClose, actions, scroll = true }: Shee
             không phải giữa khoảng trống còn lại. Ô rỗng bên trái rộng đúng bằng
             nút bên phải, nên tiêu đề không bị nút đẩy lệch — và nó vẫn ở đúng
             chỗ khi nhãn dài ngắn khác nhau. */}
-        <View className="flex-row items-center px-4 pb-4 pt-6">
-          <View className="min-w-touch" />
+        {header === 'title' ? (
+          <View className="flex-row items-center px-4 pb-4 pt-6">
+            <View className="min-w-touch" />
 
-          {/* `flex-1` + `text-center`: tiêu đề chiếm hết phần giữa rồi tự căn
-              giữa trong đó. `numberOfLines` giữ header luôn một dòng — tiêu đề
-              dài xuống hai dòng sẽ đẩy lệch chiều cao header giữa các form. */}
-          <Text
-            numberOfLines={1}
-            className="flex-1 text-center text-title2 font-semibold text-ink"
-          >
-            {title}
-          </Text>
+            {/* `flex-1` + `text-center`: tiêu đề chiếm hết phần giữa rồi tự căn
+                giữa trong đó. `numberOfLines` giữ header luôn một dòng — tiêu đề
+                dài xuống hai dòng sẽ đẩy lệch chiều cao header giữa các form. */}
+            <Text
+              numberOfLines={1}
+              className="flex-1 text-center text-title2 font-semibold text-ink"
+            >
+              {title}
+            </Text>
 
-          {/* Nền tròn `bg-soft`: một icon ✕ trần trên nền trắng là vùng chạm vô
-              hình — người dùng phải đoán nó bắt đầu và kết thúc ở đâu. Vòng tròn
-              nói rõ ranh giới mà không cần thêm viền. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.a11y.close}
-            hitSlop={12}
-            onPress={onClose}
-            className="h-11 w-11 items-center justify-center rounded-full bg-soft active:bg-line"
-          >
-            <Icon name="close" size={18} color={ICON_COLOR.ink} />
-          </Pressable>
-        </View>
+            {/* Nền tròn `bg-soft`: một icon ✕ trần trên nền trắng là vùng chạm vô
+                hình — người dùng phải đoán nó bắt đầu và kết thúc ở đâu. Vòng tròn
+                nói rõ ranh giới mà không cần thêm viền. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.a11y.close}
+              hitSlop={12}
+              onPress={onClose}
+              className={`h-11 w-11 items-center justify-center rounded-full active:bg-line ${
+                background === 'canvas' ? 'bg-surface' : 'bg-soft'
+              }`}
+            >
+              <Icon name="close" size={18} color={ICON_COLOR.ink} />
+            </Pressable>
+          </View>
+        ) : (
+          <View className="items-end px-4 pb-2 pt-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.a11y.close}
+              hitSlop={12}
+              onPress={onClose}
+              className="h-11 w-11 items-center justify-center rounded-full active:bg-soft"
+            >
+              <Icon name="close" size={20} color={ICON_COLOR.muted} />
+            </Pressable>
+          </View>
+        )}
 
         {body}
 

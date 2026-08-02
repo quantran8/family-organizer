@@ -28,6 +28,8 @@ export interface EventCalendarProps {
   today: ISODate;
   calendar: CalendarType;
   error?: string;
+  /** Đặt trong card đã có header ngày riêng — ẩn nhãn và summary lặp lại. */
+  embedded?: boolean;
 }
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] as const;
@@ -41,7 +43,14 @@ function moveMonth(year: number, month: number, amount: number): { year: number;
   return { year: Math.floor(total / 12), month: (total % 12) + 1 };
 }
 
-export function EventCalendar({ value, onChange, today, calendar, error }: EventCalendarProps) {
+export function EventCalendar({
+  value,
+  onChange,
+  today,
+  calendar,
+  error,
+  embedded = false,
+}: EventCalendarProps) {
   const { t } = useT();
   const initial = parseISODate(value ?? today);
   const [view, setView] = useState({ year: initial.year, month: initial.month });
@@ -64,14 +73,16 @@ export function EventCalendar({ value, onChange, today, calendar, error }: Event
 
   return (
     <View>
-      <View className="flex-row items-center justify-between gap-4">
-        <Text className="text-label font-semibold text-muted">{t.event.fieldDate}</Text>
-        <Text className="text-caption font-semibold text-brand-deep">
-          {calendar === 'lunar' ? t.event.calendarBasisLunar : t.event.calendarBasisSolar}
-        </Text>
-      </View>
+      {!embedded ? (
+        <View className="flex-row items-center justify-between gap-4">
+          <Text className="text-label font-semibold text-muted">{t.event.fieldDate}</Text>
+          <Text className="text-caption font-semibold text-brand-deep">
+            {calendar === 'lunar' ? t.event.calendarBasisLunar : t.event.calendarBasisSolar}
+          </Text>
+        </View>
+      ) : null}
 
-      <View className="mt-3">
+      <View className={embedded ? '' : 'mt-3'}>
         <View className="flex-row items-center">
           <Pressable
             accessibilityRole="button"
@@ -140,7 +151,7 @@ export function EventCalendar({ value, onChange, today, calendar, error }: Event
                   <Text
                     className={`text-body font-semibold tabular-nums ${
                       selected
-                        ? 'text-white'
+                        ? 'text-on-brand'
                         : outside
                           ? 'text-subtle'
                           : isToday
@@ -152,7 +163,7 @@ export function EventCalendar({ value, onChange, today, calendar, error }: Event
                   </Text>
                   <Text
                     className={`text-micro font-medium tabular-nums ${
-                      selected ? 'text-white/80' : outside ? 'text-line' : 'text-subtle'
+                      selected ? 'text-on-brand/80' : outside ? 'text-line' : 'text-subtle'
                     }`}
                   >
                     {`${lunar.day}/${lunar.month}`}
@@ -162,11 +173,24 @@ export function EventCalendar({ value, onChange, today, calendar, error }: Event
             );
           })}
         </View>
+
+        {embedded ? (
+          <View className="mt-2 flex-row items-center justify-center gap-4">
+            <View className="flex-row items-center gap-1.5">
+              <View className="h-2 w-2 rounded-full bg-ink" />
+              <Text className="text-micro font-semibold text-muted">{t.event.repeatSolar}</Text>
+            </View>
+            <View className="flex-row items-center gap-1.5">
+              <View className="h-2 w-2 rounded-full bg-subtle" />
+              <Text className="text-micro font-semibold text-muted">{t.event.repeatLunar}</Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
-      {value !== null && selectedLunar !== null ? (
+      {!embedded && value !== null && selectedLunar !== null ? (
         <View className="mt-4 flex-row items-center gap-3 rounded-featured bg-brand-soft px-4 py-3">
-          <View className="h-10 w-10 items-center justify-center rounded-control bg-white">
+          <View className="h-10 w-10 items-center justify-center rounded-control bg-surface">
             <Icon name="date" size={20} color={ICON_COLOR.brand} />
           </View>
           <View className="min-w-0 flex-1">

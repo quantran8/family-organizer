@@ -338,18 +338,46 @@ Nó là một **khẳng định phản thực**: không ai biết người dùng
 ```ts
 export function suggestGiftAmount(
   h: GiftHistory | null,
-): { amount: number; basis: GiftEntry } | null
+  entries: GiftEntry[],
+  forOccasion: GiftOccasion,
+): {
+  basis: GiftEntry;
+  /** Chỉ có số khi CÙNG DỊP. `null` = hiện dữ kiện, không hiện nút. */
+  amount: number | null;
+  isOutstanding: boolean;
+} | null
 ```
 
 Trả về lần **nhận** gần nhất từ contact đó, kèm bản ghi làm căn cứ để UI hiện được ngữ cảnh:
 
 > Chú Ba đã mừng nhà mình 2.000.000 ₫ — cưới, 3/2023
 
-Không có hàm này thì module sổ mừng cưới chỉ là một cái Excel có màu.
+Không có hàm này thì module sổ hiếu hỉ chỉ là một cái Excel có màu.
+
+**`amount` chỉ có giá trị khi `basis.occasion === forOccasion`.** Khác dịp thì `amount = null`: UI hiện dữ kiện và trạng thái chưa đáp lễ, nhưng **không** hiện nút `[ Dùng số này ]`. Mức tiền gắn với dịp, không gắn với nhà — hai triệu ở đám cưới không dịch được sang mừng tân gia, và đề xuất nó là app nói sai một cách tự tin. Xem `07 §3.4`.
+
+**`forOccasion === 'funeral'` luôn trả `amount = null`**, kể cả khi căn cứ cũng là tang lễ. Và một khoản `funeral` không bao giờ được chọn làm `basis`. Xem `07 §3.5`.
 
 **Không nội suy, không điều chỉnh theo lạm phát, không làm tròn "cho đẹp".** App đưa ra một dữ kiện, người dùng quyết định. Mọi phép điều chỉnh đều là app có ý kiến về chuyện nên đi bao nhiêu — chuyện đó thuộc về hai vợ chồng.
 
 Trả `null` khi chưa từng nhận: khi đó UI không hiện gì cả, không hiện "chưa có dữ liệu".
+
+### 11.1b Nghĩa vụ đáp lễ
+
+```ts
+export function listOutstandingObligations(
+  entries: GiftEntry[],
+  contactId?: UUID,
+): GiftEntry[]
+```
+
+Các khoản `received` **chưa được khoản `given` nào ghép vào**, sắp theo ngày nhận (cũ nhất trước — nghĩa vụ lâu nhất nằm trên).
+
+Bỏ qua `occasion === 'funeral'` hoàn toàn (`07 §3.5`).
+
+**Trả mảng bản ghi, không trả tổng.** Không có `{ count, total }` như `summarizeOccasion` — một tổng số tiền các khoản chưa đáp lễ chính là số dư nợ mặc áo khác. Đây là lý do hàm này trả `GiftEntry[]` trần chứ không phải một object tóm tắt: **không có chỗ nào để nhét con số đó vào.**
+
+Ghép chéo dịp là hợp lệ — nghĩa vụ thuộc về nhà, không thuộc về dịp (`07 §3.3`).
 
 ```ts
 export function summarizeOccasion(
@@ -401,7 +429,18 @@ function comparePercentile(r: GrowthRecord, standard: WHOStandard): number
 function compareChildren(a: UUID, b: UUID): Comparison
 function giftBalance(h: GiftHistory): number
 function suggestSkipDose(d: ChildVaccineDose): boolean
+
+// Bốn hàm dưới trông vô hại vì `listOutstandingObligations` đã tồn tại —
+// chúng chính là số dư nợ dựng lại từ dữ liệu nghĩa vụ. Xem 07 §3.6.
+function totalOutstanding(entries: GiftEntry[]): number
+function sortOutstandingByAmount(entries: GiftEntry[]): GiftEntry[]
+function reciprocityShortfall(received: GiftEntry, given: GiftEntry): number
+function suggestAcrossOccasions(basis: GiftEntry, target: GiftOccasion): number
 ```
+
+`totalOutstanding` là hàm nguy hiểm nhất trong danh sách này, vì nó là một dòng code và trông như một tiện ích hiển thị. "Còn 5 nhà chưa đáp lễ, tổng 8 triệu" đọc lên là một câu về **nợ**, không phải một câu về **việc cần làm** — và nó cộng dồn đúng cái mà thiết kế cố ý giữ ở dạng từng khoản rời.
+
+`reciprocityShortfall` cũng vậy: đáp lễ xong là xong, bất kể số tiền hai bên. Hiện phần chênh là app nói "đi chưa đủ" — chuyện app không biết đủ ngữ cảnh để nói.
 
 Chiều cao cân nặng: app **ghi và vẽ, không diễn giải**. Bố mẹ mới rất dễ lo lắng, và một nhãn đỏ do app tự tính sẽ gây hoảng mà không giúp được gì. Việc đánh giá thuộc về bác sĩ.
 

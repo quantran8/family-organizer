@@ -41,10 +41,10 @@ export function Checkbox({ checked, onToggle, disabled = false }: CheckboxProps)
       <View
         className={[
           'h-6 w-6 items-center justify-center rounded-full border-2',
-          checked ? 'border-brand bg-brand' : 'border-subtle bg-white',
+          checked ? 'border-brand bg-brand' : 'border-subtle bg-surface',
         ].join(' ')}
       >
-        {checked ? <Text className="text-caption font-semibold text-white">✓</Text> : null}
+        {checked ? <Text className="text-caption font-semibold text-on-brand">✓</Text> : null}
       </View>
     </Pressable>
   );

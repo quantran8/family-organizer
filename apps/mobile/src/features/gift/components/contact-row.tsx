@@ -28,7 +28,7 @@ export function ContactRow({ history, relationNote = null, currency, onPress }: 
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
       onPress={onPress}
-      className="min-h-touch border-b border-line bg-white py-3"
+      className="min-h-touch border-b border-line bg-surface py-3"
     >
       <Text className="text-body text-ink" numberOfLines={1}>
         {history.displayName}

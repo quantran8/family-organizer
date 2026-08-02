@@ -104,7 +104,7 @@ export const AmountInput = forwardRef<TextInput, AmountInputProps>(function Amou
     <View
       className={[
         'flex-row items-center',
-        variant === 'row' ? 'bg-transparent' : 'rounded-control border bg-white px-4',
+        variant === 'row' ? 'bg-transparent' : 'rounded-control border bg-surface px-4',
         // Vùng chạm ≥ 44px — mức sàn không thương lượng (design.md §14).
         'min-h-touch',
         variant === 'control' ? (hasError ? 'border-critical' : 'border-line') : '',

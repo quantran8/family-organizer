@@ -31,7 +31,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
             accessibilityLabel={o.label}
             onPress={() => onChange(o.value)}
             className={`min-h-touch flex-1 items-center justify-center rounded-control ${
-              active ? 'bg-white' : ''
+              active ? 'bg-surface' : ''
             }`}
           >
             <Text

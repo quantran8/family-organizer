@@ -59,7 +59,7 @@ export function ThresholdScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-surface">
       <View className="flex-1 justify-center px-6">
         <Text className="text-title1 font-semibold text-ink">{t.threshold.question}</Text>
         <Text className="mt-3 text-body text-subtle">{t.threshold.body}</Text>

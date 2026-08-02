@@ -90,7 +90,7 @@ export function HouseholdSettingsScreen() {
           placeholderTextColor="#A4A4AD"
           accessibilityLabel={t.settings.householdName}
           maxLength={60}
-          className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 py-3 text-body text-ink"
         />
       </Field>
 
@@ -138,7 +138,7 @@ export function HouseholdSettingsScreen() {
           maxLength={50}
           returnKeyType="done"
           onSubmitEditing={addMember}
-          className="min-h-touch rounded-control border border-line bg-white px-4 py-3 text-body text-ink"
+          className="min-h-touch rounded-control border border-line bg-surface px-4 py-3 text-body text-ink"
         />
       </Field>
 

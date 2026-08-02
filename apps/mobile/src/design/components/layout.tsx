@@ -11,14 +11,17 @@ export interface ScreenProps extends ViewProps {
   /** Nội dung dài thì cuộn; danh sách dài dùng FlashList riêng, KHÔNG bọc trong đây. */
   scroll?: boolean;
   /**
-   * Nền: `white` cho màn nội dung, `page` cho màn có nhiều thẻ nổi lên trên.
-   * design.md §2.1 — trắng là mặc định, không phải màu nhấn.
+   * Nền: `surface` cho màn nội dung, `canvas` cho màn có nhiều thẻ nổi lên
+   * trên. design.md §2.1 — trắng là mặc định, không phải màu nhấn.
+   *
+   * Tên hai giá trị là tên token, không phải tên màu: `bg-surface` của Tailwind
+   * không tra được về design.md, nên nó không được xuất hiện ở đâu cả.
    */
-  surface?: 'white' | 'page';
+  surface?: 'surface' | 'canvas';
 }
 
-export function Screen({ children, scroll = false, surface = 'white', className, ...rest }: ScreenProps) {
-  const bg = surface === 'white' ? 'bg-white' : 'bg-canvas';
+export function Screen({ children, scroll = false, surface = 'surface', className, ...rest }: ScreenProps) {
+  const bg = surface === 'surface' ? 'bg-surface' : 'bg-canvas';
   const body = scroll ? (
     <ScrollView
       className="flex-1"
@@ -47,7 +50,7 @@ export function Card({ children, emphasis = 'none', className, ...rest }: CardPr
   return (
     <View
       className={[
-        'rounded-status border bg-white p-4',
+        'rounded-status border bg-surface p-4',
         emphasis === 'brand' ? 'border-brand-soft' : 'border-line',
         className,
       ]

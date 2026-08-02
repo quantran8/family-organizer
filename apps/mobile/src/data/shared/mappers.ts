@@ -459,7 +459,7 @@ export function toMoneyFeedItem(r: MoneyFeedRow): MoneyFeedItem {
   };
 }
 
-// --- Sổ mừng cưới (07 §3) ---
+// --- Sổ hiếu hỉ (07 §3) ---
 
 export function toContact(r: ContactRow): Contact {
   return {
@@ -481,6 +481,8 @@ export function toGiftEntry(r: GiftEntryRow): GiftEntry {
     eventId: r.event_id,
     inKindNote: r.in_kind_note,
     notes: r.notes,
+    reciprocatesId: r.reciprocates_id,
+    noReciprocityNeeded: r.no_reciprocity_needed,
   };
 }
 

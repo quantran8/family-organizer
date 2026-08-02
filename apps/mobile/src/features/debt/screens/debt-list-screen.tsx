@@ -65,7 +65,7 @@ export function DebtListScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-surface">
         {header}
         <View className="px-4">
           <ListSkeleton rows={4} />
@@ -76,7 +76,7 @@ export function DebtListScreen() {
 
   if (isError) {
     return (
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-surface">
         {header}
         <View className="px-4">
           <ErrorState
@@ -94,7 +94,7 @@ export function DebtListScreen() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       {header}
 
       {rows.length === 0 ? (

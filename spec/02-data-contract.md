@@ -290,7 +290,7 @@ export interface MoneyEvent {
   actorDisplayName: string | null;
 }
 
-// --- Sổ mừng cưới (07 §3) ---
+// --- Sổ hiếu hỉ (07 §3) ---
 
 /** Họ hàng và bạn bè. KHÔNG PHẢI Member: không tài khoản, không thông báo. */
 export interface Contact {

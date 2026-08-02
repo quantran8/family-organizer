@@ -47,6 +47,16 @@ module.exports = {
         subtle: '#A4A4AD',
         line: '#ECECF0',
 
+        // ── Chữ/viền trên nền TỐI.
+        // Cùng là #FFFFFF với `surface` nhưng mang nghĩa ngược lại: `surface`
+        // là nền, hai token này là thứ nằm LÊN nền tối. Tách tên theo nền để
+        // đọc code là thấy ngay cặp nền–chữ có khớp không, và để hôm nào nền
+        // tối đổi màu thì chữ đi theo mà không phải rà từng chỗ.
+        /** Chữ/viền trên `bg-action` (đen) và trên toast. */
+        'on-action': '#FFFFFF',
+        /** Chữ/viền trên `bg-brand` (chàm) — ngày được chọn, ô tick. */
+        'on-brand': '#FFFFFF',
+
         // ── Hành động (§5.2) — CTA chính là ĐEN, không phải brand.
         action: {
           DEFAULT: '#111114',
@@ -119,7 +129,7 @@ module.exports = {
       boxShadow: {
         // §17. Bóng HIẾM và có mục đích (§8): nút chính, thẻ sự kiện nổi bật,
         // bottom sheet. Không thêm bóng cho mọi dòng hay mọi section.
-        action: '0 8px 22px rgba(17,17,20,.16)',
+        action: '0 1px 1px rgba(17,17,20,.16)',
         brand: '0 10px 22px rgba(98,87,246,.22)',
         frame: '0 24px 80px rgba(21,21,27,.17)',
         sheet: '0 -16px 48px rgba(0,0,0,.18)',

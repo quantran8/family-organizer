@@ -345,7 +345,7 @@ export interface IngestDraft {
   createdAt: ISODateTime;
 }
 
-// --- Sổ mừng cưới (07 §3) ---
+// --- Sổ hiếu hỉ (07 §3) ---
 
 /**
  * Họ hàng và bạn bè. KHÔNG PHẢI Member: không tài khoản, không thông báo,
@@ -373,7 +373,46 @@ export interface GiftEntry {
   /** Quà không phải tiền: "một cây vàng". amount = 0 khi đó. */
   inKindNote: string | null;
   notes: string | null;
+  /**
+   * Khoản `received` mà khoản `given` này đáp lại — 07 §3.3.
+   *
+   * Chỉ có ở `direction === 'given'`, và trỏ tới khoản của CÙNG contact. Ghép
+   * chéo dịp là hợp lệ: nghĩa vụ thuộc về NHÀ, không thuộc về dịp — chú Ba mừng
+   * cưới mình, mình đi tân gia nhà chú Ba là xong.
+   *
+   * ĐÂY KHÔNG PHẢI SỐ DƯ NỢ. Trạng thái của một KHOẢN, biến mất khi đáp xong;
+   * không phải số dư của một MỐI QUAN HỆ, luôn hiện và cộng dồn. Ranh giới đầy
+   * đủ ở 07 §3.6.
+   */
+  reciprocatesId: UUID | null;
+  /**
+   * Khoản nhận này KHÔNG sinh nghĩa vụ đáp lễ — 07 §3.4b.
+   *
+   * Bốn trường hợp có thật: bố mẹ mừng con (cho, không phải trao đổi), người
+   * trên mừng người dưới (nghĩa vụ hiếu hỉ không đối xứng theo vai vế), người
+   * đã mất hoặc bạn mất liên lạc (nghĩa vụ không còn đối tượng), và đã đáp bằng
+   * cách khác mà app không thấy được.
+   *
+   * CHỈ NGƯỜI DÙNG ĐẶT. App không bao giờ tự suy ra từ `side`, `relationNote`,
+   * hay số tiền — nó không biết vai vế, không biết ai còn sống, và đoán sai ở
+   * đây là xúc phạm chứ không phải bất tiện.
+   */
+  noReciprocityNeeded: boolean;
 }
+
+/**
+ * Ba trạng thái của một khoản NHẬN — 07 §3.3.
+ *
+ * Ba, không phải hai: "chưa có khoản đi nào ghép vào" trông y hệt "còn nợ" trong
+ * dữ liệu, nhưng ngoài đời là hai chuyện khác hẳn.
+ */
+export type ReciprocityStatus =
+  /** Chờ một dịp ở nhà đó. Nằm trong danh sách chưa đáp lễ. */
+  | 'outstanding'
+  /** Đã có một khoản `given` ghép vào. Xong, bất kể số tiền hai bên. */
+  | 'reciprocated'
+  /** Người dùng đã đánh dấu không cần đáp — 07 §3.4b. */
+  | 'not_needed';
 
 /**
  * Nguồn của dòng gợi ý — TOÀN BỘ lý do module này tồn tại.

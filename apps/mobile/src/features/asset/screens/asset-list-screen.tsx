@@ -80,7 +80,7 @@ export function AssetListScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ListSkeleton rows={5} />
       </View>
     );
@@ -88,7 +88,7 @@ export function AssetListScreen() {
 
   if (isError) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ErrorState
           message={t.error.unknown}
           retryLabel={t.common.retry}
@@ -102,7 +102,7 @@ export function AssetListScreen() {
 
   if (total === 0) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <EmptyState
           title={t.asset.emptyTitle}
           body={t.asset.emptyBody}
@@ -114,7 +114,7 @@ export function AssetListScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-12"

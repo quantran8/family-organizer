@@ -257,7 +257,7 @@ export function moneyText(v: number, currency: string): string {
   return formatMoney(v, currency);
 }
 
-// --- Sổ mừng cưới (07 §3) ---
+// --- Sổ hiếu hỉ (07 §3) ---
 
 export function giftDirectionLabel(d: GiftDirection): string {
   return vi.giftDirection[d];
@@ -272,7 +272,7 @@ export function contactSideLabel(s: ContactSide): string {
 }
 
 /**
- * Dòng gợi ý — TOÀN BỘ lý do module sổ mừng cưới tồn tại (07 §3.3):
+ * Dòng gợi ý — TOÀN BỘ lý do module sổ hiếu hỉ tồn tại (07 §3.3):
  *
  *     Chú Ba đã mừng nhà mình
  *     2.000.000 ₫ — cưới, 3/2023

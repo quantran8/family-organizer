@@ -126,7 +126,7 @@ export function HomeScreen() {
     // header nào đứng giữa nội dung và notch. Cạnh dưới KHÔNG khai — tab bar đã
     // nằm ở đó và Expo Router tự chừa home indicator; khai thêm sẽ đội nội dung
     // lên một khoảng trống thừa ngay phía trên tab bar.
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-24"

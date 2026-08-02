@@ -64,7 +64,7 @@ export const persistOptions = {
    * ra màn hình vỡ trước khi refetch kịp — tăng số này là cách rẻ nhất để vứt
    * nó đi.
    */
-  buster: 'v1',
+  buster: 'v2',
   dehydrateOptions: {
     /**
      * Hai điều kiện, cả hai đều bắt buộc.

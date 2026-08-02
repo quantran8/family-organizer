@@ -43,7 +43,7 @@ export function SnapshotHistoryScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ListSkeleton rows={5} />
       </View>
     );
@@ -51,7 +51,7 @@ export function SnapshotHistoryScreen() {
 
   if (isError) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ErrorState
           message={t.error.unknown}
           retryLabel={t.common.retry}
@@ -63,7 +63,7 @@ export function SnapshotHistoryScreen() {
 
   if ((rows ?? []).length === 0) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         {/* KHÔNG có nút hành động: mốc lịch sử do cron ghi hằng tháng, người
             dùng không tạo được (06 §1). Một nút ở đây sẽ mời họ làm một việc
             không tồn tại. */}
@@ -77,7 +77,7 @@ export function SnapshotHistoryScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1 bg-surface"
       contentContainerClassName="px-4 pb-12"
       showsVerticalScrollIndicator={false}
     >

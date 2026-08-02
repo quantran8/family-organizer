@@ -1,15 +1,8 @@
 /**
- * Form Việc — 05 §5.2.
+ * Quick add Việc — composer gọn theo mẫu modal v3.
  *
- * Dùng cho TẠO MỚI. Sửa thì làm TẠI CHỖ ở `plan/task/[id].tsx` ("Sửa trực tiếp
- * tại chỗ, không cần vào form riêng" — 05 §5.2), nên route này không nhận `id`.
- *
- * Thứ tự trường theo thứ tự người ta nghĩ: làm gì → bao giờ → ai làm → lặp
- * không → nhắc trước → ghi chú. Chỉ tên việc là bắt buộc; mọi thứ khác bỏ trống
- * được và vẫn là một bản ghi đầy đủ.
- *
- * Form có thay đổi chưa lưu → hỏi trước khi đóng; chưa gõ gì → đóng thẳng
- * (05 §Quy ước điều hướng).
+ * Chỉ tên việc là bắt buộc. Ngày mặc định là hôm nay; người làm và ghi chú mở
+ * ngay trong composer để thao tác thường ngày không phải đi qua sheet cấp hai.
  */
 
 import {
@@ -17,94 +10,96 @@ import {
   parseISODate,
   weekdayOf,
   type ISODate,
-  type RecurFreq,
-  type Recurrence,
   type UUID,
 } from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
-
+import { useEffect, useRef, useState } from 'react';
 import {
-  Button,
-  DatePicker,
-  FormRow,
-  Icon,
-  ICON_COLOR,
-  PickerSheet,
-  Sheet,
-} from '@/design/components';
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+import { DatePicker, Icon, ICON_COLOR, MemberAvatar, Sheet } from '@/design/components';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useCreateTask } from '@/features/task/queries/use-tasks';
 import { useT, weekdayShort } from '@/i18n';
 import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
+import { useSessionStore } from '@/stores/session';
 
-/** Tần suất hiện trên form. `none` là một lựa chọn thật, không phải trạng thái ẩn. */
-const FREQS: readonly (RecurFreq | 'none')[] = ['none', 'daily', 'weekly', 'monthly', 'yearly'];
+type Panel = 'assignee' | 'note' | null;
 
-/** Nhắc trước — chỉ vài mốc có ý nghĩa, không phải ô nhập số tự do. */
-const LEAD_DAYS = [0, 1, 3, 7] as const;
+const TITLE_MAX = 100;
+const NOTES_MAX = 240;
 
 export function TaskFormScreen() {
-  const { t, f } = useT();
+  const { t } = useT();
   const router = useRouter();
   const today = useToday();
-  // Bàn phím bật SAU khi sheet trượt xong — xem `use-sheet-autofocus`.
   const titleRef = useSheetAutoFocus();
+  const noteRef = useRef<TextInput>(null);
+  const savingRef = useRef(false);
+  const navigatingBackRef = useRef(false);
+  const mountedRef = useRef(true);
   const createTask = useCreateTask();
   const { data: members } = useMembers();
+  const myMemberId = useSessionStore((state) => state.memberId);
 
-  /**
-   * Ngữ cảnh sự kiện — form mở từ "Thêm việc" trên màn chi tiết sự kiện (05 §5.4).
-   *
-   * Người dùng KHÔNG thấy trường này và không chọn gì cả: họ đang đứng trong
-   * ngày giỗ và bấm "Thêm việc". Đó chính là cách nguyên tắc "mọi thông tin
-   * phải có ngữ cảnh" được thực thi mà không bắt ai hiểu khái niệm liên kết.
-   */
   const params = useLocalSearchParams<{ eventId?: string }>();
   const eventId = (params.eventId ?? null) as UUID | null;
 
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [dueDate, setDueDate] = useState<ISODate | null>(null);
+  const [dueDate, setDueDate] = useState<ISODate>(today);
   const [assigneeId, setAssigneeId] = useState<UUID | null>(null);
-  const [freq, setFreq] = useState<RecurFreq | 'none'>('none');
-  const [remindLeadDays, setRemindLeadDays] = useState(0);
+  const [activePanel, setActivePanel] = useState<Panel>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  /**
-   * Bộ chọn nào đang mở — MỘT state, không phải một cờ cho mỗi sheet.
-   *
-   * Các sheet dùng chung một state để không thể chồng lên nhau. Date picker
-   * nằm inline nên có state riêng, không thuộc nhóm sheet này.
-   */
-  const [picker, setPicker] = useState<null | 'assignee' | 'recur' | 'reminder'>(null);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-
   const trimmed = title.trim();
-  const dirty =
-    trimmed !== '' || notes !== '' || dueDate !== null || assigneeId !== null || freq !== 'none';
+  const titleError = submitted && trimmed === '';
+  const dirty = trimmed !== '' || notes.trim() !== '' || dueDate !== today || assigneeId !== null;
+  const submitDisabled = trimmed === '' || createTask.isPending;
+
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+
+  /**
+   * Keyboard submit và nút tròn có thể cùng phát trong một frame. Chỉ cho phép
+   * một lệnh back: lần thứ hai sẽ chạy sau khi sheet đã rời navigation tree.
+   */
+  const goBackOnce = (): void => {
+    if (navigatingBackRef.current) return;
+    navigatingBackRef.current = true;
+    router.back();
+  };
 
   const close = (): void => {
     if (!dirty) {
-      router.back();
+      goBackOnce();
       return;
     }
+
     Alert.alert(t.task.formTitle, t.common.cancel, [
       { text: t.common.cancel, style: 'cancel' },
-      { text: t.common.close, style: 'destructive', onPress: () => router.back() },
+      { text: t.common.close, style: 'destructive', onPress: goBackOnce },
     ]);
   };
 
   const save = (): void => {
     setSubmitted(true);
-    if (trimmed === '' || createTask.isPending) return;
-
-    // Việc lặp cần một mốc neo: `expandRecurrence` tính mọi lần lặp từ ngày đến
-    // hạn đầu tiên. Không có hạn thì "hằng tuần" không có nghĩa gì cả.
-    const recur: Recurrence | null =
-      freq === 'none' || dueDate === null ? null : { freq, intervalN: 1 };
+    if (trimmed === '' || savingRef.current) return;
+    savingRef.current = true;
 
     createTask.mutate(
       {
@@ -113,278 +108,296 @@ export function TaskFormScreen() {
         assigneeId,
         dueDate,
         dueTime: null,
-        recur,
-        remindLeadDays,
+        recur: null,
+        remindLeadDays: 0,
         eventId,
       },
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: () => {
+          if (mountedRef.current) goBackOnce();
+        },
+        onError: () => {
+          savingRef.current = false;
+        },
+      },
     );
   };
 
-  const titleError = submitted && trimmed === '' ? t.validation.taskTitle : undefined;
-
-  /**
-   * Tên ngày cho dòng chọn: "Hôm nay" / "Ngày mai" / "09/08/2026".
-   *
-   * Hai ngày gần nhất gọi bằng tên vì đó là cách người ta thật sự nói, và nó
-   * đọc nhanh hơn một con số phải đối chiếu với lịch trong đầu. Xa hơn thì tên
-   * riêng không còn tồn tại nên quay về dạng số.
-   */
-  const dateName = (d: ISODate): string => {
-    if (d === today) return t.dueLabel.today;
-    if (d === addDays(today, 1)) return t.dueLabel.tomorrow;
-    const c = parseISODate(d);
-    return `${String(c.day).padStart(2, '0')}/${String(c.month).padStart(2, '0')}/${c.year}`;
+  const dateLabel = (date: ISODate): string => {
+    if (date === today) return t.dueLabel.today;
+    if (date === addDays(today, 1)) return t.dueLabel.tomorrow;
+    const civil = parseISODate(date);
+    return `${weekdayShort(weekdayOf(date))} ${String(civil.day).padStart(2, '0')}/${String(civil.month).padStart(2, '0')}`;
   };
 
-  /** Dòng phụ dưới tên ngày — thứ + ngày/tháng, để tên gọi có chỗ neo cụ thể. */
-  const dateHint = (d: ISODate): string => {
-    const c = parseISODate(d);
-    return `${weekdayShort(weekdayOf(d))}, ${String(c.day).padStart(2, '0')}/${String(c.month).padStart(2, '0')}`;
-  };
+  const selectedMember = (members ?? []).find((member) => member.id === assigneeId);
+  const assigneeLabel = selectedMember
+    ? selectedMember.id === myMemberId
+      ? t.task.assigneeMe
+      : selectedMember.displayName
+    : '';
 
-  const assigneeName =
-    assigneeId === null
-      ? t.task.fieldAssigneeNone
-      : ((members ?? []).find((m) => m.id === assigneeId)?.displayName ?? t.task.fieldAssigneeNone);
+  const togglePanel = (panel: Exclude<Panel, null>): void => {
+    setDatePickerOpen(false);
+    setActivePanel((current) => (current === panel ? null : panel));
+    if (panel === 'note' && activePanel !== 'note') {
+      requestAnimationFrame(() => noteRef.current?.focus());
+    }
+  };
 
   return (
-    <Sheet
-      title={t.task.formTitle}
-      onClose={close}
-      actions={
-        <Button label={t.common.save} loading={createTask.isPending} onPress={save} />
-      }
-    >
-      {/* Tên việc là trường DUY NHẤT gõ thẳng trên form — nó bắt buộc, và bắt
-          mở một sheet chỉ để gõ một dòng chữ là thêm một chạm cho thao tác
-          thường xuyên nhất. Mọi trường còn lại đều chọn, nên chúng thành dòng. */}
+    <Sheet title={t.task.formTitle} onClose={close} scroll={false} header="close">
       <View
-        className={`min-h-[72px] flex-row items-center gap-3 border-b py-3 ${
+        className={`overflow-hidden rounded-featured border bg-surface ${
           titleError ? 'border-critical' : 'border-line'
         }`}
       >
-        <View className="w-8 items-center">
-          <Icon name="task" color={titleError ? ICON_COLOR.critical : ICON_COLOR.ink} />
-        </View>
-        <View className="flex-1">
-          <Text
-            className={`text-label font-medium ${titleError ? 'text-critical' : 'text-muted'}`}
+        <TextInput
+          ref={titleRef}
+          value={title}
+          onChangeText={setTitle}
+          onSubmitEditing={save}
+          placeholder={t.task.fieldTitlePlaceholder}
+          placeholderTextColor="#A4A4AD"
+          accessibilityLabel={t.task.fieldTitle}
+          multiline
+          numberOfLines={2}
+          maxLength={TITLE_MAX}
+          returnKeyType="done"
+          submitBehavior="submit"
+          className="min-h-[78px] px-4 pb-3 pt-4 text-[18px] font-semibold leading-6 text-ink"
+          style={{ textAlignVertical: 'top' }}
+        />
+
+        {activePanel !== null ? (
+          <View className="border-t border-line bg-soft p-3">
+            {activePanel === 'assignee' ? (
+              <View>
+                <View className="flex-row flex-wrap gap-2">
+                  {(members ?? []).map((member) => {
+                    const selected = member.id === assigneeId;
+                    const label =
+                      member.id === myMemberId ? t.task.assigneeMe : member.displayName;
+                    return (
+                      <Pressable
+                        key={member.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={label}
+                        accessibilityState={{ selected }}
+                        onPress={() => {
+                          setAssigneeId(member.id);
+                          setActivePanel(null);
+                          titleRef.current?.focus();
+                        }}
+                        className={`min-h-[52px] flex-row items-center gap-3 rounded-2xl px-3 ${
+                          selected ? 'bg-brand-soft' : 'bg-surface active:bg-line'
+                        }`}
+                        style={{ flexBasis: '48%', flexGrow: 1 }}
+                      >
+                        <MemberAvatar name={member.displayName} size="md" />
+                        <Text
+                          numberOfLines={1}
+                          className="flex-1 text-label font-semibold text-ink"
+                        >
+                          {label}
+                        </Text>
+                        {selected ? <Icon name="check" size={18} color={ICON_COLOR.brand} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {assigneeId !== null ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.task.fieldAssigneeNone}
+                    onPress={() => {
+                      setAssigneeId(null);
+                      setActivePanel(null);
+                    }}
+                    className="mt-2 h-11 items-center justify-center rounded-2xl active:bg-line"
+                  >
+                    <Text className="text-label font-semibold text-muted">
+                      {t.task.fieldAssigneeNone}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
+              <TextInput
+                ref={noteRef}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder={t.common.notePlaceholder}
+                placeholderTextColor="#A4A4AD"
+                accessibilityLabel={t.task.fieldNotes}
+                multiline
+                numberOfLines={3}
+                maxLength={NOTES_MAX}
+                className="min-h-[96px] rounded-2xl bg-surface px-3 py-3 text-body font-medium leading-6 text-ink"
+                style={{ textAlignVertical: 'top' }}
+              />
+            )}
+          </View>
+        ) : null}
+
+        <View className="flex-row items-center gap-2 border-t border-line px-2 py-2">
+          <ScrollView
+            horizontal
+            className="flex-1"
+            contentContainerClassName="items-center gap-1"
+            keyboardShouldPersistTaps="handled"
+            showsHorizontalScrollIndicator={false}
           >
-            {t.task.fieldTitle}
-          </Text>
-          {/* Không viền, không nền: ô nhập phải đọc như một DÒNG trong danh sách
-              y hệt `FormRow` bên dưới, chỉ khác là gõ được thay vì chạm mở sheet.
-              Một khung viền ở đây làm nó thành vật thể khác loại, và cả form gãy
-              nhịp ngay ở dòng đầu. */}
-          <TextInput
-            ref={titleRef}
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t.task.fieldTitlePlaceholder}
-            placeholderTextColor="#A4A4AD"
-            accessibilityLabel={t.task.fieldTitle}
-            maxLength={120}
-            className="mt-1 p-0 text-body font-medium text-ink"
-          />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.task.pickDate}
+              accessibilityState={{ expanded: datePickerOpen }}
+              onPress={() => {
+                setActivePanel(null);
+                setDatePickerOpen((open) => !open);
+              }}
+              className="h-11 flex-row items-center justify-center gap-1.5 rounded-full bg-brand-soft px-3 active:opacity-70"
+            >
+              <Icon name="date" size={20} color={ICON_COLOR.brand} />
+              <Text
+                numberOfLines={1}
+                className="max-w-[124px] text-[13px] font-semibold text-brand-deep"
+              >
+                {dateLabel(dueDate)}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.task.pickAssignee}
+              accessibilityState={{ expanded: activePanel === 'assignee' }}
+              onPress={() => togglePanel('assignee')}
+              className={`h-11 flex-row items-center justify-center gap-1.5 rounded-full px-3 active:opacity-70 ${
+                activePanel === 'assignee' || assigneeId !== null ? 'bg-brand-soft' : ''
+              }`}
+            >
+              <Icon
+                name="assignee"
+                size={20}
+                color={
+                  activePanel === 'assignee' || assigneeId !== null
+                    ? ICON_COLOR.brand
+                    : ICON_COLOR.muted
+                }
+              />
+              {assigneeLabel !== '' ? (
+                <Text
+                  numberOfLines={1}
+                  className="max-w-[88px] text-[13px] font-semibold text-brand-deep"
+                >
+                  {assigneeLabel}
+                </Text>
+              ) : null}
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.task.fieldNotes}
+              accessibilityState={{ expanded: activePanel === 'note' }}
+              onPress={() => togglePanel('note')}
+              className={`relative h-11 w-11 items-center justify-center rounded-full active:opacity-70 ${
+                activePanel === 'note' || notes.trim() !== '' ? 'bg-brand-soft' : ''
+              }`}
+            >
+              <Icon
+                name="note"
+                size={20}
+                color={
+                  activePanel === 'note' || notes.trim() !== ''
+                    ? ICON_COLOR.brand
+                    : ICON_COLOR.muted
+                }
+              />
+              {notes.trim() !== '' ? (
+                <View className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-brand" />
+              ) : null}
+            </Pressable>
+          </ScrollView>
+
+          <Pressable
+            cssInterop={false}
+            accessibilityRole="button"
+            accessibilityLabel={t.task.emptyAction}
+            accessibilityState={{ disabled: submitDisabled }}
+            disabled={submitDisabled}
+            onPress={save}
+            style={({ pressed }) => [
+              styles.submit,
+              submitDisabled ? styles.submitDisabled : styles.submitEnabled,
+              pressed && !submitDisabled ? styles.submitPressed : null,
+            ]}
+          >
+            {createTask.isPending ? (
+              <ActivityIndicator size="small" color={ICON_COLOR.white} />
+            ) : (
+              <Icon
+                name="submit"
+                size={20}
+                color={trimmed === '' ? ICON_COLOR.disabled : ICON_COLOR.white}
+              />
+            )}
+          </Pressable>
         </View>
       </View>
-      {titleError ? (
-        <Text className="ml-11 mt-1 text-caption text-critical">{titleError}</Text>
-      ) : null}
-
-      <FormRow
-        icon="date"
-        label={t.task.fieldDueDate}
-        value={dueDate === null ? t.task.noDueDate : dateName(dueDate)}
-        hint={dueDate === null ? undefined : dateHint(dueDate)}
-        muted={dueDate === null}
-        onPress={() => setDatePickerOpen((open) => !open)}
-      />
 
       {datePickerOpen ? (
         <DatePicker
           nativeOnly
           value={dueDate}
-          onChange={setDueDate}
+          onChange={(next) => {
+            if (next !== null) setDueDate(next);
+          }}
           onNativeClose={() => setDatePickerOpen(false)}
           today={today}
         />
       ) : null}
 
-      <FormRow
-        icon="assignee"
-        label={t.task.fieldAssignee}
-        value={assigneeName}
-        muted={assigneeId === null}
-        onPress={() => setPicker('assignee')}
-        last={dueDate === null}
-      />
-
-      {/* Lặp lại và nhắc trước chỉ có nghĩa khi đã có ngày. Chúng
-          dùng cùng ngôn ngữ `FormRow` với ngày/người làm: form giữ được
-          nhịp dọc đều, còn danh sách lựa chọn nằm trong sheet. */}
-      {dueDate !== null ? (
-        <FormRow
-          icon="repeat"
-          label={t.task.fieldRecur}
-          value={t.recur[freq]}
-          muted={freq === 'none'}
-          onPress={() => setPicker('recur')}
-        />
+      {titleError ? (
+        <Text className="mt-2 text-caption text-critical">{t.validation.taskTitle}</Text>
       ) : null}
-
-      {dueDate !== null ? (
-        <FormRow
-          icon="bell"
-          label={t.task.fieldRemindLead}
-          value={
-            remindLeadDays === 0
-              ? t.dueLabel.today
-              : f(t.dueLabel.inDays, { days: remindLeadDays })
-          }
-          onPress={() => setPicker('reminder')}
-          last
-        />
-      ) : null}
-
-      {/* Ghi chú tách hẳn khỏi nhóm trên bằng khoảng trắng lớn: nó là thứ tuỳ
-          chọn, và đặt nó ngang hàng với các trường chính làm form trông dài hơn
-          thực tế phải điền. */}
-      <View className="mt-8">
-        {/* Bộ đếm chỉ hiện khi đã gần chạm trần. Thiết kế gốc hiện "0/120" ngay
-            từ đầu, nhưng trần ở đây là 2000 — một ghi chú việc nhà không bao giờ
-            tới gần, nên con số đó chỉ là nhiễu cho tới lúc nó thật sự có ý
-            nghĩa. */}
-        <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-label font-medium text-muted">{t.task.fieldNotes}</Text>
-          {notes.length > NOTES_MAX - 200 ? (
-            <Text className="text-caption tabular-nums text-subtle">
-              {`${notes.length}/${NOTES_MAX}`}
-            </Text>
-          ) : null}
-        </View>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder={t.common.notePlaceholder}
-          placeholderTextColor="#A4A4AD"
-          accessibilityLabel={t.task.fieldNotes}
-          multiline
-          numberOfLines={3}
-          maxLength={NOTES_MAX}
-          className="min-h-[108px] rounded-featured bg-soft px-4 py-3.5 text-body text-ink"
-          style={{ textAlignVertical: 'top' }}
-        />
-      </View>
-
       {createTask.isError ? (
-        <Text className="mt-3 text-caption text-critical">{t.error.unknown}</Text>
+        <Text className="mt-2 text-caption text-critical">{t.error.unknown}</Text>
       ) : null}
-
-      <View className="h-4" />
-
-      <PickerSheet
-        open={picker === 'assignee'}
-        title={t.task.pickAssignee}
-        onClose={() => setPicker(null)}
-      >
-        <View>
-          {[
-            { value: null as UUID | null, label: t.task.fieldAssigneeNone },
-            ...(members ?? []).map((m) => ({ value: m.id as UUID | null, label: m.displayName })),
-          ].map((opt) => (
-            <PickerOption
-              key={opt.value ?? 'none'}
-              label={opt.label}
-              selected={assigneeId === opt.value}
-              onPress={() => {
-                setAssigneeId(opt.value);
-                setPicker(null);
-              }}
-            />
-          ))}
-        </View>
-      </PickerSheet>
-
-      <PickerSheet
-        open={picker === 'recur'}
-        title={t.task.fieldRecur}
-        onClose={() => setPicker(null)}
-      >
-        <View>
-          {FREQS.map((option) => (
-            <PickerOption
-              key={option}
-              label={t.recur[option]}
-              selected={freq === option}
-              onPress={() => {
-                setFreq(option);
-                setPicker(null);
-              }}
-            />
-          ))}
-        </View>
-      </PickerSheet>
-
-      <PickerSheet
-        open={picker === 'reminder'}
-        title={t.task.fieldRemindLead}
-        onClose={() => setPicker(null)}
-      >
-        <View>
-          {LEAD_DAYS.map((days) => {
-            const label =
-              days === 0 ? t.dueLabel.today : f(t.dueLabel.inDays, { days });
-            return (
-              <PickerOption
-                key={days}
-                label={label}
-                selected={remindLeadDays === days}
-                onPress={() => {
-                  setRemindLeadDays(days);
-                  setPicker(null);
-                }}
-              />
-            );
-          })}
-        </View>
-      </PickerSheet>
     </Sheet>
   );
 }
 
-/** Giới hạn ghi chú — hiện thành bộ đếm nên phải là một hằng, không phải số rời. */
-const NOTES_MAX = 2000;
-
 /**
- * Một lựa chọn trong sheet (người làm, lặp lại, nhắc trước).
+ * Nút submit dùng style native thay vì NativeWind.
  *
- * Trạng thái chọn nói bằng HAI thứ: nền `brand-soft` và dấu ✓. Chỉ đổi màu nền
- * là vi phạm design.md §5.5 ("không dùng màu một mình để truyền trạng thái") —
- * người phân biệt màu kém sẽ thấy ba dòng như nhau.
+ * Class của nút đổi từ disabled sang có `active:` + shadow ngay sau ký tự đầu
+ * tiên. `react-native-css-interop` phải nâng cấp Pressable giữa hai render và ở
+ * iOS/React 19 có thể làm rơi context của navigator. Đây là một control có ba
+ * trạng thái nhỏ, nên style callback native vừa rõ hơn vừa không đổi cây render.
  */
-function PickerOption({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      onPress={onPress}
-      className={`mb-1 min-h-[60px] flex-row items-center gap-3 rounded-featured px-3 ${
-        selected ? 'bg-brand-soft' : 'active:bg-soft'
-      }`}
-    >
-      <Text className="flex-1 text-body font-medium text-ink">{label}</Text>
-      {selected ? <Icon name="check" size={20} color={ICON_COLOR.brand} /> : null}
-    </Pressable>
-  );
-}
+const styles = StyleSheet.create({
+  submit: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+  },
+  submitDisabled: {
+    backgroundColor: '#D8D8DE',
+  },
+  submitEnabled: {
+    backgroundColor: '#111114',
+    shadowColor: '#111114',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 11,
+    elevation: 6,
+  },
+  submitPressed: {
+    backgroundColor: '#29292F',
+    opacity: 0.72,
+    transform: [{ scale: 0.975 }],
+  },
+});

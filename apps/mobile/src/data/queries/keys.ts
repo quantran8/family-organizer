@@ -163,7 +163,7 @@ export const queryKeys = {
   },
 
   /**
-   * Sổ mừng cưới — 07 §3.
+   * Sổ hiếu hỉ — 07 §3.
    *
    * `history` là view `gift_history`, nguồn của dòng gợi ý. Nó là TỔNG HỢP của
    * `entries`, nên mọi lệnh ghi một khoản mừng phải invalidate cả hai — dùng
@@ -180,8 +180,11 @@ export const queryKeys = {
     entries: (id: UUID, contactId?: UUID) =>
       [...hh(id), 'gifts', 'entries', contactId ?? 'all'] as const,
     history: (id: UUID) => [...hh(id), 'gifts', 'history'] as const,
-    /** Tổng của MỘT ĐÁM — gắn với một sự kiện trong app (07 §3.3). */
+    /** Tổng của MỘT ĐÁM — gắn với một sự kiện trong app (07 §3.4). */
     byEvent: (id: UUID, eventId: UUID) => [...hh(id), 'gifts', 'by-event', eventId] as const,
+    /** Khoản nhận CHƯA ĐÁP LỄ — 07 §3.2. */
+    outstanding: (id: UUID, contactId?: UUID) =>
+      [...hh(id), 'gifts', 'outstanding', contactId ?? 'all'] as const,
   },
 
   contacts: {

@@ -115,7 +115,7 @@ export function UndoToast({ pending, onUndo }: UndoToastProps) {
 
   return (
     <View className="absolute inset-x-4 bottom-6 flex-row items-center justify-between rounded-control bg-ink px-4 py-3">
-      <Text className="flex-1 text-label text-white">{pending.message}</Text>
+      <Text className="flex-1 text-label text-on-action">{pending.message}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.common.undo}
@@ -123,7 +123,7 @@ export function UndoToast({ pending, onUndo }: UndoToastProps) {
         onPress={onUndo}
         className="min-h-touch justify-center pl-4"
       >
-        <Text className="text-label font-semibold text-white">{t.common.undo}</Text>
+        <Text className="text-label font-semibold text-on-action">{t.common.undo}</Text>
       </Pressable>
     </View>
   );

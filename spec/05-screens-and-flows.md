@@ -96,7 +96,7 @@ Vẫn bốn tab. Mua sắm là **tab con** trong "Việc & Sự kiện", không 
 
 Nút thêm nhanh nổi góc phải dưới, có mặt trên cả bốn tab. Cài đặt vào qua avatar ở header.
 
-**Hai module bản địa không có tab riêng.** Sổ mừng cưới vào từ tab Tiền (khối `SỔ MỪNG CƯỚI`) và từ chi tiết sự kiện loại cưới/giỗ. Hồ sơ con vào từ tab Giấy tờ (thẻ mỗi con) và từ `CẦN CHÚ Ý` trên Nhà mình khi có mốc tiêm gần. Tab thứ năm sẽ làm loãng câu hỏi trung tâm.
+**Hai module bản địa không có tab riêng.** Sổ hiếu hỉ vào từ tab Tiền (khối `SỔ HIẾU HỈ`) và từ chi tiết sự kiện loại cưới/giỗ. Hồ sơ con vào từ tab Giấy tờ (thẻ mỗi con) và từ `CẦN CHÚ Ý` trên Nhà mình khi có mốc tiêm gần. Tab thứ năm sẽ làm loãng câu hỏi trung tâm.
 
 **Không có tab Trao đổi.** Cờ cần trao đổi hiện trong ngữ cảnh khoản tiền và trên màn hình chính.
 
@@ -524,19 +524,30 @@ Dòng tổng **bắt buộc kèm số lượng bản ghi và chữ "đã ghi"**.
 
 ---
 
-## 6b. Sổ mừng cưới `P0`
+## 6b. Sổ hiếu hỉ `P0`
+
+Trước gọi là "sổ mừng cưới". Cưới chỉ là **một trong tám dịp** — tân gia, đầy tháng, giỗ, thôi nôi là những dịp ngang hàng, không phải ngoại lệ của cưới (`07 §3`).
 
 ### 6b.1 Danh sách
 
-Hai tab con: **Đã đi** | **Đã nhận**. Mặc định sắp theo **ngày**, mới nhất trước.
+Ba tab con: **Đã đi** | **Đã nhận** | **Chưa đáp lễ**. Mặc định sắp theo **ngày**, mới nhất trước.
 
 ```
 THÁNG 10
 Chú Ba          cưới con      2.000.000 ₫  ›
-Cô Tư           cưới cháu     1.000.000 ₫  ›
+Cô Tư           tân gia       1.000.000 ₫  ›
 ```
 
 Sắp theo số tiền là **tuỳ chọn**, và không bao giờ kèm nhãn kiểu "mừng nhiều nhất". Xếp hạng họ hàng theo độ hào phóng là thứ khiến người dùng thấy app bẩn.
+
+Tab **Chưa đáp lễ** sắp theo **ngày nhận**, cũ nhất trước — nghĩa vụ lâu nhất nằm trên. **Không có dòng tổng ở cuối** (`07 §3.6`):
+
+```
+CHƯA ĐÁP LỄ
+Chú Ba          cưới, 3/2023      2.000.000 ₫  ›
+Cô Tư           đầy tháng, 5/2024   500.000 ₫  ›
+                      ← không có "tổng 2.5 triệu"
+```
 
 ### 6b.2 Chi tiết một contact
 
@@ -545,8 +556,8 @@ Chú Ba
 Chú ruột bên nội
 
 ĐÃ MỪNG NHÀ MÌNH        2 lần
-3/2023  cưới       2.000.000 ₫
-8/2021  đầy tháng  1.000.000 ₫
+3/2023  cưới       2.000.000 ₫   đã đáp lễ
+8/2021  đầy tháng  1.000.000 ₫   chưa đáp lễ
 
 NHÀ MÌNH ĐÃ ĐI          1 lần
 11/2026 cưới con   2.000.000 ₫
@@ -554,19 +565,56 @@ NHÀ MÌNH ĐÃ ĐI          1 lần
 
 Hai chiều **song song**, không bao giờ trừ nhau. Không có dòng "còn thiếu 1 triệu" — dữ liệu đủ để tính, và đó chính là lý do phải nói rõ là không tính.
 
+Trạng thái đáp lễ hiện bằng **chữ thường, màu phụ** — không màu cảnh báo, không chấm đỏ, không đậm. "Chưa đáp lễ" là một việc chưa có dịp làm, không phải một hạn đã trôi qua: nghĩa vụ đáp lễ **không có hạn**. Một chấm đỏ ở đây biến quyển sổ họ hàng thành danh sách nợ quá hạn.
+
+Chạm một khoản **nhận** để bật/tắt *"không cần đáp lễ"* (`07 §3.4b`) — bố mẹ mừng con, người trên mừng người dưới, người đã mất. Hỏi lại trước khi bật vì đó là một khẳng định về quan hệ; tắt thì không hỏi.
+
 ### 6b.3 Ghi một khoản mừng — vòng lặp quan trọng nhất
+
+Cùng dịp → có nút. Đây là trường hợp module tồn tại vì nó:
 
 ```
 Cưới con chú Ba — 12/11
 
+Dịp                 [ Cưới ]  ← không chip nào chọn sẵn
 Số tiền mừng        [                ]
 
   Chú Ba đã mừng nhà mình
   2.000.000 ₫ — cưới, 3/2023
+  Chưa đáp lễ
   [ Dùng số này ]
 ```
 
+Khác dịp → **có dữ kiện, không có nút**. Mức tiền gắn với dịp, không gắn với nhà (`07 §3.4`):
+
+```
+Tân gia nhà chú Ba — 12/11
+
+  Chú Ba đã mừng nhà mình
+  2.000.000 ₫ — cưới, 3/2023
+  Chưa đáp lễ
+                    ← không có [ Dùng số này ]
+```
+
+Khi nhà này còn khoản chưa đáp lễ, form hiện thêm ô chọn **"Khoản nào?"** để ghép cặp — **nằm dưới ô số tiền**, không phải trên: dòng gợi ý vừa nói nhà này đã mừng mình bao nhiêu và chưa đáp lễ, nên hỏi "đáp khoản nào" trước khi người dùng đọc được điều đó là hỏi một câu chưa có ngữ cảnh.
+
+Ghép cặp là **tuỳ chọn** — không phải lần đi nào cũng để đáp một lần nhận cụ thể, và bỏ qua vẫn lưu bình thường. Chạm lại chip đang chọn để **bỏ chọn**. Nhãn mỗi lựa chọn là *dịp · ngày*, **không có số tiền**: đây là chọn "đáp lần nào", không phải "trả bao nhiêu".
+
+Đây cũng là **chỗ duy nhất** app nhắc nghĩa vụ đáp lễ. Không có thông báo đẩy, không có nhắc định kỳ — không có dịp thì không làm gì được, và một lời nhắc không hành động được chỉ tạo áy náy.
+
+Ở chiều **nhận** (và dịp ≠ tang lễ), form hiện thêm ô tích *"Không cần đáp lễ"* (`07 §3.4b`). Đặt ngay ở form tạo chứ không chỉ ở màn chi tiết: người ghi **biết ngay lúc nhập** rằng đây là bố mẹ mừng con — bắt họ lưu xong rồi đi tìm lại khoản đó để tắt là ba bước cho một điều họ đã biết từ đầu.
+
+Đổi chiều hoặc đổi sang dịp tang lễ thì **xoá cả hai trạng thái trên**. Giữ lại thì ô tích vẫn hiện đã bật trong khi lệnh lưu đã lọc nó đi — người dùng thấy một thứ và app ghi một thứ khác.
+
 Không có dòng gợi ý đó thì module này chỉ là một cái Excel có màu. Có nó thì app trả lời được câu mà không ai trả lời được.
+
+### 6b.4 Nhập nhanh — 100 phong bì
+
+Chiều, **dịp**, và ngày chọn **một lần cho cả mẻ**; mỗi dòng chỉ gõ tên và số tiền.
+
+Dịp cũng **không có mặc định**, và ở đây hậu quả nặng hơn form đơn: chip "Cưới" sáng sẵn trong lúc người nhập đang tập trung gõ tên với số tiền sẽ ghi sai dịp cho **cả mẻ** mà không ai nhìn lại. Nút lưu **nói ra** vì sao chưa lưu được ("Chọn dịp") thay vì mờ đi không lý do.
+
+**Không có ô "không cần đáp lễ" cho cả mẻ.** Một mẻ 100 phong bì ở đám cưới mình gồm cả bố mẹ (không cần đáp) lẫn họ hàng bạn bè (có nghĩa vụ). Một cái tích cho cả mẻ sẽ tắt sạch nghĩa vụ của 99 nhà để đúng cho một nhà, và không ai đi kiểm lại 100 dòng. Tắt từng khoản ở màn chi tiết từng nhà — chậm hơn nhưng đúng.
 
 App đưa ra một dữ kiện, người dùng quyết định. **Không nội suy, không điều chỉnh lạm phát, không làm tròn "cho đẹp"** — mọi phép điều chỉnh đều là app có ý kiến về chuyện nên đi bao nhiêu, mà chuyện đó thuộc về hai vợ chồng.
 
@@ -839,7 +887,7 @@ Nhận thiệp cưới con chú Ba
    → khoản 2.000.000 ₫ chảy vào màn hình Sắp tới, tháng 11
 ```
 
-Đây là vòng lặp mà không công cụ nào khác làm được, và là lý do module sổ mừng cưới tồn tại.
+Đây là vòng lặp mà không công cụ nào khác làm được, và là lý do module sổ hiếu hỉ tồn tại.
 
 ### F13 · Mũi tiêm sắp tới `P0`
 
@@ -881,7 +929,7 @@ Theo phụ thuộc, không theo độ khó:
 5. Sự kiện + lịch âm + gói khởi tạo
 6. Tiền: tài sản · khoản sắp trả · **màn hình Sắp tới** · lịch sử biến động
 7. Giấy tờ + máy quét + upload
-8. **Sổ mừng cưới** — đơn giản, không rủi ro, có thứ làm content ngay
+8. **Sổ hiếu hỉ** — đơn giản, không rủi ro, có thứ làm content ngay
 9. **Hồ sơ con** — bắt đầu sau khi file lịch tiêm đã được xác nhận
 10. Nợ · Cần trao đổi · Mục tiêu
 11. Cài đặt · Gói dịch vụ

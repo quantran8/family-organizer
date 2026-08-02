@@ -75,6 +75,7 @@ export type {
   Member,
   MoneyEvent,
   MoneySnapshot,
+  ReciprocityStatus,
   ShoppingItem,
   Task,
   TaskInstance,
@@ -147,8 +148,14 @@ export { groupEventsByMonth } from './events/group.ts';
 // Trí nhớ năm ngoái
 export { lastYearFor } from './events/last-year.ts';
 
-// Sổ mừng cưới
-export { suggestGiftAmount, summarizeOccasion } from './gifts/suggest.ts';
+// Sổ hiếu hỉ
+export type { GiftSuggestion } from './gifts/suggest.ts';
+export {
+  listOutstandingObligations,
+  reciprocityStatus,
+  suggestGiftAmount,
+  summarizeOccasion,
+} from './gifts/suggest.ts';
 
 // Hồ sơ con — lịch tiêm
 export type { DoseLabel } from './child/vaccine.ts';

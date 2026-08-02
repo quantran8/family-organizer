@@ -63,7 +63,7 @@ export function UpcomingScreen() {
 
   if (isPending) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <ListSkeleton rows={5} />
       </View>
     );
@@ -71,7 +71,7 @@ export function UpcomingScreen() {
 
   if (!metrics) {
     return (
-      <View className="flex-1 bg-white px-4">
+      <View className="flex-1 bg-surface px-4">
         <EmptyState
           title={t.upcoming.emptyTitle}
           body={t.upcoming.emptyBody}
@@ -91,7 +91,7 @@ export function UpcomingScreen() {
   const askRefresh = !isSnoozed && shouldAskForRefresh(metrics, needsList, today);
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-12"

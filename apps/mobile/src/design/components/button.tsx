@@ -24,11 +24,11 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const VARIANT: Record<ButtonVariant, { box: string; label: string }> = {
   // Mỗi màn chỉ nên có MỘT nút primary; nhiều hơn nghĩa là chưa quyết định đâu
   // là việc chính.
-  primary: { box: 'bg-action active:bg-action-pressed rounded-full', label: 'text-white' },
-  secondary: { box: 'bg-white border border-line active:bg-soft rounded-full', label: 'text-ink' },
+  primary: { box: 'bg-action active:bg-action-pressed rounded-full', label: 'text-on-action' },
+  secondary: { box: 'bg-surface border border-line active:bg-soft rounded-full', label: 'text-ink' },
   ghost: { box: 'bg-transparent active:bg-soft rounded-full', label: 'text-brand-deep' },
   danger: {
-    box: 'bg-white border border-critical active:bg-critical-soft rounded-full',
+    box: 'bg-surface border border-critical active:bg-critical-soft rounded-full',
     label: 'text-critical',
   },
 };

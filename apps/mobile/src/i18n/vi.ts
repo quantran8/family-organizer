@@ -346,8 +346,9 @@ export const vi = {
     formTitle: 'Việc mới',
     formEditTitle: 'Sửa việc',
     fieldTitle: 'Tên việc',
-    fieldTitlePlaceholder: 'Đổ rác',
+    fieldTitlePlaceholder: 'Việc gì cần làm?',
     fieldAssignee: 'Ai làm',
+    assigneeMe: 'Mình',
     fieldAssigneeNone: 'Chưa phân',
     /** Tiêu đề sheet chọn — dạng câu hỏi, khác nhãn trên dòng (một danh từ). */
     pickAssignee: 'Ai làm?',
@@ -398,6 +399,10 @@ export const vi = {
     fieldEstimatedCost: 'Chi phí dự kiến',
     calendarBasisLunar: 'Lặp theo ngày âm',
     calendarBasisSolar: 'Theo ngày dương',
+    repeatYearly: 'Lặp hằng năm',
+    repeatNone: 'Không lặp',
+    repeatSolar: 'Ngày dương',
+    repeatLunar: 'Ngày âm',
     previousMonth: 'Tháng trước',
     nextMonth: 'Tháng sau',
     currentMonth: 'Về tháng hiện tại',
@@ -814,7 +819,7 @@ export const vi = {
   },
 
   /**
-   * Sổ mừng cưới — 07 §3.
+   * Sổ hiếu hỉ — 07 §3.
    *
    * BẢNG TỪ VỰNG RIÊNG của module này. Không có chữ nào mang nghĩa nợ nần hay
    * xếp hạng: không "còn thiếu", không "đã trả đủ", không "mừng nhiều nhất",
@@ -822,16 +827,20 @@ export const vi = {
    * SONG SONG, không bao giờ trừ nhau (07 §3.4).
    */
   gift: {
-    title: 'Sổ mừng',
+    /**
+     * "Sổ hiếu hỉ", không phải "sổ mừng cưới": cưới chỉ là MỘT trong tám dịp
+     * (07 §3). Tân gia, đầy tháng, giỗ không phải ngoại lệ của cưới.
+     */
+    title: 'Sổ hiếu hỉ',
     contactsTitle: 'Người quen',
 
-    /** Dòng gợi ý — TOÀN BỘ lý do module này tồn tại (07 §3.3). */
+    /** Dòng gợi ý — TOÀN BỘ lý do module này tồn tại (07 §3.4). */
     suggestLine: '{name} đã mừng nhà mình',
     suggestUse: 'Dùng số này',
     /** "2.000.000 ₫ — cưới, 3/2023" */
     suggestBasis: '{amount} — {occasion}, {date}',
 
-    emptyTitle: 'Sổ mừng còn trống',
+    emptyTitle: 'Sổ hiếu hỉ còn trống',
     emptyBody: 'Ghi lại một khoản mừng để lần sau còn nhớ nhà nào đã đi bao nhiêu.',
     emptyAction: 'Ghi khoản mừng',
     contactsEmptyTitle: 'Chưa có người quen nào',
@@ -878,6 +887,43 @@ export const vi = {
     timesReceived: 'Đã mừng nhà mình {count} lần',
     timesGiven: 'Nhà mình đã đi {count} lần',
     neverReceived: 'Chưa ghi lần nào',
+
+    /**
+     * NGHĨA VỤ ĐÁP LỄ — 07 §3.2.
+     *
+     * Câu chữ ở đây quyết định module này là một lời nhắc hay một lời đòi nợ.
+     * Mọi chuỗi dưới đây nói về MỘT KHOẢN CỤ THỂ, không bao giờ về mối quan hệ,
+     * và KHÔNG BAO GIỜ CÓ SỐ TIỀN — phép thử ở 07 §3.6: bỏ hết số tiền đi mà
+     * thông tin vẫn còn giá trị thì đó là nghĩa vụ, không phải sổ nợ.
+     *
+     * KHÔNG dùng chữ "nợ", "còn thiếu", "chưa trả", "quá hạn". Nghĩa vụ đáp lễ
+     * không có hạn — nó chờ đến khi nhà đó có việc.
+     */
+    outstandingTitle: 'Chưa đáp lễ',
+    outstanding: 'Chưa đáp lễ',
+    reciprocated: 'Đã đáp lễ',
+    notNeeded: 'Không cần đáp lễ',
+    /** Trên khoản ĐI: "Đáp lễ: chú Ba mừng cưới mình, 3/2023" */
+    reciprocatesLine: 'Đáp lễ: {occasion}, {date}',
+
+    outstandingEmptyTitle: 'Không có khoản nào đang chờ',
+    outstandingEmptyBody: 'Những khoản nhà mình nhận mà chưa có dịp đi lại sẽ hiện ở đây.',
+    /** Nhắc trong form khi nhà này còn khoản chưa đáp lễ (07 §3.4). */
+    outstandingHint: 'Nhà này còn {count} khoản chưa đáp lễ',
+
+    /** Nút ghép cặp. "Chọn khoản" chứ không phải "trả" — đây không phải nợ. */
+    linkAction: 'Đánh dấu đáp lễ khoản này',
+    linkPick: 'Khoản nào?',
+    unlinkAction: 'Bỏ ghép',
+    linkedToast: 'Đã đánh dấu đáp lễ',
+
+    /**
+     * KHOẢN KHÔNG CẦN ĐÁP — 07 §3.4b. Bố mẹ mừng con, người trên mừng người
+     * dưới, người đã mất. App KHÔNG BAO GIỜ tự đoán; người dùng tự bật.
+     */
+    markNotNeeded: 'Không cần đáp lễ',
+    unmarkNotNeeded: 'Bỏ đánh dấu',
+    notNeededHint: 'Khoản này vẫn nằm trong sổ, chỉ không nằm ở mục chờ đáp lễ.',
 
     sortByDate: 'Theo ngày',
     /** Tuỳ chọn, KHÔNG BAO GIỜ mặc định, và không có nhãn "nhiều/ít nhất". */
@@ -1158,6 +1204,8 @@ export const vi = {
     eventDate: 'Chọn ngày cho sự kiện',
     amountPositive: 'Số tiền phải lớn hơn 0',
     inviteCodeLength: 'Mã mời có 6 ký tự',
+    /** Không có dịp mặc định — cưới chỉ là một trong tám dịp (07 §3). */
+    giftOccasion: 'Chọn dịp',
   },
 
   a11y: {

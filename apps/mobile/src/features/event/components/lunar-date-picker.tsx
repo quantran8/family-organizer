@@ -79,11 +79,11 @@ export function LunarDatePicker({
       >
         <View
           className={`h-6 w-6 items-center justify-center rounded-[6px] border-2 ${
-            isLeapMonth ? 'border-brand bg-brand' : 'border-subtle bg-white'
+            isLeapMonth ? 'border-brand bg-brand' : 'border-subtle bg-surface'
           }`}
         >
           {isLeapMonth ? (
-            <Text className="text-caption font-semibold text-white">✓</Text>
+            <Text className="text-caption font-semibold text-on-brand">✓</Text>
           ) : null}
         </View>
         <Text className="text-body text-ink">{t.event.fieldLeapMonth}</Text>

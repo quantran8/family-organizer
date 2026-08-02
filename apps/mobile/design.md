@@ -237,8 +237,21 @@ The product should feel active and current, not meditative.
 | `muted` | `#707078` | Metadata |
 | `subtle` | `#A4A4AD` | Inactive navigation and chevrons |
 | `line` | `#ECECF0` | Dividers |
+| `on-action` | `#FFFFFF` | Text and borders on top of `action` / `ink` backgrounds |
+| `on-brand` | `#FFFFFF` | Text and borders on top of `brand` backgrounds |
 
 Use cool-neutral grays with a slight softness. Avoid blue-gray corporate surfaces and beige wellness surfaces.
+
+`on-action` and `on-brand` hold the same value as `surface` but mean the
+opposite thing: `surface` is a background, these two are what sits *on* a dark
+background. They are named after the background they pair with so that a
+mismatched pair is visible while reading the code, and so that recoloring a dark
+background carries its foreground along instead of leaving white text behind.
+
+Never use Tailwind's own color classes (`bg-white`, `text-white`, `bg-gray-100`,
+…) in app code. A raw color class cannot be traced back to this table, so it
+survives every audit of this file — and it keeps rendering plausibly while
+slowly disagreeing with the palette around it.
 
 ### 5.2 Action tokens
 
@@ -714,6 +727,8 @@ tailwind.config = {
         subtle: '#A4A4AD',
         line: '#ECECF0',
         soft: '#F7F7F9',
+        'on-action': '#FFFFFF',
+        'on-brand': '#FFFFFF',
         action: '#111114',
         brand: {
           DEFAULT: '#6257F6',
@@ -761,6 +776,8 @@ tailwind.config = {
   --muted: #707078;
   --subtle: #a4a4ad;
   --line: #ececf0;
+  --on-action: #ffffff;
+  --on-brand: #ffffff;
 
   /* Primary action */
   --action: #111114;

@@ -114,7 +114,7 @@ export type Basis = 'declared';
 /** Nguồn của một khoản cần chuẩn bị. Nhóm con của EntityType — view upcoming_needs. */
 export type NeedSource = 'upcoming_payment' | 'event' | 'document';
 
-// --- Sổ mừng cưới (07 §3) ---
+// --- Sổ hiếu hỉ (07 §3) ---
 
 export type ContactSide = 'husband_family' | 'wife_family' | 'shared' | 'other';
 

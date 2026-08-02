@@ -78,10 +78,19 @@ export function DatePicker({
   const { t } = useT();
   const [open, setOpen] = useState(nativeOnly);
 
-  const quick: { label: string; date: ISODate }[] = [
-    { label: t.dueLabel.today, date: today },
-    { label: t.dueLabel.tomorrow, date: addDays(today, 1) },
-    { label: t.home.sectionWeekend, date: nextWeekend(today) },
+  /**
+   * `key` là ID của chip, KHÔNG phải ngày của nó.
+   *
+   * Ba chip trùng ngày nhau được: hôm nay là Chủ nhật thì `nextWeekend` trả về
+   * chính hôm nay, nên "Hôm nay" và "Cuối tuần" cùng mang một ngày. Dùng ngày
+   * làm key thì React thấy hai con trùng key, cảnh báo, và có quyền bỏ bớt
+   * hoặc nhân đôi một chip — hỏng đúng vào ngày cuối tuần, thứ không ai gặp
+   * lúc phát triển giữa tuần.
+   */
+  const quick: { id: string; label: string; date: ISODate }[] = [
+    { id: 'today', label: t.dueLabel.today, date: today },
+    { id: 'tomorrow', label: t.dueLabel.tomorrow, date: addDays(today, 1) },
+    { id: 'weekend', label: t.home.sectionWeekend, date: nextWeekend(today) },
   ];
 
   const select = (d: ISODate): void => {
@@ -107,7 +116,7 @@ export function DatePicker({
         <View className="flex-row flex-wrap gap-2">
           {quick.map((q) => (
             <Chip
-              key={q.date}
+              key={q.id}
               label={q.label}
               active={value === q.date}
               onPress={() => select(q.date)}
@@ -174,7 +183,7 @@ function Chip({
       accessibilityLabel={label}
       onPress={onPress}
       className={`min-h-touch justify-center rounded-full border px-4 ${
-        active ? 'border-brand bg-brand-soft' : 'border-line bg-white active:bg-soft'
+        active ? 'border-brand bg-brand-soft' : 'border-line bg-surface active:bg-soft'
       }`}
     >
       <Text className={`text-label font-medium ${active ? 'text-brand-deep' : 'text-ink'}`}>

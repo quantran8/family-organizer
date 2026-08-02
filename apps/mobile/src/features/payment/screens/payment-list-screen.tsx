@@ -47,7 +47,7 @@ export function PaymentListScreen() {
   const rows = payments ?? [];
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       <View className="px-4 pt-3">
         <Segmented
           value={window}
