@@ -77,17 +77,21 @@ export function TaskRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 bg-surface py-3 active:bg-soft"
+      className="min-h-touch flex-row items-center gap-3 border-b border-line bg-surface py-4 active:bg-soft"
     >
       <Checkbox checked={done} onToggle={onToggle} />
 
       <View className="flex-1">
         <Text
           numberOfLines={2}
-          className={`text-body ${done ? 'text-subtle line-through' : 'text-ink'}`}
+          className={`text-heading font-medium ${done ? 'text-subtle line-through' : 'text-ink'}`}
         >
           {title}
         </Text>
+        {/* Nhãn phụ xuống DÒNG DƯỚI thay vì nằm cuối dòng chính: "Hôm nay ·
+            Trước 20:00" là hai mẩu thông tin, và nhét chúng vào cùng một hàng
+            với tên việc làm tên việc bị cắt trước trên máy hẹp. */}
+        {meta ? <Text className="mt-1 text-label text-muted">{meta}</Text> : null}
       </View>
 
       {repeats ? <Text className="text-caption text-subtle">↻</Text> : null}
@@ -113,8 +117,6 @@ export function TaskRow({
           </View>
         )
       ) : null}
-
-      {meta ? <Text className="text-caption text-subtle">{meta}</Text> : null}
     </Pressable>
   );
 

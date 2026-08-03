@@ -47,6 +47,17 @@ const GLYPH = {
   bell: 'bell',
   plus: 'plus',
   submit: 'arrow-up',
+  // Khối tài chính đầu màn Nhà mình. `wallet` là khái niệm "tiền nhà mình đang
+  // có", khác `money` (`dollar-sign`) vốn dùng cho MỘT khoản.
+  wallet: 'credit-card',
+  /** Mở màn chi tiết từ một khối tóm tắt — mũi tên chéo, không phải `›`. */
+  openDetail: 'arrow-up-right',
+  /** Dòng "cập nhật N tuần trước" đi kèm mọi số tổng (03 §8). */
+  declaredAt: 'clock',
+  shopping: 'shopping-bag',
+  payment: 'file-text',
+  /** Cảnh báo trên dòng "Cần chú ý" — giấy tờ sắp hết hạn. */
+  alert: 'alert-triangle',
 } as const;
 
 export type IconName = keyof typeof GLYPH;
@@ -69,6 +80,8 @@ export const ICON_COLOR = {
   // ghi `#6257F6`. `tailwind.config.js` theo §17, và cả app đang tô theo config,
   // nên đây cũng theo §17. Đổi thì phải đổi cả hai chỗ cùng lúc.
   brand: '#6257F6',
+  /** Hạn chót và khoản sắp phải trả — KHÔNG dùng cho lỗi (§5.4). */
+  attention: '#FF643A',
   critical: '#D64545',
   disabled: '#8B8B94',
   white: '#FFFFFF',

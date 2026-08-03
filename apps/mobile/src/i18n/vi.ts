@@ -217,11 +217,28 @@ export const vi = {
   },
 
   home: {
-    greeting: 'Nhà mình có gì hôm nay?',
-    sectionToday: 'Hôm nay',
+    eyebrow: 'NHÀ MÌNH',
+    /** Còn dùng ở `date-picker` ("Cuối tuần" là một lựa chọn ngày nhanh). */
     sectionWeekend: 'Cuối tuần',
-    sectionThisWeek: 'Tuần này',
     sectionAttention: 'Cần chú ý',
+
+    // ── Khối tài chính đầu màn ──
+    // "Sắp tới nhà mình cần bao nhiêu?" là câu hỏi trung tâm của concept v2
+    // (03 §1c), nên hai con số này đứng trên cùng.
+    financeTitle: 'Tài chính',
+    financeUsable: 'Tài sản dùng ngay',
+    // 90 ngày = RUNWAY_HORIZON_DAYS. Viết "3 tháng" vì đó là cách người ta nói,
+    // nhưng con số phải lấy đúng từ projectRunway để hai nơi không lệch nhau.
+    financeNeeded: 'Cần trong 3 tháng',
+    financeNeededBasis: 'Dự tính hôm nay',
+    financeMore: 'Xem chi tiết tài chính',
+
+    // Một feed "Sắp tới" duy nhất, KHÔNG tách Hôm nay/Tuần này thành hai khối.
+    // Vì thế mỗi dòng phải tự mang nhãn ngày (`dueLabelText`) — trước đây tiêu
+    // đề nhóm nói hộ điều đó.
+    sectionUpcoming: 'Sắp tới',
+    seeAll: 'Xem tất cả',
+    shoppingMore: 'Và {count} món khác',
     emptyTitle: 'Bắt đầu từ điều gần nhất',
     emptyBody:
       'Thêm một việc, một ngày giỗ, hay một khoản sắp phải trả — thứ nào cũng được.',
