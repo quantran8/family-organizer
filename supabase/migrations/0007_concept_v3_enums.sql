@@ -1,0 +1,31 @@
+-- =============================================================================
+-- 0007 — CONCEPT v3, PHẦN A: CHỈ ENUM  (spec/10-delta-v3.md)
+-- =============================================================================
+-- File này CỐ Ý chỉ có hai lệnh, và cố ý tách khỏi `0008_concept_v3.sql`.
+--
+-- VÌ SAO PHẢI TÁCH THÀNH HAI FILE:
+--
+--   Postgres không cho DÙNG một giá trị enum mới trong CÙNG TRANSACTION đã
+--   thêm nó. `0008` dùng 'fund' ngay ở check constraint của money_events và ở
+--   view money_history.
+--
+--   Đặt `commit;` giữa file KHÔNG giải quyết được: Supabase CLI cắt file thành
+--   từng lệnh rồi chạy tất cả trên MỘT connection trong MỘT transaction của
+--   riêng nó, nên các mốc begin/commit viết trong file không tạo ra transaction
+--   riêng như khi chạy bằng psql. RANH GIỚI TRANSACTION THẬT LÀ RANH GIỚI GIỮA
+--   HAI FILE MIGRATION — không phải chữ `commit` trong file.
+--
+--   Lần đầu thử gộp một file đã hỏng đúng ở đây:
+--     "Failed to execute statement 23:
+--      alter table money_events add constraint money_events_entity_scope ..."
+--
+-- VÌ SAO SỐ HIỆU CHỨ KHÔNG PHẢI TÊN: thứ tự chạy theo thứ tự tên file. Bản đầu
+-- đặt hai file cùng số `0007` và trông chờ '_enums' sắp trước — SAI, vì
+-- '0007_concept_v3.sql' < '0007_concept_v3_enums.sql' theo thứ tự chữ cái
+-- (chuỗi ngắn hơn đứng trước khi là tiền tố). Phần đụng enum phải mang số NHỎ
+-- HƠN, không phải chỉ khác tên.
+--
+-- KHÔNG THÊM GÌ VÀO FILE NÀY ngoài `alter type ... add value`.
+
+alter type entity_type add value if not exists 'fund';
+alter type event_kind  add value if not exists 'child';

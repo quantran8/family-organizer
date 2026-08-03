@@ -30,6 +30,7 @@ function metrics(over: Partial<FinanceMetrics> = {}): FinanceMetrics {
 function need(over: Partial<UpcomingNeed> = {}): UpcomingNeed {
   return {
     source: 'upcoming_payment',
+    kind: 'mandatory',
     id: 'need-1',
     title: 'Học phí',
     amount: 0,

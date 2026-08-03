@@ -12,6 +12,7 @@ import {
   solarToLunar,
   weekdayOf,
   type CalendarType,
+  type UUID,
   type EventKind,
   type FamilySide,
   type ISODate,
@@ -32,11 +33,20 @@ import {
 } from '@/design/components';
 import { EventCalendar } from '@/features/event/components';
 import { useCreateEvent } from '@/features/event/queries/use-events';
+import { useMembers } from '@/features/member/queries/use-members';
 import { useT, weekdayShort } from '@/i18n';
 import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
 import { useToday } from '@/lib/use-today';
 
 const LEAD_DAYS = [0, 1, 3, 7] as const;
+
+/**
+ * Mốc nhắc chuẩn bị — 03 §5b. `null` = không có.
+ *
+ * Chỉ 1-3 ngày, đúng khoảng schema cho phép: xa hơn thì việc chuẩn bị sinh ra
+ * quá sớm và nằm chết trong danh sách; gần hơn thì không kịp mua quà.
+ */
+const PREP_LEAD_DAYS = [null, 1, 2, 3] as const;
 const NOTES_MAX = 2000;
 
 function calendarFor(kind: EventKind): CalendarType {
@@ -61,9 +71,17 @@ export function EventFormScreen() {
   const [location, setLocation] = useState('');
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [remindLeadDays, setRemindLeadDays] = useState(3);
+  const [prepLeadDays, setPrepLeadDays] = useState<number | null>(null);
+  const { data: members } = useMembers();
+  // Con trong nhà — `role='child'`. Không phải user app, chỉ là đối tượng được
+  // ghi nhận (schema §1).
+  const children = (members ?? []).filter((m) => m.role === 'child');
+  const [childMemberId, setChildMemberId] = useState<UUID | null>(null);
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [picker, setPicker] = useState<null | 'kind' | 'side' | 'reminder'>(null);
+  const [picker, setPicker] = useState<null | 'kind' | 'side' | 'reminder' | 'prep' | 'child'>(
+    null,
+  );
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const trimmed = title.trim();
@@ -77,6 +95,8 @@ export function EventFormScreen() {
     location !== '' ||
     estimatedCost !== null ||
     remindLeadDays !== 3 ||
+    prepLeadDays !== null ||
+    childMemberId !== null ||
     notes !== '';
 
   const close = (): void => {
@@ -114,6 +134,10 @@ export function EventFormScreen() {
         isAllDay: true,
         recur: repeatEnabled ? { freq: 'yearly', intervalN: 1 } : null,
         remindLeadDays,
+        prepLeadDays,
+        // Chỉ giữ khi loại sự kiện là "của con" — đổi loại rồi lưu không được
+        // để lại một tham chiếu mồ côi ở dòng dữ liệu.
+        childMemberId: kind === 'child' ? childMemberId : null,
         estimatedCost,
       },
       { onSuccess: () => router.back() },
@@ -127,6 +151,10 @@ export function EventFormScreen() {
     remindLeadDays === 0
       ? t.dueLabel.today
       : f(t.dueLabel.inDays, { days: remindLeadDays });
+  const prepName =
+    prepLeadDays === null ? t.event.prepNone : f(t.event.prepDays, { days: prepLeadDays });
+  const childName =
+    children.find((c) => c.id === childMemberId)?.displayName ?? t.event.childNone;
 
   const selectedLunar = selectedDate === null ? null : solarToLunar(selectedDate);
   const selectedDatePrimary = (() => {
@@ -141,7 +169,7 @@ export function EventFormScreen() {
       }`
     : t.event.calendarLunar;
 
-  const openPicker = (next: 'kind' | 'side' | 'reminder'): void => {
+  const openPicker = (next: 'kind' | 'side' | 'reminder' | 'prep' | 'child'): void => {
     setDatePickerOpen(false);
     setPicker(next);
   };
@@ -287,6 +315,25 @@ export function EventFormScreen() {
             divider
             onPress={() => openPicker('reminder')}
           />
+          {/* Nhắc kép — 03 §5b. Dòng phụ nói rõ nó SINH VIỆC chứ không bắn thêm
+              một thông báo nữa: người dùng cần biết hệ quả trước khi bật. */}
+          <CardSelectRow
+            icon="bell"
+            label={t.event.fieldPrepLead}
+            value={prepName}
+            divider
+            onPress={() => openPicker('prep')}
+          />
+          {/* Chỉ hiện khi loại là "của con" — 09 §G.2. */}
+          {kind === 'child' && children.length > 0 ? (
+            <CardSelectRow
+              icon="family"
+              label={t.event.fieldChild}
+              value={childName}
+              divider
+              onPress={() => openPicker('child')}
+            />
+          ) : null}
         </View>
 
         <View className="overflow-hidden rounded-featured border border-line bg-surface">
@@ -411,6 +458,49 @@ export function EventFormScreen() {
               />
             );
           })}
+        </View>
+      </PickerSheet>
+
+      <PickerSheet
+        open={picker === 'prep'}
+        title={t.event.fieldPrepLead}
+        onClose={() => setPicker(null)}
+      >
+        <View>
+          {/* Nói rõ hệ quả TRƯỚC danh sách lựa chọn: mốc này sinh một VIỆC,
+              không bắn thêm một thông báo nữa (03 §5b). */}
+          <Text className="px-4 pb-2 text-caption text-subtle">{t.event.prepHint}</Text>
+          {PREP_LEAD_DAYS.map((days) => (
+            <PickerOption
+              key={days ?? 'none'}
+              label={days === null ? t.event.prepNone : f(t.event.prepDays, { days })}
+              selected={prepLeadDays === days}
+              onPress={() => {
+                setPrepLeadDays(days);
+                setPicker(null);
+              }}
+            />
+          ))}
+        </View>
+      </PickerSheet>
+
+      <PickerSheet
+        open={picker === 'child'}
+        title={t.event.fieldChild}
+        onClose={() => setPicker(null)}
+      >
+        <View>
+          {children.map((c) => (
+            <PickerOption
+              key={c.id}
+              label={c.displayName}
+              selected={childMemberId === c.id}
+              onPress={() => {
+                setChildMemberId(c.id);
+                setPicker(null);
+              }}
+            />
+          ))}
         </View>
       </PickerSheet>
     </Sheet>

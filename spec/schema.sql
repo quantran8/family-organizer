@@ -21,7 +21,7 @@
 
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_cron";
--- Tìm contact theo tên khi nhập nhanh 100 phong bì (sổ mừng cưới).
+-- Tìm contact theo tên khi nhập nhanh 100 phong bì (sổ hiếu hỉ).
 create extension if not exists "pg_trgm";
 
 -- =============================================================================
@@ -56,8 +56,22 @@ create type event_kind       as enum (
   'medical',            -- khám bệnh
   'trip',
   'school',             -- lịch học, họp phụ huynh
+  'child',              -- của con: tiêm, họp phụ huynh, sinh nhật bạn cùng lớp
   'other'
 );
+
+-- Hai loại việc nhà, KHÁC BẢN CHẤT (03 §4b):
+--   recurring -- lặp lại, có giờ, KHÔNG HOÃN ĐƯỢC (due_date là mốc neo)
+--   flexible  -- phát sinh, không gấp, mặc định không tên, KHÔNG GÁN CHO
+--                NGƯỜI KIA — ranh giới giữ nó là danh sách việc của nhà chứ
+--                không phải hộp thư nhiệm vụ
+create type task_list        as enum ('recurring', 'flexible');
+
+create type fund_entry_kind  as enum ('deposit', 'withdrawal');
+
+-- Nghĩa vụ hay nguyện vọng. Hai loại cùng MỘT MÀN HÌNH nhưng KHÔNG BAO GIỜ
+-- cùng MỘT CON SỐ — projectRunway chỉ cộng 'mandatory'. Xem 03 §1c, 10 §5.
+create type need_kind        as enum ('mandatory', 'optional');
 
 -- Cho kind='balance': "tiền đang nằm ở đâu"
 create type asset_type       as enum (
@@ -92,14 +106,15 @@ create type doc_type         as enum (
 create type entity_type      as enum (
   'task', 'event', 'document',
   'asset', 'debt', 'goal', 'upcoming_payment',
-  'shopping_item'
+  'shopping_item',
+  'fund'
 );
 
 -- --- Nhập liệu bằng AI (06 §6) ---
 create type ingest_source   as enum ('screenshot', 'photo', 'text');
 create type ingest_status   as enum ('pending', 'confirmed', 'discarded');
 
--- --- Sổ mừng cưới (07 §3) ---
+-- --- Sổ hiếu hỉ (07 §3) ---
 create type contact_side    as enum ('husband_family', 'wife_family', 'shared', 'other');
 create type gift_direction  as enum ('received', 'given');
 create type gift_occasion   as enum (
@@ -212,6 +227,13 @@ create table members (
   school_class        text,
   health_insurance_no text,
 
+  -- "Mỗi con một màu" (v3 §7.5). Khoá vào bảng màu ở design tokens, KHÔNG phải
+  -- mã hex — đổi bảng màu thì không phải migrate dữ liệu.
+  --
+  -- Màu BÁM THEO CON, không suy từ vị trí trong danh sách: thêm em bé thứ hai
+  -- mà đổi màu anh chị là lỗi nhỏ nhưng đúng chỗ cảm xúc.
+  color_key           text,
+
   joined_at     timestamptz not null default now(),
   deleted_at    timestamptz,
 
@@ -275,8 +297,20 @@ create table tasks (
   title           text not null,
   notes           text,
 
+  -- Hai danh sách tách biệt (03 §4b, v3 §7.3). Backfill lúc migrate: có recur
+  -- -> 'recurring', còn lại -> 'flexible'.
+  --
+  -- Việc 'flexible' KHÔNG ĐƯỢC GÁN CHO NGƯỜI KIA. Ràng buộc đó ép ở tầng UI
+  -- (chip người ẩn, hoặc chỉ chọn được chính mình) chứ không ở DB: gán cho
+  -- chính mình là hợp lệ, và DB không biết ai đang gọi.
+  list            task_list not null default 'flexible',
+
   -- MẶC ĐỊNH null. Việc không gán ai là VIỆC CỦA NHÀ; gán tên là hành động
   -- phụ, có ý thức.
+  --
+  -- CHỈ HAI CHẾ ĐỘ: null hoặc một cái tên. KHÔNG có luân phiên tự động, không
+  -- có assignee_mode, không có rotation_order. v3 §7.3 đề xuất chế độ thứ ba
+  -- và nó bị bác — lý do ở 10 §2.2.
   --
   -- BẤT KỲ THÀNH VIÊN NÀO CŨNG ĐỔI ĐƯỢC, BẤT CỨ LÚC NÀO, không cần xác nhận
   -- và không sinh thông báo. Không có bước "nhận việc": việc đã tồn tại thì
@@ -410,6 +444,22 @@ create table events (
   recur                 recurrence,            -- giỗ/sinh nhật: freq='yearly'
   remind_lead_days      smallint not null default 3,
 
+  -- NHẮC KÉP (03 §5b, v3 §7.5). 1-3 ngày trước, null = không có.
+  --
+  -- Mốc này KHÔNG bắn thêm push — nó SINH MỘT VIỆC LINH HOẠT. Thông báo thứ hai
+  -- về cùng một sự kiện là phiền; một dòng việc trong danh sách thì hữu ích, và
+  -- gắn được với chi phí dự kiến.
+  --
+  -- Phần lớn sự cố gia đình không phải quên sự kiện, mà là NHỚ SỰ KIỆN NHƯNG
+  -- QUÊN PHẦN CHUẨN BỊ CHO NÓ.
+  prep_lead_days        smallint check (prep_lead_days between 1 and 3),
+  -- Id việc đã sinh. Giữ để cron chạy lại không sinh trùng. Chỉ Edge ghi.
+  prep_task_id          uuid,   -- FK thêm bằng ALTER (tasks định nghĩa trước)
+
+  -- Sự kiện của con nào (kind='child'). KHÔNG phải trục phân loại thứ hai —
+  -- chỉ để lọc và lấy màu từ members.color_key.
+  child_member_id       uuid references members(id) on delete set null,
+
   -- CACHE: ngày dương của lần xảy ra kế tiếp. Do tầng app/edge function tính
   -- (Postgres không biết lịch âm). Dùng cho mọi query timeline & sort.
   next_occurrence_date  date,
@@ -433,9 +483,17 @@ create table events (
 alter table tasks add constraint tasks_event_fk
   foreign key (event_id) references events(id) on delete set null;
 
+-- Chiều ngược lại: việc chuẩn bị do nhắc kép sinh ra (03 §5b).
+alter table events add constraint events_prep_task_fk
+  foreign key (prep_task_id) references tasks(id) on delete set null;
+
 create index events_household_next_idx on events (household_id, next_occurrence_date)
   where deleted_at is null;
 create index events_side_idx on events (household_id, side) where deleted_at is null;
+create index events_child_idx on events (household_id, child_member_id)
+  where deleted_at is null and child_member_id is not null;
+create index tasks_household_list_idx on tasks (household_id, list, due_date)
+  where deleted_at is null;
 
 
 -- -----------------------------------------------------------------------------
@@ -642,10 +700,15 @@ create index payments_event_idx on upcoming_payments (event_id)
 -- MỤC TIÊU NHÌN VỀ PHÍA TRƯỚC, cùng hướng với trái tim sản phẩm: "cần 800tr,
 -- đang có 320tr" là một câu về tương lai, không cần giả định đã-ghi-đủ nào.
 --
--- BA RANH GIỚI (08 §2.3):
---   1. Mục tiêu KHÔNG chảy vào upcoming_needs. Nghĩa vụ khác nguyện vọng:
---      học phí tháng 9 là thứ PHẢI trả, góp quỹ mua nhà là thứ MUỐN làm.
---      Trộn hai loại làm con số "cần chuẩn bị" mất nghĩa.
+-- BA RANH GIỚI (08 §2.3, ranh giới 1 đổi CƠ CHẾ ở 10 §5):
+--   1. Mục tiêu KHÔNG BAO GIỜ được cộng vào con số "cần chuẩn bị". Nghĩa vụ
+--      khác nguyện vọng: học phí tháng 9 là thứ PHẢI trả, góp quỹ mua nhà là
+--      thứ MUỐN làm. Trộn hai loại vào MỘT CON SỐ làm nó mất nghĩa.
+--
+--      Từ v3, goals CÓ trong upcoming_needs, mang kind='optional', để hiện
+--      CÙNG MÀN HÌNH với nghĩa vụ ở một khối riêng «có thể hoãn». Nguyên tắc
+--      không đổi — chỗ ép đổi: từ "view không union goals" sang "projectRunway
+--      chỉ cộng kind='mandatory'". CÙNG MÀN HÌNH KHÔNG PHẢI CÙNG MỘT CON SỐ.
 --   2. Không có tiến độ theo thời gian, không có lời khuyên. Không "mỗi tháng
 --      cần góp 20 triệu", không "bạn đang chậm kế hoạch". App không biết thu
 --      nhập, không biết hoàn cảnh; một lời nhắc như thế với cặp đang chật vật
@@ -677,6 +740,91 @@ create table goals (
 
 create index goals_household_idx on goals (household_id)
   where deleted_at is null and is_archived = false;
+
+
+-- -----------------------------------------------------------------------------
+-- 5.4b. FUNDS — QUỸ CHUNG  (v3 §7.6)
+-- -----------------------------------------------------------------------------
+-- Tiền nhà, ăn uống, điện nước của cặp ở riêng. Đáng theo dõi vì TẦN SUẤT NHẬP
+-- CỰC THẤP: 2-4 lần một tháng, không phải 200 — nên nó không kéo sản phẩm về
+-- phía app thu chi.
+--
+-- ĐÂY LÀ CHỖ DUY NHẤT TRONG TOÀN SCHEMA GHI TÊN NGƯỜI CẠNH MỘT SỐ TIỀN VÀ ĐƯỢC
+-- PHÉP CỘNG THEO NGƯỜI. Ngoại lệ đó có ranh giới cứng, xem view
+-- fund_month_contributors bên dưới và 03 §9 ngoại lệ 2.
+--
+-- Vì sao ở đây được mà chi tiêu vặt thì không: nạp quỹ là chuyển khoản rời rạc,
+-- đối chiếu được với sao kê — không ai quên mình vừa chuyển 10 triệu. Chi tiêu
+-- vặt thì dễ ghi thiếu, và gán tên vào một dữ liệu không đầy đủ là gán sai.
+
+create table funds (
+  id                   uuid primary key default gen_random_uuid(),
+  household_id         uuid not null references households(id) on delete cascade,
+
+  name                 text not null,          -- "Quỹ sinh hoạt"
+
+  -- SỐ DẪN XUẤT, không phải số khai. Chỉ record_fund_entry() và
+  -- delete_fund_entry() ghi. Client KHÔNG BAO GIỜ update trực tiếp.
+  current_amount       numeric(14,2) not null default 0,
+
+  -- "GHI LẦN CUỐI", không phải "khai lần cuối". Khác assets.as_of_date: số dư
+  -- quỹ là TỔNG CỦA NHỮNG KHOẢN ĐÃ GHI, không phải một con số ai đó nói ra.
+  -- Câu chữ nhãn thời gian trên UI phải phản ánh đúng khác biệt này.
+  as_of_date           date not null default current_date,
+  updated_by_member_id uuid references members(id) on delete set null,
+
+  is_archived          boolean not null default false,
+
+  created_by           uuid not null references profiles(id) on delete cascade,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  deleted_at           timestamptz
+);
+
+create index funds_household_idx on funds (household_id)
+  where deleted_at is null and is_archived = false;
+
+-- XOÁ MỀM, KHÔNG PHẢI APPEND-ONLY — cố ý khác money_events.
+--
+-- Gõ nhầm số tiền một khoản nạp phải sửa được. Nếu append-only thì phải ghi một
+-- dòng âm bù trừ, và một quỹ hiện "+5.000.000 rồi −5.000.000 (sửa nhầm)" đúng là
+-- thứ sổ-nợ-hoá mà cả module này tránh. Bảo đảm append-only nằm ở tầng trên:
+-- money_events vẫn ghi mọi biến động của quỹ.
+create table fund_entries (
+  id                    uuid primary key default gen_random_uuid(),
+  fund_id               uuid not null references funds(id) on delete cascade,
+  household_id          uuid not null references households(id) on delete cascade,
+
+  kind                  fund_entry_kind not null,
+  amount                numeric(14,2) not null check (amount > 0),
+  occurred_on           date not null default current_date,
+
+  -- Bắt buộc khi rút: rút mà không ghi để làm gì thì tháng sau không ai nhớ.
+  purpose               text,
+
+  -- TÊN, KHÔNG PHẢI KHOÁ NGOẠI. Người bỏ tiền vào quỹ không nhất thiết là
+  -- thành viên household: bố mẹ đưa, em ruột góp. Ép FK ở đây là ép người dùng
+  -- tạo một member giả cho mỗi người từng đưa tiền.
+  contributor_name      text,
+
+  -- CHỈ để điền sẵn ô nhập trên UI. KHÔNG BAO GIỜ là khoá gom nhóm — mọi phép
+  -- gom theo người phải gom theo contributor_name, và phải có month đi kèm.
+  contributor_member_id uuid references members(id) on delete set null,
+
+  note                  text,
+
+  created_by            uuid not null references profiles(id) on delete cascade,
+  created_at            timestamptz not null default now(),
+  deleted_at            timestamptz,
+
+  constraint fund_entries_withdrawal_purpose check (
+    kind = 'deposit' or (purpose is not null and btrim(purpose) <> '')
+  )
+);
+
+create index fund_entries_month_idx
+  on fund_entries (household_id, fund_id, occurred_on desc)
+  where deleted_at is null;
 
 
 -- -----------------------------------------------------------------------------
@@ -713,8 +861,11 @@ create table money_events (
   actor_profile_id  uuid references profiles(id) on delete set null,
   created_at        timestamptz not null default now(),
 
+  -- BẪY: constraint này khoá cứng danh sách, tách rời khỏi enum. Thêm một loại
+  -- thực thể tiền mới phải sửa CẢ HAI — quên constraint thì migration báo thành
+  -- công và lần ghi đầu tiên của loại đó mới nổ.
   constraint money_events_entity_scope check (
-    entity_type in ('asset', 'debt', 'goal', 'upcoming_payment')
+    entity_type in ('asset', 'debt', 'goal', 'upcoming_payment', 'fund')
   )
 );
 
@@ -959,7 +1110,7 @@ comment on column ingest_drafts.parsed is
 
 
 -- =============================================================================
--- 7b. SỔ MỪNG CƯỚI
+-- 7b. SỔ HIẾU HỈ
 -- =============================================================================
 -- Nỗi đau: nhà chú Ba mừng đám cưới mình 2 triệu năm 2023; giờ con chú Ba
 -- cưới, mình đi bao nhiêu? Đi thiếu thì mất mặt, đi thừa thì tiếc, và KHÔNG
@@ -1192,7 +1343,7 @@ declare t text;
 begin
   foreach t in array array[
     'profiles','households','tasks','events','assets','debts',
-    'upcoming_payments','goals','documents',
+    'upcoming_payments','goals','funds','documents',
     'contacts','gift_entries','child_vaccine_doses'
   ] loop
     execute format(
@@ -1239,6 +1390,8 @@ alter table assets                enable row level security;
 alter table debts                 enable row level security;
 alter table upcoming_payments     enable row level security;
 alter table goals                 enable row level security;
+alter table funds                 enable row level security;
+alter table fund_entries          enable row level security;
 alter table money_events          enable row level security;
 alter table attention_items       enable row level security;
 alter table money_snapshots       enable row level security;
@@ -1292,7 +1445,7 @@ declare t text;
 begin
   foreach t in array array[
     'invites','tasks','task_instances','events',
-    'assets','debts','upcoming_payments','goals',
+    'assets','debts','upcoming_payments','goals','funds','fund_entries',
     'money_events','attention_items','money_snapshots',
     'documents','document_files',
     'reminders',
@@ -1463,6 +1616,7 @@ create or replace view finance_metrics as
 create or replace view upcoming_needs as
   select
     'upcoming_payment'::entity_type          as source,
+    'mandatory'::need_kind                   as kind,
     p.id,
     p.household_id,
     p.name                                   as title,
@@ -1475,7 +1629,7 @@ create or replace view upcoming_needs as
 
   union all
 
-  select 'event', e.id, e.household_id, e.title,
+  select 'event', 'mandatory', e.id, e.household_id, e.title,
          e.next_occurrence_date, e.estimated_cost
   from events e
   where e.deleted_at is null
@@ -1485,16 +1639,35 @@ create or replace view upcoming_needs as
 
   union all
 
-  select 'document', d.id, d.household_id, d.title,
+  select 'document', 'mandatory', d.id, d.household_id, d.title,
          d.expiry_date, d.renewal_cost
   from documents d
   where d.deleted_at is null
     and d.expiry_date is not null
     and d.renewal_cost is not null
-    and d.renewal_cost > 0;
+    and d.renewal_cost > 0
 
--- goals CỐ Ý KHÔNG có trong view này. Nghĩa vụ khác nguyện vọng — xem comment
--- ở bảng goals.
+  union all
+
+  -- ĐỔI Ở v3 (10 §5): goals GIỜ CÓ trong view này, mang kind='optional'.
+  --
+  -- Bản trước loại hẳn goals ra, để bảo vệ nguyên tắc "không trộn nghĩa vụ với
+  -- nguyện vọng vào một con số". Nguyên tắc đó KHÔNG ĐỔI — chỉ cơ chế đổi: thay
+  -- vì loại khỏi view, giờ tách bằng cột kind, và projectRunway CHỈ CỘNG
+  -- 'mandatory'.
+  --
+  -- Vì sao đổi: hai người cần thấy tháng 9 đóng học phí xong thì quỹ du lịch
+  -- phải chậm lại. Cùng màn hình KHÔNG PHẢI cùng một con số.
+  --
+  -- Ai đọc view này mà cộng tất cả các dòng lại là đang phá đúng nguyên tắc mà
+  -- cột kind sinh ra để giữ.
+  select 'goal', 'optional', g.id, g.household_id, g.name,
+         g.target_date, greatest(g.target_amount - g.current_amount, 0)
+  from goals g
+  where g.deleted_at is null
+    and g.is_archived = false
+    and g.target_date is not null
+    and g.target_amount > g.current_amount;
 
 
 -- -----------------------------------------------------------------------------
@@ -1523,15 +1696,21 @@ create or replace view money_history as
     me.occurred_on,
     me.note,
     me.actor_profile_id,
+    -- Giữ created_at để view thay được money_events ở MỌI chỗ đọc, không chỉ ở
+    -- màn lịch sử: thiếu nó thì repository phải đọc hai nguồn và mapper phải có
+    -- hai đường. occurred_on là ngày NGƯỜI DÙNG khai, created_at là lúc máy ghi.
+    me.created_at,
     -- coalesce vì entity có thể đã xoá mềm — money_events là append-only nên
     -- dòng lịch sử vẫn còn và vẫn phải đọc được.
-    coalesce(a.name, d.name, g.name, p.name, '(đã xoá)') as entity_title,
-    m.display_name                                       as actor_display_name
+    coalesce(a.name, d.name, g.name, p.name, f.name, '(đã xoá)') as entity_title,
+    m.display_name                                               as actor_display_name
   from money_events me
   left join assets            a on me.entity_type = 'asset'            and a.id = me.entity_id
   left join debts             d on me.entity_type = 'debt'             and d.id = me.entity_id
   left join goals             g on me.entity_type = 'goal'             and g.id = me.entity_id
   left join upcoming_payments p on me.entity_type = 'upcoming_payment' and p.id = me.entity_id
+  -- Thiếu nhánh này thì mọi biến động quỹ hiện ra là '(đã xoá)'.
+  left join funds             f on me.entity_type = 'fund'             and f.id = me.entity_id
   left join members           m on m.household_id = me.household_id
                                and m.profile_id  = me.actor_profile_id
                                and m.deleted_at is null;
@@ -1552,9 +1731,80 @@ comment on view money_history is
 
 
 -- -----------------------------------------------------------------------------
--- 11e. GIFT HISTORY — nguồn của dòng gợi ý sổ mừng cưới
+-- 11d-bis. QUỸ CHUNG — HAI VIEW, CẢ HAI GOM THEO THÁNG
 -- -----------------------------------------------------------------------------
--- Toàn bộ lý do module sổ mừng cưới tồn tại nằm ở đây: khi tạo khoản mừng cho
+-- ĐÂY LÀ TẦNG THỨ NHẤT trong ba tầng ép ranh giới một-tháng của 03 §9 ngoại lệ
+-- 2. Hai tầng còn lại: chữ ký hàm domain (summarizeFundMonth nhận month bắt
+-- buộc) và prop bắt buộc của contributor-block.tsx.
+--
+-- Ba tầng độc lập nhau là có chủ ý: phá được một tầng vẫn còn hai tầng chặn.
+-- Một lệnh cấm chỉ nằm trong tài liệu sẽ bị vi phạm bởi người không đọc tài liệu.
+
+create or replace view fund_month_summary as
+  select
+    fe.household_id,
+    fe.fund_id,
+    date_trunc('month', fe.occurred_on)::date as month,
+    sum(case when fe.kind = 'deposit'    then fe.amount else 0 end) as deposits,
+    sum(case when fe.kind = 'withdrawal' then fe.amount else 0 end) as withdrawals,
+    sum(case when fe.kind = 'deposit'    then fe.amount else -fe.amount end) as net,
+    count(*) as entry_count
+  from fund_entries fe
+  where fe.deleted_at is null
+  group by 1, 2, 3;
+
+comment on view fund_month_summary is
+  'entry_count là BẮT BUỘC ở mọi chỗ hiển thị: một con số tổng không kèm số '
+  'lượng bản ghi thì tự nhận là đầy đủ. Cùng luật với groupHistoryByMonth.';
+
+-- TỔNG THEO NGƯỜI — ngoại lệ duy nhất của lệnh cấm "tổng tiền theo người".
+--
+-- `month` NẰM TRONG GROUP BY, và KHÔNG TỒN TẠI view nào gom theo người mà thiếu
+-- nó. Đó không phải lựa chọn thẩm mỹ — đó là chỗ ranh giới được ép ở tầng dữ
+-- liệu, để không ai viết được một câu truy vấn cộng dồn mà không tự tay bỏ
+-- month ra khỏi group by (lúc đó thì đã là cố ý, không còn là sơ ý).
+--
+-- VÌ SAO NGOẠI LỆ NÀY AN TOÀN CÒN VỚI TÀI SẢN THÌ KHÔNG:
+--   "Tháng này anh bỏ 5tr, em bỏ 5tr"      -> câu GHI CHÉP. Đóng lại cuối tháng.
+--   "Tính tới nay anh 180tr, em 60tr"      -> câu PHÁN XÉT. Không bao giờ đóng.
+-- Cùng dữ liệu, khác hoàn toàn về việc nó dùng để làm gì. Giữa vợ chồng không
+-- có cơ chế tất toán nào để xoá một con số cộng dồn, và đến lúc nào đó nó sẽ
+-- được đem ra dùng. Đó là khác biệt giữa một cuốn sổ và một bản cáo trạng.
+--
+-- CHỈ 'deposit': rút tiền khỏi quỹ không hỏi ai rút — tiền đã vào quỹ là tiền
+-- chung, và ghi tên người rút là mở đúng cánh cửa vừa đóng ở trên.
+create or replace view fund_month_contributors as
+  select
+    fe.household_id,
+    fe.fund_id,
+    date_trunc('month', fe.occurred_on)::date          as month,
+    coalesce(nullif(btrim(fe.contributor_name), ''), '(không ghi tên)')
+                                                       as contributor_name,
+    sum(fe.amount) as total,
+    count(*)       as entry_count
+  from fund_entries fe
+  where fe.deleted_at is null
+    and fe.kind = 'deposit'
+  group by 1, 2, 3, 4;
+
+comment on view fund_month_contributors is
+  'NGOẠI LỆ CÓ ĐIỀU KIỆN của lệnh cấm "tổng tiền theo người" — xem 03 §9 ngoại '
+  'lệ 2. Chỉ hợp lệ trong phạm vi MỘT THÁNG, chỉ ở màn hình quỹ, bắt buộc kèm '
+  'entry_count, và sắp THEO TÊN ABC chứ không theo số tiền (sắp theo tiền là '
+  'một bảng xếp hạng, và xếp hạng hai vợ chồng là thứ cả spec này tránh). '
+  'PHÉP THỬ KHI REVIEW: con số này có vắt qua nhiều hơn một tháng không? '
+  'Có -> sai.';
+
+-- CỐ Ý KHÔNG TẠO — nếu thấy trong PR thì reject:
+--   view tổng theo người KHÔNG có month trong group by
+--   view số dư quỹ theo thời gian (đường xu hướng)
+--   view "ai còn thiếu bao nhiêu" dưới bất kỳ tên nào
+
+
+-- -----------------------------------------------------------------------------
+-- 11e. GIFT HISTORY — nguồn của dòng gợi ý sổ hiếu hỉ
+-- -----------------------------------------------------------------------------
+-- Toàn bộ lý do module sổ hiếu hỉ tồn tại nằm ở đây: khi tạo khoản mừng cho
 -- nhà nào, app nói được nhà đó đã mừng mình bao nhiêu, khi nào. Không có dòng
 -- gợi ý đó thì đây chỉ là một cái Excel có màu.
 --
@@ -1752,6 +2002,115 @@ end $$;
 -- lịch sử CỦA MỘT KHOẢN. Nó KHÔNG BAO GIỜ được nhóm lại thành "anh góp bao
 -- nhiêu, em góp bao nhiêu": đó là bảng điểm ở dạng TRÔNG GIỐNG MINH BẠCH
 -- nhất, và vì thế là dạng nguy hiểm nhất.
+--
+-- LƯU Ý cho quỹ chung: fund_entries.contributor_name là một trục KHÁC HẲN
+-- actor_profile_id. actor_profile_id = ai bấm nút trong app; contributor_name =
+-- ai đưa tiền (có thể là bố mẹ, không phải member). Ngoại lệ 03 §9 chỉ cho gom
+-- theo contributor_name kèm month — KHÔNG cho gom theo actor_profile_id ở bất
+-- kỳ đâu, kể cả ở quỹ.
+
+
+-- Ghi một khoản nạp/rút quỹ + cập nhật số dư + ghi lịch sử, nguyên tử.
+create or replace function record_fund_entry(
+  p_fund_id     uuid,
+  p_kind        fund_entry_kind,
+  p_amount      numeric,
+  p_occurred_on date default current_date,
+  p_purpose     text default null,
+  p_contributor text default null,
+  p_note        text default null
+) returns uuid
+language plpgsql security invoker as $$
+declare v_old numeric; v_hh uuid; v_member uuid; v_new numeric; v_entry uuid;
+begin
+  if p_amount is null or p_amount <= 0 then
+    raise exception 'amount must be positive';
+  end if;
+  if p_kind = 'withdrawal' and coalesce(btrim(p_purpose), '') = '' then
+    raise exception 'withdrawal needs a purpose';
+  end if;
+
+  select current_amount, household_id into v_old, v_hh
+    from funds where id = p_fund_id and deleted_at is null for update;
+  if not found then raise exception 'fund not found'; end if;
+
+  select id into v_member from members
+   where household_id = v_hh and profile_id = current_profile_id()
+     and deleted_at is null;
+
+  -- Kẹp ở 0 thay vì ném lỗi, cùng cách settle_payment kẹp remaining_amount:
+  -- rút quá số dư là chuyện ghi chép lệch, không phải chuyện phải chặn người
+  -- dùng lại giữa chừng.
+  v_new := case when p_kind = 'deposit'
+                then v_old + p_amount
+                else greatest(v_old - p_amount, 0) end;
+
+  insert into fund_entries (fund_id, household_id, kind, amount, occurred_on,
+                            purpose, contributor_name, contributor_member_id,
+                            note, created_by)
+  values (p_fund_id, v_hh, p_kind, p_amount, p_occurred_on,
+          nullif(btrim(p_purpose), ''), nullif(btrim(p_contributor), ''),
+          -- Chỉ gợi ý prefill; KHÔNG dùng để gom nhóm.
+          case when p_kind = 'deposit' then v_member end,
+          p_note, current_profile_id())
+  returning id into v_entry;
+
+  update funds
+     set current_amount       = v_new,
+         as_of_date           = p_occurred_on,
+         updated_by_member_id = v_member
+   where id = p_fund_id;
+
+  insert into money_events (household_id, entity_type, entity_id, event_type,
+                            value_before, value_after, delta, occurred_on, note,
+                            actor_profile_id)
+  values (v_hh, 'fund', p_fund_id,
+          case when p_kind = 'deposit' then 'contribution' else 'withdrawal' end,
+          v_old, v_new, v_new - v_old, p_occurred_on,
+          coalesce(nullif(btrim(p_purpose), ''), p_note),
+          current_profile_id());
+
+  return v_entry;
+end $$;
+
+-- Xoá mềm một khoản + TÍNH LẠI số dư từ các dòng còn sống.
+--
+-- Tính lại chứ không trừ đi: trừ dồn sẽ lệch sau bất kỳ lần ghi đồng thời nào,
+-- và số dư quỹ là con số hai người nhìn vào để quyết có tiêu được không.
+create or replace function delete_fund_entry(p_entry_id uuid)
+returns void
+language plpgsql security invoker as $$
+declare v_old numeric; v_new numeric; v_hh uuid; v_fund uuid; v_member uuid;
+begin
+  select fund_id, household_id into v_fund, v_hh
+    from fund_entries where id = p_entry_id and deleted_at is null;
+  if not found then raise exception 'fund entry not found'; end if;
+
+  select current_amount into v_old from funds where id = v_fund for update;
+
+  update fund_entries set deleted_at = now() where id = p_entry_id;
+
+  select coalesce(sum(case when kind = 'deposit' then amount else -amount end), 0)
+    into v_new
+    from fund_entries
+   where fund_id = v_fund and deleted_at is null;
+  v_new := greatest(v_new, 0);
+
+  select id into v_member from members
+   where household_id = v_hh and profile_id = current_profile_id()
+     and deleted_at is null;
+
+  update funds
+     set current_amount = v_new, updated_by_member_id = v_member
+   where id = v_fund;
+
+  insert into money_events (household_id, entity_type, entity_id, event_type,
+                            value_before, value_after, delta, occurred_on, note,
+                            actor_profile_id)
+  values (v_hh, 'fund', v_fund, 'value_updated',
+          v_old, v_new, v_new - v_old, current_date,
+          'xoá một khoản đã ghi', current_profile_id());
+end $$;
 
 
 -- =============================================================================
@@ -1764,7 +2123,8 @@ declare v text;
 begin
   foreach v in array array[
     'home_feed','finance_metrics','money_feed',
-    'upcoming_needs','money_history','gift_history'
+    'upcoming_needs','money_history','gift_history',
+    'fund_month_summary','fund_month_contributors'
   ] loop
     execute format('alter view %I set (security_invoker = true)', v);
   end loop;
@@ -1889,9 +2249,24 @@ end $$;
 --   Bách phân vị / đánh giá tăng trưởng  -> chẩn đoán y tế
 --   So sánh giữa các con trong nhà       -> như trên
 --   Trạng thái "bỏ / hoãn" cho mũi tiêm  -> gây hại thật
+--   Tổng quỹ theo người, >1 tháng        -> sổ nợ vợ chồng dựng bằng dữ liệu
+--                                           trung thực — xem ngoại lệ 2
+--   "Ai còn thiếu bao nhiêu" ở quỹ       -> app phát ngôn thay một người
+--   Xếp người bỏ vào quỹ theo số tiền    -> xếp hạng hai vợ chồng; sắp tên ABC
+--   Đếm / so sánh sự kiện theo side      -> đếm thứ không ai chọn được (10.9)
+--   Tỷ lệ hoàn thành theo danh sách việc -> bảng xếp hạng đội lốt phân loại
 --
--- ĐƯỢC PHÉP CÓ ĐIỀU KIỆN: tổng của những gì đã ghi trong một kỳ — bắt buộc
--- kèm SỐ LƯỢNG BẢN GHI và chữ "ĐÃ GHI", và không bao giờ được vẽ thành đường.
+-- ĐƯỢC PHÉP CÓ ĐIỀU KIỆN — HAI NGOẠI LỆ, KHÔNG CÓ NGOẠI LỆ THỨ BA:
+--
+--   1. Tổng của những gì đã ghi trong một kỳ — bắt buộc kèm SỐ LƯỢNG BẢN GHI
+--      và chữ "ĐÃ GHI", và không bao giờ được vẽ thành đường.
+--
+--   2. Tổng quỹ chung theo người đóng góp — CHỈ TRONG MỘT THÁNG, chỉ ở màn
+--      hình quỹ, bắt buộc kèm số lượng bản ghi, sắp theo tên ABC.
+--      PHÉP THỬ: con số này có vắt qua nhiều hơn một tháng không? Có -> cấm.
+--      Ranh giới ép ở ba tầng độc lập: view (month trong group by), chữ ký hàm
+--      domain (month bắt buộc), prop component (month bắt buộc).
+--      Đầy đủ ở 03 §9 và 10 §3.
 --
 --
 -- =============================================================================

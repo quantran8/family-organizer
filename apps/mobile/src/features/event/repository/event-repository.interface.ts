@@ -36,6 +36,18 @@ export interface EventInput {
   isAllDay: boolean;
   recur: Recurrence | null;
   remindLeadDays: number;
+  /**
+   * NHẮC KÉP — 03 §5b. 1-3 ngày trước, null = không có.
+   *
+   * Mốc này KHÔNG bắn thêm push; nó SINH MỘT VIỆC LINH HOẠT. Phần lớn sự cố gia
+   * đình không phải quên sự kiện, mà là nhớ sự kiện nhưng quên phần chuẩn bị.
+   *
+   * CỐ Ý KHÔNG có `prepTaskId` ở đây: đó là trường chỉ đọc, chỉ Edge
+   * `build-reminders` được ghi (02 §7) — cùng lý do với `nextOccurrenceDate`.
+   */
+  prepLeadDays: number | null;
+  /** Sự kiện của con nào (`kind='child'`). Chỉ để lọc và lấy màu. */
+  childMemberId: UUID | null;
   estimatedCost: number | null;
 }
 

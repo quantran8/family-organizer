@@ -105,6 +105,15 @@ export function TaskFormScreen() {
       {
         title: trimmed,
         notes: notes.trim() === '' ? null : notes.trim(),
+        // Form thêm nhanh luôn tạo việc LINH HOẠT, không hỏi thêm một câu nữa.
+        //
+        // Suy ra chứ không hỏi: form này cố ý chỉ có một trường bắt buộc (05
+        // §5.1) — bắt chọn danh sách ngay lúc thêm là đúng cách để người ta thôi
+        // thêm việc. Và một việc không có `recur` thì đúng là việc linh hoạt
+        // theo định nghĩa ở 03 §4b.
+        //
+        // Đặt lặp lại ở màn chi tiết sẽ chuyển nó sang danh sách định kỳ.
+        list: 'flexible',
         assigneeId,
         dueDate,
         dueTime: null,

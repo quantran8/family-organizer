@@ -12,8 +12,13 @@ Ký hiệu: `[x]` xong · `[~]` đang làm · `[ ]` chưa
 Đây là ba thứ nếu vi phạm thì sản phẩm sai về bản chất, không phải sai về kỹ thuật.
 Rà lại chúng ở cuối mỗi giai đoạn có đụng tới tiền.
 
-1. **Không bao giờ tổng hợp tiền theo người.** `holderMemberId` / `actorProfileId` chỉ được
-   hiện ở **cấp từng khoản**. Không tổng, không biểu đồ, không xếp hạng, không bộ lọc theo người.
+1. **Không bao giờ tổng hợp tiền theo người** — trừ **đúng một ngoại lệ có điều kiện**.
+   `holderMemberId` / `actorProfileId` chỉ được hiện ở **cấp từng khoản**: không tổng,
+   không biểu đồ, không xếp hạng, không bộ lọc theo người.
+
+   Ngoại lệ duy nhất (G18): **quỹ chung, trong phạm vi một tháng** — khối «Người bỏ vào»
+   ở `money/fund/[id]`. **Phép thử: con số này có vắt qua nhiều hơn một tháng không?
+   Có → cấm.** Ranh giới ép ở bốn tầng độc lập, xem G18 và `03 §9` ngoại lệ 2.
 2. **Ngày âm là dữ liệu gốc.** `next_occurrence_date` là cache do **đúng một nơi** ghi:
    Edge `refresh-lunar-dates`. Không có đường code thứ hai nào tính lịch âm rồi ghi xuống.
 3. **`money_events` / `money_snapshots` ghi từ ngày đầu**, kể cả trước khi có màn hình đọc.
@@ -927,15 +932,138 @@ vụ; bỏ số tiền đi mà nó thành vô nghĩa thì đó là số dư nợ
 
 - [x] **311 test xanh** (288 → 311: +23 cho dịp, tang lễ, ghép cặp, ba trạng thái) ·
       typecheck sạch · lint 0 error
-- [ ] `pnpm db:push` — migration `0006` **chưa chạy**. Không có Docker local nên không
-      tập dượt được; kiểm qua `supabase/tests/smoke.sql` sau khi đẩy
+- [x] `pnpm db:push` — `0006` **đã chạy**. Kiểm chứng 2026-08-04 bằng
+      `supabase migration list`: cả `0004`/`0005`/`0006` đều đã có trên cloud, và
+      các bảng `contacts`/`gift_entries`/`shopping_items` đều có dữ liệu thật.
+      Ghi chú "chưa chạy" ở G11 và ở đây trước đây SAI — nó làm mọi kế hoạch sau
+      đó ước lượng sai rủi ro (tưởng lần push kế tiếp sẽ áp bốn migration liền
+      một mạch lên dữ liệu thật). Trước khi lập kế hoạch đụng DB, chạy
+      `supabase migration list` thay vì tin file này.
+
+---
+
+## G18 · Concept v3 — quỹ chung · hai danh sách việc · nhắc kép — **xong code, cron chưa deploy**
+
+Nguồn: `spec/10-delta-v3.md`. Migration: `0007_concept_v3_enums.sql` +
+`0008_concept_v3.sql` + `0009_upcoming_needs_comment.sql`.
+
+### Năm đề xuất của v3 bị BÁC
+
+Đây là phần đáng đọc nhất của đợt này. v3 là nguồn sự thật, nhưng ở năm chỗ bản cũ
+có lập luận mà v3 **không phản bác — chỉ đơn giản không nhắc tới**:
+
+| v3 nói | Chốt | Vì sao |
+|---|---|---|
+| Luân phiên tự động việc nhà (§7.3) | **không làm** | cần 4 cột mới cho một thứ chip xoay vòng đã làm được; và quy tắc phải cẩn thận đến mức không lấy lịch sử hoàn thành làm đầu vào thì nên có bằng chứng người dùng cần nó trước — `10 §2.2` |
+| Thẻ "Bên nội / Bên ngoại" (§7.5) | **giữ nhà chồng/nhà vợ** | "bên nội của vợ" tồn tại và không ánh xạ được — `06 §0.1`, `10 §4` |
+| "App đã cứu bạn 47 triệu" (§7.7) | **không khôi phục** | khẳng định phản thực không kiểm chứng được; đặt cạnh mười con số gắn nhãn cẩn thận thì làm mười con số kia kém tin đi. Chính v3 §10.8 giữ nguyên tắc ngược lại — `10 §6` |
+| Chọn tối đa một module bản địa (§8) | **giữ cả hai** | cả hai đã code xong ở G15/G17; §8 là lời khuyên lúc chưa xây — `10 §7` |
+| Widget vào MVP (§16) | **ngoài MVP** | cần WidgetKit + Glance riêng; và nửa đầu của cùng mục (notification) còn chưa chạy — `10 §8` |
+
+### Ngoại lệ có điều kiện đầu tiên của `03 §9`
+
+Quỹ chung ghi **tên người nạp** — thứ mà ràng buộc #1 cấm tuyệt đối cho tới nay.
+Nó hợp lệ vì và chỉ vì **cửa sổ một tháng**:
+
+> *"Tháng này anh bỏ 5tr, em bỏ 5tr"* là câu **ghi chép** — đóng lại cuối tháng.
+> *"Tính tới nay anh 180tr, em 60tr"* là câu **phán xét** — không bao giờ đóng.
+
+Cùng dữ liệu, khác hoàn toàn về việc nó dùng để làm gì. **Phép thử khi review:
+con số này có vắt qua nhiều hơn một tháng không? Có → cấm.**
+
+Ranh giới ép ở **bốn tầng độc lập**, không dựa vào kỷ luật review:
+
+1. **view** — `month` nằm trong `group by` của `fund_month_contributors`
+2. **repository** — không có chữ ký nào đọc nhiều tháng
+3. **domain** — `summarizeFundMonth(entries, month)` nhận tháng bắt buộc; test
+   `fund.test.ts` **đóng băng danh sách export** để bắt hàm mới nhận range
+4. **UI** — `ContributorBlock` nhận `month` là **prop bắt buộc** dù không vẽ nó ra
+
+### Đã làm
+
+- [x] **Spec**: `10-delta-v3.md` mới · `02` · `03` (§4b, §5b, §6b, **§9 nới có điều
+      kiện**, §13) · `05` (§0 phân khúc, §5.1 tách đôi, §6.1 hai khối, **§6.9 quỹ**)
+      · `09` (§D.1a/b, **§E.9**, §A.5, §I.3) · `schema.sql` · `CLAUDE.md`
+- [x] **DB**: 2 bảng (`funds`, `fund_entries`) · 3 enum mới + 2 giá trị enum ·
+      cột cho `tasks`/`events`/`members` · 2 view quỹ · `upcoming_needs` có `kind`
+      và union thêm `goals` · `money_history` thêm nhánh fund · 2 RPC · RLS
+- [x] **Domain**: `funds/month.ts` · `splitTaskLists` + `orderFlexibleTasks` ·
+      `projectRunway` tách mandatory/optional · nhắc kép ở `build.ts` ·
+      **311 → 342 test xanh**
+- [x] **Mobile**: `features/fund/` đủ 5 tầng · tách hai danh sách việc + tab con ·
+      khối «Mục tiêu — có thể hoãn» · form sự kiện có nhắc chuẩn bị + thẻ của con ·
+      4 route mới · i18n
+- [x] **Edge** `build-reminders`: nhắc chuẩn bị **sinh một việc linh hoạt**, không
+      bắn thêm push. Idempotent qua `events.prep_task_id`
+- [x] typecheck sạch cả hai workspace · lint 0 error
+
+### Ba thứ phát hiện trong G18 mà plan không nói ra
+
+1. **Supabase CLI bỏ qua `commit;` giữa file.** Nó cắt file thành từng lệnh rồi
+   chạy tất cả trên **một** connection trong **một** transaction — nên
+   `alter type ... add value` rồi dùng giá trị mới ngay trong cùng file là hỏng.
+   **Ranh giới transaction thật là ranh giới giữa hai FILE migration.** Đó là lý do
+   `0007` tách riêng chỉ để chứa hai lệnh enum.
+
+   Kèm một bẫy thứ hai: thứ tự chạy theo thứ tự **tên file**, và chuỗi ngắn hơn
+   đứng trước khi nó là tiền tố — `0007_concept_v3.sql` sắp **trước**
+   `0007_concept_v3_enums.sql`. Đổi tên thôi là không đủ, phải đổi **số**.
+
+2. **`create or replace view` không bỏ hay đổi thứ tự cột được.** `money_history`
+   trên cloud có `me.created_at` mà bản trong `spec/schema.sql` thiếu — tức
+   `spec/schema.sql` đã **lệch khỏi DB thật từ trước G18**. Viết lại view từ bản
+   trong spec làm push hỏng ở đúng câu đó. Đáng lo hơn con số: cột ấy tồn tại để
+   view thay được `money_events` ở mọi chỗ đọc (`0004 §9`), nên bỏ nó đi là hỏng
+   thật chứ không chỉ hỏng migration.
+
+3. **`DROP VIEW` kéo theo `comment on view`.** `0008` dựng lại `upcoming_needs`
+   nhưng quên đặt lại comment, nên câu đang sống trên cloud vẫn là bản `0004`:
+   *"goals CỐ Ý KHÔNG có trong view này"* — giờ sai theo đúng nghĩa đen.
+   `0009` chữa. Cùng loại lỗi mà `0004 §13` đã học một lần với `grant`.
+
+### Còn nợ của G18
+
+- [ ] `pnpm db:push` cho `0009` (chỉ sửa comment, không đụng dữ liệu)
+- [x] `pnpm fn:deploy` — **đã deploy cả 12 function**, `build-reminders` lên
+      version 3 (kèm bước sinh việc chuẩn bị). Xác nhận bằng
+      `supabase functions list`: cả 12 đều `ACTIVE`
+
+### Một chỗ vênh phát hiện lúc deploy — **chưa sửa, cần quyết**
+
+`supabase functions list` cho thấy **bảy** function là cron job (`schema.sql §14`)
+nhưng chỉ **ba** khai `verify_jwt = false` trong `config.toml`:
+
+| Function | Cron | `verify_jwt` |
+|---|---|---|
+| `generate-task-instances` | 03:30 | `false` ✅ |
+| `refresh-lunar-dates` | 04:00 | `false` ✅ |
+| `build-reminders` | 04:30 | `false` ✅ |
+| `purge-soft-deleted` | 02:00 | **`true`** ⚠️ |
+| `sweep-orphan-uploads` | 03:00 | **`true`** ⚠️ |
+| `spawn-debt-installments` | 05:00 | **`true`** ⚠️ |
+| `expire-attention-items` | 05:15 | **`true`** ⚠️ |
+
+Bốn job dưới **vẫn chạy được**: `cron.schedule` gửi kèm
+`Authorization: Bearer <service_role>` (xem mẫu ở `schema.sql §13`), mà service key
+là một JWT hợp lệ — nên `verify_jwt = true` không chặn chúng.
+
+Nên **chưa sửa gì**: đổi `verify_jwt` là đổi cấu hình bảo mật, và ở đây trạng thái
+chặt hơn (`true`) lại là trạng thái an toàn hơn. Ba function kia buộc phải
+`false` vì lý do riêng đã ghi trong `config.toml`. Việc cần làm là **kiểm chứng
+bốn job đó thật sự chạy** qua Dashboard → Edge Functions → Logs sau 05:15, rồi
+mới quyết có thống nhất cấu hình hay không.
+- [ ] Nghiệm thu trên máy thật: nạp quỹ → kiểm `money_events` có dòng
+      `entity_type='fund'` (chỗ constraint sẽ nổ nếu enum và check lệch nhau)
+- [ ] Nghiệm thu: việc có `recur` nằm ở tab «Định kỳ», không `recur` ở «Linh
+      hoạt»; tab linh hoạt **không** gán được cho người kia
+- [ ] Nghiệm thu: màn Sắp tới — con số hero **không đổi** khi thêm một mục tiêu
 
 ---
 
 ## Kiểm chứng — chạy trước mỗi lần duyệt
 
 ```bash
-pnpm --filter @family-organizer/domain test        # cổng G1 — 288 test
+pnpm --filter @family-organizer/domain test        # cổng G1 — 342 test
 pnpm --filter @family-organizer/mobile typecheck
 pnpm --filter @family-organizer/mobile lint        # chặn literal tiếng Việt trong JSX
 ```
@@ -973,5 +1101,14 @@ vùng chạm ≥ 44px · trạng thái không chỉ dùng màu · hai thành vi�
 
 ## Không làm ở MVP (`04 §9`)
 
-Chat trong app · chia sẻ vị trí · thực đơn · danh sách mua sắm · album ảnh · gamification ·
+Chat trong app · chia sẻ vị trí · thực đơn · album ảnh · gamification ·
 bảng xếp hạng giữa hai người · biểu đồ chi tiêu · kết nối ngân hàng · widget · **chế độ tối**.
+
+**Đã bỏ khỏi danh sách này:** *danh sách mua sắm* — lên P0 ở `06 §4` và làm xong
+ở G12. Nó là bề mặt hằng ngày duy nhất của app.
+
+**Widget** giữ nguyên ngoài MVP dù v3 §16 mục 15 xếp nó vào "Phải có" — xem
+`10 §8`. Lưu ý nửa đầu của chính mục đó (**notification**) cũng chưa chạy:
+`expo-notifications` đang tắt vì thiếu certificate.
+
+**Luân phiên tự động việc nhà** (v3 §7.3) — cân nhắc và BÁC ở `10 §2.2`.

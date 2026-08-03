@@ -31,6 +31,7 @@ function metrics(over: Partial<FinanceMetrics> = {}): FinanceMetrics {
 function need(over: Partial<UpcomingNeed> = {}): UpcomingNeed {
   return {
     source: 'upcoming_payment',
+    kind: 'mandatory',
     id: 'n1',
     title: 'Học phí',
     amount: 1_000_000,
@@ -222,8 +223,82 @@ describe('projectRunway — 03 §1c', () => {
     const r = projectRunway(metrics({ totalUsable: 45_000_000 }), [], TODAY);
     expect(r.total).toBe(0);
     expect(r.byMonth).toEqual([]);
+    expect(r.optional).toEqual([]);
     expect(r.projectedRemaining).toBe(45_000_000);
     expect(r.horizonDays).toBe(90);
+  });
+});
+
+/**
+ * Nghĩa vụ khác nguyện vọng — 03 §1c ràng buộc 3, cơ chế đổi ở 10 §5.
+ *
+ * Mục tiêu giờ CÓ trong `needs` để hiện cùng màn hình, nhưng con số hero phải
+ * không đổi. Cả nhóm test này là bản kiểm của đúng câu đó.
+ */
+describe('projectRunway — mục tiêu không bao giờ vào con số hero', () => {
+  const optionalNeed = (over: Partial<UpcomingNeed> = {}): UpcomingNeed =>
+    need({ source: 'goal', kind: 'optional', id: 'g1', title: 'Quỹ du lịch', ...over });
+
+  it('`total` KHÔNG đổi khi thêm một mục tiêu', () => {
+    const base = projectRunway(
+      metrics({ totalUsable: 50_000_000 }),
+      [need({ amount: 20_000_000 })],
+      TODAY,
+    );
+    const withGoal = projectRunway(
+      metrics({ totalUsable: 50_000_000 }),
+      [need({ amount: 20_000_000 }), optionalNeed({ amount: 5_000_000 })],
+      TODAY,
+    );
+
+    expect(withGoal.total).toBe(base.total);
+    expect(withGoal.projectedRemaining).toBe(base.projectedRemaining);
+  });
+
+  it('`shortfall` KHÔNG đổi khi thêm một mục tiêu', () => {
+    const withGoal = projectRunway(
+      metrics({ totalUsable: 6_000_000 }),
+      [need({ amount: 20_000_000 }), optionalNeed({ amount: 900_000_000 })],
+      TODAY,
+    );
+
+    // Thiếu vẫn đúng 14tr như khi không có mục tiêu — một quỹ du lịch 900 triệu
+    // không được phép làm màn hình hero trở nên đáng sợ.
+    expect(withGoal.shortfall).toBe(14_000_000);
+  });
+
+  it('`byMonth` chỉ gồm nghĩa vụ', () => {
+    const r = projectRunway(
+      metrics(),
+      [
+        need({ id: 'a', amount: 25_000_000, onDate: '2026-09-05' }),
+        optionalNeed({ amount: 5_000_000, onDate: '2026-09-20' }),
+      ],
+      TODAY,
+    );
+
+    expect(r.byMonth).toHaveLength(1);
+    expect(r.byMonth[0]?.total).toBe(25_000_000);
+    expect(r.byMonth[0]?.items).toHaveLength(1);
+  });
+
+  it('`optional` được trả về đầy đủ và sắp theo ngày', () => {
+    const r = projectRunway(
+      metrics(),
+      [
+        optionalNeed({ id: 'g2', amount: 2_000_000, onDate: '2026-10-01' }),
+        optionalNeed({ id: 'g1', amount: 5_000_000, onDate: '2026-08-15' }),
+      ],
+      TODAY,
+    );
+
+    expect(r.optional.map((n) => n.id)).toEqual(['g1', 'g2']);
+    expect(r.total).toBe(0);
+  });
+
+  it('mục tiêu ngoài cửa sổ 90 ngày cũng bị loại khỏi `optional`', () => {
+    const r = projectRunway(metrics(), [optionalNeed({ onDate: '2027-06-01' })], TODAY);
+    expect(r.optional).toEqual([]);
   });
 });
 

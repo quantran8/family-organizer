@@ -168,8 +168,25 @@ export function TaskDetailScreen() {
           <ChipSelect
             scroll
             value={task.recur?.freq ?? 'none'}
+            /**
+             * Đặt lặp lại CHUYỂN LUÔN việc sang danh sách định kỳ, và bỏ lặp thì
+             * chuyển ngược lại — 03 §4b.
+             *
+             * Ghi cả hai cột trong MỘT patch, không phải hai lần gọi: nếu tách
+             * ra, một lần mạng hỏng giữa chừng để lại việc có `recur` nhưng vẫn
+             * nằm ở tab Linh hoạt — một dòng kẹt không có đường nào sửa từ UI.
+             *
+             * Đây là chỗ DUY NHẤT `list` đổi sau khi việc đã tạo. Không có bộ
+             * chọn danh sách riêng: hỏi người dùng "việc này thuộc loại nào"
+             * ngay sau khi họ vừa nói nó lặp hằng tuần là hỏi lại một câu họ vừa
+             * trả lời.
+             */
             onChange={(next) =>
-              patch({ recur: next === 'none' ? null : { freq: next, intervalN: 1 } })
+              patch(
+                next === 'none'
+                  ? { recur: null, list: 'flexible' }
+                  : { recur: { freq: next, intervalN: 1 }, list: 'recurring' },
+              )
             }
             options={FREQS.map((v) => ({ value: v, label: t.recur[v] }))}
           />

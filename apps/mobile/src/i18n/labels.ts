@@ -60,6 +60,40 @@ export function declaredAtText(d: DeclaredLabel): string {
 }
 
 /**
+ * "Ghi lần cuối 5 ngày trước" — nhãn thời gian của SỐ DƯ QUỸ.
+ *
+ * Tách khỏi `declaredAtText` có chủ ý, dù cùng nhận `DeclaredLabel`:
+ *
+ *   `assets.currentValue` là SỐ KHAI — một người nói ra một con số tại một thời
+ *   điểm, và nó có thể đã sai ngay lúc nói. Chữ "cập nhật" đúng ở đó.
+ *
+ *   `funds.currentAmount` là SỐ DẪN XUẤT — tổng của những khoản đã ghi. Nó
+ *   không "cũ" theo kiểu sai đi; nó chỉ nói lần cuối có ai ghi vào là bao giờ.
+ *
+ * Dùng chung một câu cho hai loại số là nói sai bản chất một trong hai.
+ *
+ * `by` bị BỎ QUA: ai bấm nút ghi không phải thông tin có ích ở đây, và một cái
+ * tên cạnh số dư chung dễ bị đọc thành "tiền của người đó".
+ */
+export function fundRecordedAtText(d: DeclaredLabel): string {
+  const m = vi.fund;
+  switch (d.kind) {
+    case 'never':
+      return m.recordedNever;
+    case 'today':
+      return m.recordedToday;
+    case 'yesterday':
+      return m.recordedYesterday;
+    case 'days_ago':
+      return interpolate(m.recordedDaysAgo, { days: d.days });
+    case 'weeks_ago':
+      return interpolate(m.recordedWeeksAgo, { weeks: d.weeks });
+    case 'months_ago':
+      return interpolate(m.recordedMonthsAgo, { months: d.months });
+  }
+}
+
+/**
  * MỘT CÂU nói vì sao — 03 §1.
  * Nhãn màu không kèm lý do sẽ bị đọc là phán xét.
  */

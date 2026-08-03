@@ -24,8 +24,8 @@ liệu này nhắc tới một cái tên kỹ thuật thì chỉ để bạn đ�
 - [A. Hệ thống thị giác](#a-hệ-thống-thị-giác)
 - [B. Khung app](#b-khung-app) — tab bar, header, nút [+]
 - [C. Nhà mình](#c-nhà-mình) — tab 1
-- [D. Việc & Sự kiện](#d-việc--sự-kiện) — tab 2
-- [E. Tiền](#e-tiền) — tab 3
+- [D. Việc & Sự kiện](#d-việc--sự-kiện) — tab 2, việc chia «Định kỳ»/«Linh hoạt»
+- [E. Tiền](#e-tiền) — tab 3, gồm quỹ chung (§E.9)
 - [F. Giấy tờ](#f-giấy-tờ) — tab 4
 - [G. Form & Sheet](#g-form--sheet)
 - [H. Khởi động & Cài đặt](#h-khởi-động--cài-đặt)
@@ -250,6 +250,17 @@ chữ `label` trắng. Bản có hoàn tác thêm chữ «Hoàn tác» SemiBold 
 | Cập nhật gần nhất | Lần chỉnh sửa cuối |
 | Vợ giữ · Chồng giữ | Người chịu trách nhiệm |
 | Tình hình nhà mình | Báo cáo tài chính |
+| Bỏ vào · Rút ra | Đóng góp · Nghĩa vụ góp |
+| Ghi lần cuối | Cập nhật lần cuối *(chỉ cho quỹ — xem §E.9)* |
+| Mục đích | Lý do chi · Hạng mục |
+| — | **Còn thiếu · Chưa góp · Nợ quỹ · Đóng góp bắt buộc** |
+
+Bốn chữ ở dòng cuối **không được xuất hiện ở bất kỳ đâu trong app**. Chúng biến
+một cuốn sổ ghi chép thành một bản cáo trạng. Kiểm được bằng một lệnh:
+
+```bash
+grep -rn "còn thiếu\|chưa góp\|nợ quỹ\|bắt buộc góp" apps/mobile/src/i18n/
+```
 
 **Nút đặt tên bằng việc nó làm, và giữ nguyên tên đó suốt luồng:** nút «Lưu cập
 nhật» sinh ra toast «Đã cập nhật» — không phải «Thành công».
@@ -452,7 +463,22 @@ Vỏ chung: tiêu đề màn «Lịch» (`title1` SemiBold, cách trên 8, cách
 tab con ba mục — «Việc» · «Mua sắm» · «Sự kiện». Tab đang chọn được **nhớ lại
 cho lần mở app sau**.
 
-### D.1 Tab «Việc»
+### D.1 Tab «Việc» — hai danh sách con
+
+Ngay dưới thanh tab con là **bộ chọn hai mục**: «Định kỳ» | «Linh hoạt». Kiểu
+`Segmented` cao 36, nền `soft` bo 10, mục đang chọn nền `surface` bo 8 + bóng
+nhẹ, chữ `label` Medium. Cách trên 12, cách dưới 16. **Nhớ lại lần mở sau.**
+
+Hai danh sách khác nhau ở **ba** điểm, và cả ba đều có lý do sản phẩm — không
+được san bằng cho "nhất quán".
+
+| | D.1a «Định kỳ» | D.1b «Linh hoạt» |
+|---|---|---|
+| Chia nhóm | sáu nhóm theo hạn | **một danh sách phẳng** |
+| Vuốt | **chỉ phải** («Xoá») | trái («Hoãn») + phải («Xoá») |
+| Chip người | bấm được để xoay vòng | **ẩn**, hoặc chỉ chọn được chính mình |
+
+#### D.1a «Định kỳ»
 
 Danh sách chia nhóm, **nhãn nhóm không dính khi cuộn**. Nhãn nhóm: `label`
 SemiBold `muted`, cách trên 24, cách dưới 4.
@@ -462,14 +488,38 @@ Sáu nhóm theo thứ tự: «Quá hạn» · «Hôm nay» · «Ngày mai» · �
 
 Dòng việc như §C.4, thêm hai điểm:
 
-- **Có đủ hai chiều vuốt** — trái hiện «Hoãn» (nền `soft`, chữ `muted`, lùi hạn
-  một ngày), phải hiện «Xoá» (nền `critical-soft`, chữ `critical`). Đây là màn
-  duy nhất có cả hai.
+- **Chỉ một chiều vuốt** — phải hiện «Xoá» (nền `critical-soft`, chữ `critical`).
+  **Không có «Hoãn».**
+
+  > Vì sao khác bản trước: hạn của việc lặp là **mốc neo**, không phải một lần
+  > xảy ra. Vuốt để hoãn ở đây đang âm thầm dời cả chuỗi — người dùng tưởng mình
+  > lùi hôm nay một ngày, thật ra vừa đổi lịch rửa bát mãi mãi.
+
 - **Chip người bấm được** để xoay vòng người phụ trách — nhưng chỉ khi nhà có từ
   2 người lớn trở lên. Một người thì chip chỉ để đọc.
 
 Trạng thái phải vẽ: đang tải (5 dòng skeleton) · lỗi · rỗng (**có** nút «Thêm
-việc») · có dữ liệu · đang vuốt trái · đang vuốt phải · có toast hoàn tác.
+việc») · có dữ liệu · đang vuốt · có toast hoàn tác.
+
+#### D.1b «Linh hoạt»
+
+**Không chia nhóm, không nhãn nhóm.** Một danh sách phẳng: chưa xong trước, rồi
+theo thứ tự thêm vào. Việc đã xong mờ đi và gạch ngang, không biến mất ngay.
+
+**Không bao giờ sắp hay nhóm theo người.** Một danh sách tồn đọng xếp theo tên
+là hai cột trong đó một cột dài hơn — và đó là bảng điểm.
+
+Dòng việc như §C.4 nhưng **không có chip người phụ trách**. Nếu nhà muốn nhận
+việc: chi tiết việc có nấc «Mình làm», và chỉ nấc đó — **không chọn được người
+kia**.
+
+> Đây là ranh giới giữ cho nó là danh sách việc **của nhà**, chứ không phải hộp
+> thư nhiệm vụ một người gửi cho người kia.
+
+Có đủ hai chiều vuốt: trái «Hoãn» (nền `soft`, chữ `muted`), phải «Xoá».
+
+Trạng thái phải vẽ: đang tải · lỗi · rỗng (**có** nút «Thêm việc») · có dữ liệu ·
+đang vuốt hai chiều · có toast hoàn tác.
 
 ### D.2 Tab «Mua sắm»
 
@@ -587,8 +637,9 @@ Ba nút cuối: «Thêm việc» · «Thêm khoản» · «Gắn giấy tờ» �
 | 5 | Hai nút phụ cạnh nhau | 12 |
 | 6 | **[đk]** «Sắp phải trả» (tối đa 3 dòng) | 24 |
 | 7 | **[đk]** «Cần trao đổi» | 24 |
-| 8 | **[đk]** «Mục tiêu» | 24 |
-| 9 | Dòng «Sổ hiếu hỉ» — **luôn hiện** | 24 |
+| 8 | **[đk]** «Quỹ chung» — số dư + nhãn thời gian | 24 |
+| 9 | **[đk]** «Mục tiêu» | 24 |
+| 10 | Dòng «Sổ hiếu hỉ» — **luôn hiện** | 24 |
 
 Nút «Sắp tới» cố ý đặt **trên** bốn dòng nhóm.
 
@@ -629,6 +680,18 @@ số, rồi **nhãn thời gian**, rồi kẻ ngang, rồi **một trong hai**:
 
 > Thiếu thì **đổi hẳn câu chữ**, không phải chỉ tô đỏ một số âm. Và **nói thiếu
 > thôi, không kèm lời khuyên** — app không bảo người dùng phải làm gì.
+
+**[đk]** Khối «Mục tiêu — có thể hoãn», cách trên 24, **dưới** khối đối chiếu.
+Nhãn nhóm `label` SemiBold `muted` viết hoa. Mỗi dòng: tên | số tiền — dựng như
+dòng nhu cầu thường, **không thanh tiến độ, không phần trăm**.
+
+> **Ràng buộc quan trọng nhất của cả màn:** con số ở khối này **không nằm trong
+> bất kỳ phép cộng nào** — không vào số hero, không vào tổng tháng, không vào
+> «Còn lại», không vào câu «Thiếu khoảng». Nghĩa vụ và nguyện vọng đứng cùng một
+> màn hình để hai người thấy tháng 9 đóng học phí xong thì quỹ du lịch phải chậm
+> lại — nhưng **cùng màn hình không phải cùng một con số**.
+
+Khối này ẩn hẳn khi chưa có mục tiêu nào có ngày mong muốn.
 
 **[đk]** Khối hỏi lại số dư (nền `soft` bo 20, padding 16): một câu + hai nút
 cạnh nhau «Cập nhật» / «Bỏ qua».
@@ -765,6 +828,74 @@ dòng không bấm được nữa — nhưng nút «Đã rõ» vẫn dùng đư�
 
 > **Không có luồng bình luận, không có ô trả lời.** Cờ này là một lời nhắc "mình
 > nói chuyện này nhé", không phải một cuộc trao đổi trong app.
+
+---
+
+### E.9 Quỹ chung
+
+**Đây là màn duy nhất trong toàn app được phép hiện tổng tiền theo người.** Mọi
+số đo và mọi câu chữ dưới đây phục vụ việc giữ ngoại lệ đó ở đúng chỗ.
+
+| # | Khối | Cách trên |
+|---|---|---|
+| 1 | Tên quỹ `title1` SemiBold | 8 |
+| 2 | Số dư `display` (30px) SemiBold, **số đầy đủ** | 8 |
+| 3 | Nhãn thời gian `caption` `subtle` | 4 |
+| 4 | Hai nút cạnh nhau «Bỏ vào» / «Rút ra» | 20 |
+| 5 | Bộ chọn tháng | 28 |
+| 6 | Khối tổng tháng | 16 |
+| 7 | **[đk]** Khối «Người bỏ vào» | 24 |
+| 8 | Danh sách khoản trong tháng | 24 |
+
+**Nhãn thời gian dùng chữ «Ghi lần cuối …», không phải «… cập nhật …».** Số dư
+quỹ là **tổng của những khoản đã ghi**, khác `assets` vốn là một con số ai đó
+nói ra. Dùng lại câu chữ của tài sản ở đây là nói sai bản chất dữ liệu.
+
+**Bộ chọn tháng** — một hàng: `‹` | tên tháng `label` SemiBold `muted` viết hoa,
+căn giữa, giãn | `›`. Vùng chạm mũi tên 44×44. Tháng chưa có bản ghi thì mũi tên
+vẫn đi được, và danh sách hiện «Tháng này chưa ghi khoản nào».
+
+**Khối tổng tháng** (khung bo 20, viền `line`, padding 16): dòng «Bỏ vào» + số
+`positive`, dòng «Rút ra» + số, kẻ ngang, rồi **dòng bắt buộc** `caption`
+`subtle`: «N khoản nhà mình đã ghi».
+
+> Dòng số lượng bản ghi **không được bỏ**, cùng luật với màn lịch sử biến động:
+> một con số tổng không kèm số lượng thì tự nhận là đầy đủ.
+
+#### Khối «Người bỏ vào» — ngoại lệ, và ranh giới của nó
+
+Nhãn nhóm `label` SemiBold `muted`. Mỗi dòng: tên `body` `ink` (giãn) | số tiền
+`body` | số lần `caption` `subtle`.
+
+**Sắp theo tên, thứ tự ABC.** Không sắp theo số tiền — sắp theo tiền là một bảng
+xếp hạng, và xếp hạng hai vợ chồng đúng là thứ cả spec này tránh. ABC là thứ tự
+duy nhất không mang thông điệp nào.
+
+**Khối này chỉ hợp lệ khi tháng đang xem hiện rõ ngay phía trên nó.** Nếu dựng
+lại màn này ở đâu khác mà không có bộ chọn tháng, thì khối này không được có mặt.
+
+**Không bao giờ vẽ:** dòng tổng cộng dồn qua các tháng · chữ «còn thiếu» /
+«chưa góp» / «nợ quỹ» · phần trăm so với một mức chuẩn · màu cảnh báo cho người
+bỏ vào ít hơn · thanh tiến độ so sánh hai người · biểu đồ bất kỳ.
+
+#### Dòng khoản
+
+```
+5/9    Bỏ vào              +10.000.000 ₫
+       tiền nhà tháng 9              Anh
+```
+
+- Ngày `caption` `subtle` bên trái, rộng cố định 48.
+- Loại `body` `ink`; số tiền `body` bên phải, **`positive` khi bỏ vào**, `ink`
+  khi rút ra — **không dùng `critical` cho khoản rút**: rút tiền quỹ không phải
+  một lỗi lầm.
+- Dòng phụ: mục đích `caption` `subtle` bên trái, tên người bỏ vào bên phải.
+  Khoản rút **không hiện tên ai** — tiền đã vào quỹ là tiền chung.
+
+Vuốt trái để xoá. Chạm dòng để sửa.
+
+Trạng thái phải vẽ: đang tải · lỗi · quỹ rỗng (**có** nút «Bỏ vào») · tháng rỗng
+(**không** nút — ô chọn tháng đã ở ngay trên) · có dữ liệu · đang vuốt.
 
 ---
 
@@ -1085,7 +1216,13 @@ Thiếu một cái là thiếu một màn, không phải thiếu một chi tiế
 - [ ] Có số tiền nào **tự đỏ/xanh theo dấu** không?
 - [ ] Có số tổng nào **thiếu nhãn thời gian** không?
 - [ ] Có **biểu đồ** nào không? (Không được có cái nào.)
-- [ ] Có chỗ nào **cộng/so sánh/xếp hạng theo người** không?
+- [ ] Có chỗ nào **cộng/so sánh/xếp hạng theo người** không? — ngoại lệ **duy
+      nhất**: khối «Người bỏ vào» ở §E.9, và chỉ khi tháng đang xem hiện rõ ngay
+      phía trên nó. Phép thử: *con số này có vắt qua nhiều hơn một tháng không?*
+      Có → sai.
+- [ ] Danh sách việc **linh hoạt** có chip người phụ trách không? (Không được có.)
+- [ ] Danh sách việc **định kỳ** có vuốt để hoãn không? (Không được có.)
+- [ ] Khối «Mục tiêu — có thể hoãn» có bị cộng vào con số nào không? (Không.)
 
 ### I.4 Rà lại chữ
 

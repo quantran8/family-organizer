@@ -16,6 +16,7 @@ import type {
   EventKind,
   FamilySide,
   FinanceStatus,
+  FundEntryKind,
   GiftDirection,
   GiftOccasion,
   IngestSource,
@@ -29,6 +30,7 @@ import type {
   PaymentState,
   Recurrence,
   SubscriptionStatus,
+  TaskList,
   UUID,
 } from './base.ts';
 
@@ -78,6 +80,14 @@ export interface Member {
   schoolName: string | null;
   schoolClass: string | null;
   healthInsuranceNo: string | null;
+  /**
+   * "Mỗi con một màu" (v3 §7.5). Khoá vào bảng màu ở design tokens, KHÔNG phải
+   * mã hex — domain không biết gì về màu sắc.
+   *
+   * Màu BÁM THEO CON, không suy từ vị trí trong danh sách: thêm em bé thứ hai
+   * mà đổi màu anh chị là lỗi nhỏ nhưng đúng chỗ cảm xúc.
+   */
+  colorKey: string | null;
   isActive: boolean;
 }
 
@@ -85,6 +95,16 @@ export interface Task {
   id: UUID;
   title: string;
   notes: string | null;
+  /** Hai danh sách tách biệt — 03 §4b. */
+  list: TaskList;
+  /**
+   * CHỈ HAI CHẾ ĐỘ: null (việc của nhà) hoặc một cái tên. Không có luân phiên
+   * tự động, không có assigneeMode, không có rotationOrder — v3 §7.3 đề xuất
+   * chế độ thứ ba và nó bị bác, lý do ở 10 §2.2.
+   *
+   * Với việc `flexible`: KHÔNG gán cho người kia. Ràng buộc đó ép ở tầng UI
+   * (chip ẩn hoặc chỉ chọn được chính mình) — domain không biết ai đang gọi.
+   */
   assigneeId: UUID | null;
   dueDate: ISODate | null;
   dueTime: string | null;
@@ -119,9 +139,20 @@ export interface FamilyEvent {
   isAllDay: boolean;
   recur: Recurrence | null;
   remindLeadDays: number;
+  /**
+   * NHẮC KÉP — 03 §5b. 1-3 ngày trước sự kiện, null = không có.
+   *
+   * Mốc này KHÔNG bắn thêm push; nó SINH MỘT VIỆC LINH HOẠT. Phần lớn sự cố gia
+   * đình không phải quên sự kiện, mà là nhớ sự kiện nhưng quên phần chuẩn bị.
+   */
+  prepLeadDays: number | null;
+  /** Việc đã sinh. Giữ để cron chạy lại không sinh trùng. Đọc-only — 02 §7. */
+  prepTaskId: UUID | null;
   /** Đọc-only. Chỉ Edge `refresh-lunar-dates` được ghi — 02 §7. */
   nextOccurrenceDate: ISODate | null;
   estimatedCost: number | null;
+  /** Sự kiện của con nào (kind='child'). Chỉ để lọc và lấy màu. */
+  childMemberId: UUID | null;
 }
 
 export interface Asset {
@@ -174,8 +205,10 @@ export interface UpcomingPayment {
  * P0 trở lại ở 08 §2 (bản 06 §8 hạ xuống P2 là nhầm — mục tiêu NHÌN VỀ PHÍA
  * TRƯỚC, cùng hướng với trái tim sản phẩm).
  *
- * Ba ranh giới (08 §2.3):
- *   1. KHÔNG chảy vào UpcomingNeed — nghĩa vụ khác nguyện vọng.
+ * Ba ranh giới (08 §2.3, ranh giới 1 sửa cơ chế ở 10 §5):
+ *   1. Mục tiêu CÓ trong UpcomingNeed, mang kind='optional', để hiện CÙNG MÀN
+ *      HÌNH với nghĩa vụ. Nhưng KHÔNG BAO GIỜ cộng vào cùng con số:
+ *      projectRunway chỉ cộng 'mandatory'. Cùng màn hình ≠ cùng con số.
  *   2. Không tiến độ theo thời gian, không lời khuyên góp bao nhiêu mỗi tháng.
  *   3. Không đóng góp theo người.
  */
@@ -192,6 +225,56 @@ export interface Goal {
   updatedByMemberId: UUID | null;
   targetDate: ISODate | null;
   isArchived: boolean;
+}
+
+/**
+ * QUỸ CHUNG — v3 §7.6. Tiền nhà, ăn uống, điện nước của cặp ở riêng.
+ *
+ * Đáng theo dõi vì TẦN SUẤT NHẬP CỰC THẤP: 2-4 lần một tháng, không phải 200 —
+ * nên nó không kéo sản phẩm về phía app thu chi.
+ */
+export interface Fund {
+  id: UUID;
+  name: string;
+  /**
+   * SỐ DẪN XUẤT, không phải số khai. Đọc-only: chỉ RPC `record_fund_entry` và
+   * `delete_fund_entry` được ghi — 02 §7.
+   */
+  currentAmount: number;
+  /**
+   * "GHI LẦN CUỐI", không phải "khai lần cuối". Khác Asset.asOfDate: số dư quỹ
+   * là TỔNG CỦA NHỮNG KHOẢN ĐÃ GHI, không phải một con số ai đó nói ra. Câu chữ
+   * nhãn thời gian trên UI phải phản ánh đúng khác biệt này.
+   */
+  asOfDate: ISODate;
+  updatedByMemberId: UUID | null;
+  isArchived: boolean;
+}
+
+/**
+ * Một lần nạp hoặc rút quỹ. CÓ GHI TÊN NGƯỜI NẠP — ngoại lệ duy nhất của lệnh
+ * cấm "tổng tiền theo người", và CHỈ trong phạm vi một tháng (03 §9 ngoại lệ 2).
+ *
+ * Vì sao ở đây được mà chi tiêu vặt thì không: nạp quỹ là chuyển khoản rời rạc,
+ * đối chiếu được với sao kê — không ai quên mình vừa chuyển 10 triệu. Chi tiêu
+ * vặt thì dễ ghi thiếu, và gán tên vào một dữ liệu không đầy đủ là gán sai.
+ */
+export interface FundEntry {
+  id: UUID;
+  fundId: UUID;
+  kind: FundEntryKind;
+  amount: number;
+  occurredOn: ISODate;
+  /** Bắt buộc khi rút: rút mà không ghi để làm gì thì tháng sau không ai nhớ. */
+  purpose: string | null;
+  /**
+   * TÊN, KHÔNG PHẢI KHOÁ NGOẠI. Người bỏ tiền vào quỹ không nhất thiết là thành
+   * viên household: bố mẹ đưa, em ruột góp.
+   */
+  contributorName: string | null;
+  /** CHỈ để điền sẵn ô nhập. KHÔNG BAO GIỜ là khoá gom nhóm. */
+  contributorMemberId: UUID | null;
+  note: string | null;
 }
 
 export interface DocumentFile {

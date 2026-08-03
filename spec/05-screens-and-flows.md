@@ -4,7 +4,20 @@ Danh mục màn hình, bố cục, và luồng hoạt động. Tokens và ngôn 
 
 Cột **Mức**: `P0` bắt buộc cho MVP · `P1` làm nếu không chậm MVP · `P2` sau MVP.
 
-> Thay đổi so với bản trước: xem `06-delta-v2.md`.
+> Thay đổi so với bản trước: xem `06-delta-v2.md`, `08-addendum-v2.1.md`, `10-delta-v3.md`.
+
+## 0. Phân khúc — đã chốt
+
+**Cặp ở riêng.** Đóng câu treo ở `06 §12` mục 1 và `07 §6`.
+
+Lý do: cả năm module đều hoạt động đầy đủ với nhóm này. Cặp ở chung bố mẹ có nhu cầu khác rõ rệt — việc nhà bớt quan trọng, ranh giới tài chính với bố mẹ hai bên lại quan trọng hơn hẳn — và phục vụ cả hai nhóm cùng lúc là phục vụ không nhóm nào.
+
+Hệ quả:
+- Module việc nhà **không** bị hạ trọng số.
+- Ranh giới tài chính với bố mẹ hai bên **không** được nâng lên — đó là kịch bản của phân khúc kia.
+- Quỹ chung (§6.9) hợp với phân khúc này: cặp ở riêng có tiền nhà, ăn uống, điện nước để gộp.
+
+**App chỉ phục vụ được nhóm cả hai đều muốn minh bạch nhưng lười.** Người không muốn cho vợ/chồng biết sẽ đơn giản là không ghi — công cụ không giải được vấn đề đó.
 
 ---
 
@@ -38,8 +51,11 @@ app/
       debts.tsx                   P0
       debt/[id].tsx               P0
       attention.tsx               P0
-      goals.tsx                   P2
-      goal/[id].tsx               P2
+      history.tsx                 P0   lịch sử biến động (08 §1.5)
+      goals.tsx                   P0   nâng từ P2 ở 08 §2
+      goal/[id].tsx               P0
+      fund.tsx                    P0   quỹ chung (v3 §7.6)
+      fund/[id].tsx               P0
     docs/
       index.tsx                   P0
       [id].tsx                    P0
@@ -68,6 +84,8 @@ app/
     paywall.tsx                   P0
     goal-form.tsx                 P0
     goal-contribute.tsx           P0
+    fund-form.tsx                 P0
+    fund-entry.tsx                P0   nạp / rút quỹ chung
     gift-form.tsx                 P0
     contact-form.tsx              P0
     dose-mark.tsx                 P0   đánh dấu đã tiêm
@@ -242,7 +260,15 @@ Kéo xuống để làm mới. Không auto-refresh theo chu kỳ.
 
 Tab con: **Việc** | **Mua sắm** | **Sự kiện**. Ghi nhớ tab con đã chọn lần trước.
 
-### 5.1 Việc `P0`
+### 5.1 Việc `P0` — hai danh sách
+
+Tab con thứ nhất chia làm hai: **Định kỳ** | **Linh hoạt**. Hai loại việc này khác bản chất, ép chung một mô hình thì hỏng cả hai (`03 §4b`).
+
+Điểm chung của cả hai: chạm ô tròn → xong ngay (optimistic + rung nhẹ). Không hộp xác nhận, không hoạt ảnh ăn mừng, không điểm, không chuỗi ngày. Đúng hai trạng thái — không có "đang làm", không có bước nhận việc.
+
+#### Định kỳ
+
+Việc lặp lại, có giờ: rửa bát, đổ rác, tưới cây.
 
 Nhóm theo ngày: Quá hạn · Hôm nay · Ngày mai · Tuần này · Sau đó · Không có hạn.
 
@@ -250,12 +276,25 @@ Nhóm theo ngày: Quá hạn · Hôm nay · Ngày mai · Tuần này · Sau đó
 
 Mỗi dòng: ô đánh dấu tròn · tên việc · chip người phụ trách (nếu có) · biểu tượng lặp.
 
-- Chạm ô tròn → xong ngay (optimistic + rung nhẹ). Không hộp xác nhận, không hoạt ảnh ăn mừng, không điểm, không chuỗi ngày.
 - **Chạm chip người phụ trách → đổi ngay tại chỗ.** Ai cũng đổi được, bất cứ lúc nào, không hỏi, không sinh thông báo. Chính quyền sửa tự do này khiến cái tên là thỏa thuận chứ không phải mệnh lệnh.
-- Vuốt trái → hoãn sang mai. Vuốt phải → xoá (có hoàn tác 5 giây).
+- **Không vuốt để hoãn.** Việc định kỳ không hoãn được: `dueDate` của việc lặp là *mốc neo*, không phải một lần xảy ra — hoãn một lần sẽ âm thầm dời cả chuỗi. Chỉ còn vuốt để xoá (hoàn tác 5 giây).
 - Chạm dòng → chi tiết.
 
-Đúng hai trạng thái. Không có "đang làm", không có bước nhận việc.
+**Chỉ hai chế độ người phụ trách:** không gán (việc của nhà) hoặc có tên. **Không có luân phiên tự động** — lý do ở `10 §2.2`.
+
+#### Linh hoạt
+
+Việc phát sinh, không gấp, ai làm cũng được: lau quạt trần, gọi thợ sửa ống nước, đặt vé máy bay.
+
+Một danh sách phẳng, không chia nhóm: chưa xong trước, rồi theo thứ tự thêm vào. **Không bao giờ sắp hay nhóm theo người** — một danh sách tồn đọng xếp theo tên là hai cột trong đó một cột dài hơn.
+
+**Mặc định không có tên, và không gán được cho người kia.** Ai rảnh thì tự nhận, hoặc làm xong tick luôn. Chip người phụ trách hoặc ẩn hẳn, hoặc chỉ chọn được chính mình.
+
+> Đây là ranh giới giữ cho nó là **danh sách việc của nhà**, chứ không phải hộp thư nhiệm vụ mà một người gửi cho người kia.
+
+Vuốt trái → hoãn sang mai (ở đây thì hoãn được — việc một lần có một cái hạn thật). Vuốt phải → xoá.
+
+Nhắc chuẩn bị của sự kiện (`03 §5b`) sinh việc vào **danh sách này**.
 
 ### 5.2 Chi tiết việc `P0`
 
@@ -345,6 +384,10 @@ Mặc định cho `kind = death_anniversary` hoặc `birthday`: lịch âm, lặ
 
 Nếu sự kiện này đã có lần diễn ra trước: ô chi phí dự kiến điền sẵn số thực tế năm ngoái.
 
+**Nhắc kép** (`03 §5b`): ngoài "Nhắc trước" đã có, thêm trường **"Nhắc chuẩn bị"** — 1, 2 hoặc 3 ngày, hoặc không. Dòng giải thích ngay dưới: *"Sẽ thêm một việc vào danh sách linh hoạt"* — người dùng cần biết nó **sinh việc**, không phải bắn thêm một thông báo nữa.
+
+**Thẻ của con** (`kind = 'child'`): chọn `kind` này thì hiện thêm ô chọn con. Mỗi con một màu, lấy từ `Member.colorKey`. Dùng cho lịch tiêm, họp phụ huynh, thi học kỳ, sinh nhật bạn cùng lớp, lịch học bơi.
+
 ### 5.7 Hỏi chi phí thực tế `P0`
 
 Sau khi một sự kiện có `estimatedCost` trôi qua, lần mở app kế tiếp hiện **một** sheet, bỏ qua được:
@@ -387,6 +430,9 @@ Hỏi **một lần duy nhất**. Bỏ qua thì không bao giờ hỏi lại v�
 │                                         │
 │  Còn lại dự kiến         13.000.000 ₫   │
 ├─────────────────────────────────────────┤
+│  MỤC TIÊU — CÓ THỂ HOÃN                 │
+│  Góp quỹ du lịch          5.000.000 ₫   │
+├─────────────────────────────────────────┤
 │  Tính toán này dựa trên số dư ghi       │
 │  6 tuần trước — còn đúng không?         │
 │  [ Cập nhật ]        [ Bỏ qua ]         │
@@ -400,6 +446,14 @@ Ba nguồn được trộn vào một danh sách: khoản sắp trả, chi phí 
 **Dòng hỏi lại ở cuối chỉ hiện khi `shouldAskForRefresh()` trả true** — tức là có khoản lớn sắp tới *và* số dư đã cũ. Không theo lịch. Bỏ qua thì im 14 ngày.
 
 Nếu thiếu: dòng "Còn lại dự kiến" đổi thành `Thiếu khoảng 14.000.000 ₫`, màu theo token `tight`, không kèm lời khuyên.
+
+#### Hai khối, một con số
+
+Khối `MỤC TIÊU — CÓ THỂ HOÃN` nằm **dưới** khối đối chiếu, và **không nằm trong bất kỳ phép cộng nào**: không vào con số hero, không vào tổng tháng, không vào "Còn lại dự kiến", không vào "Thiếu khoảng".
+
+Vì sao vẫn để cùng màn hình: hai người cần thấy tháng 9 đóng học phí xong thì quỹ du lịch phải chậm lại. Nhưng **cùng màn hình không phải cùng một con số** — nghĩa vụ và nguyện vọng trộn vào một số làm số đó mất nghĩa (`08 §2.3`, sửa cơ chế ở `10 §5`).
+
+Khối này ẩn hẳn khi chưa có mục tiêu nào có `targetDate`.
 
 ### 6.2 Tổng quan `P0`
 
@@ -423,6 +477,10 @@ Nếu thiếu: dòng "Còn lại dự kiến" đổi thành `Thiếu khoảng 14
 │  CẦN TRAO ĐỔI                           │
 │  ▸ Sửa xe phát sinh 4.000.000 ₫         │
 ├─────────────────────────────────────────┤
+│  QUỸ CHUNG                          Xem │
+│  42.000.000 ₫                           │
+│  Ghi lần cuối 5 ngày trước              │
+├─────────────────────────────────────────┤
 │  MỤC TIÊU                               │
 │  Mua nhà      320 / 800 triệu           │
 │  ████████░░░░░░░░                       │
@@ -432,7 +490,7 @@ Nếu thiếu: dòng "Còn lại dự kiến" đổi thành `Thiếu khoảng 14
 │  15/9  Sổ tiết kiệm VCB  −30.000.000 ₫  │
 │  12/9  Sửa xe             −4.000.000 ₫  │
 ├─────────────────────────────────────────┤
-│  SỔ MỪNG CƯỚI                       Xem │
+│  SỔ HIẾU HỈ                         Xem │
 │  Tháng này đã đi 3 đám · 6.000.000 ₫    │
 └─────────────────────────────────────────┘
 ```
@@ -521,6 +579,72 @@ Dòng tổng **bắt buộc kèm số lượng bản ghi và chữ "đã ghi"**.
 **Chỉ danh sách, không bao giờ biểu đồ.** Khi vẽ tổng theo tháng thành đường, tháng nào hai người bận quên ghi sẽ trông y hệt một tháng tiết kiệm — và app vừa nói dối rất thuyết phục. Danh sách không có vấn đề đó vì không ai nhìn danh sách rồi kết luận nó đầy đủ.
 
 Đây là màn hình khiến người không giữ tiền cảm thấy nắm tình hình: niềm tin đến từ việc **thấy được thay đổi**, không phải từ con số hiện tại.
+
+---
+
+### 6.9 Quỹ chung `P0`
+
+Tiền nhà, ăn uống, điện nước của cặp ở riêng. Tần suất nhập cực thấp — 2–4 lần một tháng — nên nó không kéo sản phẩm về phía app thu chi.
+
+```
+┌─────────────────────────────────────────┐
+│  Quỹ sinh hoạt                          │
+│  42.000.000 ₫                           │
+│  Ghi lần cuối 5 ngày trước              │
+│                                         │
+│  [ Bỏ vào ]          [ Rút ra ]         │
+├─────────────────────────────────────────┤
+│  ‹     THÁNG 9, 2026     ›              │
+│                                         │
+│  Bỏ vào            +20.000.000 ₫        │
+│  Rút ra            −13.500.000 ₫        │
+│  ────────────────────────────────       │
+│  4 khoản nhà mình đã ghi                │
+│                                         │
+│  NGƯỜI BỎ VÀO                           │
+│  Anh                10.000.000 ₫  2 lần │
+│  Em                 10.000.000 ₫  2 lần │
+├─────────────────────────────────────────┤
+│  5/9   Bỏ vào       +10.000.000 ₫   Anh │
+│        tiền nhà tháng 9                 │
+│  5/9   Bỏ vào       +10.000.000 ₫    Em │
+│  12/9  Rút ra        −8.500.000 ₫       │
+│        tiền nhà                         │
+│  20/9  Rút ra        −5.000.000 ₫       │
+│        điện nước + internet             │
+└─────────────────────────────────────────┘
+```
+
+**Số dư là "ghi lần cuối", không phải "khai lần cuối".** Khác `assets.currentValue`: số dư quỹ là tổng của những khoản đã ghi, không phải một con số ai đó nói ra. Câu chữ nhãn thời gian phải phản ánh đúng điều đó.
+
+#### Khối NGƯỜI BỎ VÀO — ngoại lệ duy nhất, và ranh giới của nó
+
+Đây là chỗ duy nhất trong toàn app hiện **tổng tiền theo người**. Nó hợp lệ vì và chỉ vì:
+
+- Nằm **trong một tháng**, và tháng đó hiện rõ ngay phía trên.
+- Kèm **số lần**, đúng quy tắc "tổng phải kèm số lượng bản ghi".
+- Sắp **theo tên, ABC** — không theo số tiền. Sắp theo tiền là một bảng xếp hạng.
+- Chỉ có ở màn hình này.
+
+**Không bao giờ có:** dòng tổng cộng dồn qua các tháng · câu "còn thiếu" hay "chưa góp" · tỷ lệ phần trăm so với một mức chuẩn · dấu hiệu màu nào cho người góp ít hơn · khối này ở màn hình khác.
+
+Phép thử khi review: *con số này có vắt qua nhiều hơn một tháng không?* Có → sai. Đầy đủ ở `03 §9` ngoại lệ 2 và `10 §3`.
+
+#### Ba tình huống app phải im lặng
+
+1. **Một người bỏ vào ít hơn tỷ lệ đã chốt.** Không đánh dấu, không đổi màu, không cảnh báo. Con số hiện đúng như nó là, hai người tự nói với nhau.
+2. **Đóng góp không bằng tiền.** Nghỉ thai sản, chăm con, bên nội ngoại đỡ tiền nhà — quỹ không có ô nào ghi được, nên mọi kết luận rút từ riêng con số đều thiếu.
+3. **Chi cho nhà bằng tiền riêng.** Ghi ở khoản vừa và lớn, **không cộng vào phần bỏ vào quỹ** — hai loại không cùng đơn vị.
+
+#### Form nạp / rút
+
+Một sheet, bốn trường: số tiền · ngày · **mục đích** · người bỏ vào.
+
+- **Mục đích bắt buộc khi rút**, tuỳ chọn khi bỏ vào. Rút mà không ghi để làm gì thì tháng sau không ai nhớ.
+- **Người bỏ vào là ô chữ tự do**, điền sẵn tên hai vợ chồng dưới dạng chip bấm nhanh — nhưng gõ được tên khác (bố mẹ đưa, em ruột góp). Không phải khoá ngoại.
+- Chỉ hiện ô "người bỏ vào" khi nạp. Rút thì **không hỏi ai rút** — tiền đã vào quỹ là tiền chung.
+
+Sửa và xoá được một khoản đã ghi: gõ nhầm số tiền phải sửa được, và số dư tính lại từ các dòng còn lại.
 
 ---
 
@@ -737,6 +861,22 @@ Trạng thái upload hiện từng file, cho thử lại, không chặn màn hì
 Màn hình Gói dịch vụ không có con số thuyết phục nào do app tự tính. Lý do ở `08 §4`: một khẳng định phản thực (*"app đã cứu bạn 47 triệu"*) không kiểm chứng được, và đặt nó cạnh những con số được gắn nhãn cẩn thận ở khắp phần còn lại sẽ làm hỏng niềm tin vào cả hai.
 
 Thứ thuyết phục người dùng trả tiếp là **trí nhớ năm ngoái** — thứ họ thật sự mất khi hủy — chứ không phải một lời tự khen.
+
+> v3 §7.7 đề nghị khôi phục card này. **Vẫn không khôi phục** — lập luận của `08 §4` không bị v3 phản bác, và chính v3 §10.8 giữ nguyên tắc ngược lại. Xem `10 §6`.
+
+### Giá thử nghiệm
+
+Chưa phải giá chính thức. Giả thuyết: quy đổi dưới ~70.000đ/tháng dễ cân nhắc hơn.
+
+| Gói | Giá |
+|---|---|
+| 12 tháng | 499.000đ |
+| 6 tháng | 299.000đ |
+| Tháng | có tồn tại, **không nêu bật** |
+
+**Gói năm nêu trước, gói tháng ở dòng nhỏ.** App tần suất thấp mà bán gói tháng thì bắt người dùng tự hỏi *"mình còn cần cái này không?"* 12 lần mỗi năm, và 8 trong 12 tháng đó không có sự kiện gì.
+
+Một gói cho cả household. **Quyền xem không bao giờ bị khoá** — người thứ hai gặp paywall là app chết.
 
 ---
 

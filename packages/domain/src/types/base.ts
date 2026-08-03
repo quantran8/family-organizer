@@ -49,6 +49,9 @@ export type EventKind =
   | 'medical'
   | 'trip'
   | 'school'
+  /** Của con: tiêm, họp phụ huynh, sinh nhật bạn cùng lớp — v3 §7.5.
+   *  Con nào thì xem `FamilyEvent.childMemberId`. */
+  | 'child'
   | 'other';
 
 export type EntityType =
@@ -60,11 +63,35 @@ export type EntityType =
   | 'goal'
   | 'upcoming_payment'
   | 'shopping_item'
+  | 'fund'
   /** Cờ/nhắc nói về CẢ NHÀ, không thuộc bản ghi nào. Migration 0004 §2. */
   | 'household';
 
 /** Nhóm con của EntityType mà money_events chấp nhận — schema.sql §5.5 check constraint. */
-export type MoneyEntityType = 'asset' | 'debt' | 'goal' | 'upcoming_payment';
+export type MoneyEntityType = 'asset' | 'debt' | 'goal' | 'upcoming_payment' | 'fund';
+
+/**
+ * Hai loại việc nhà, KHÁC BẢN CHẤT — 03 §4b.
+ *
+ *   recurring -- lặp lại, có giờ, KHÔNG HOÃN ĐƯỢC (dueDate là mốc neo, không
+ *                phải một lần xảy ra: hoãn một lần là dời cả chuỗi)
+ *   flexible  -- phát sinh, không gấp, mặc định không tên, KHÔNG GÁN CHO NGƯỜI
+ *                KIA — ranh giới giữ nó là danh sách việc của nhà chứ không
+ *                phải hộp thư nhiệm vụ
+ */
+export type TaskList = 'recurring' | 'flexible';
+
+export type FundEntryKind = 'deposit' | 'withdrawal';
+
+/**
+ * Nghĩa vụ hay nguyện vọng — 03 §1c, 10 §5.
+ *
+ * Học phí tháng 9 là thứ PHẢI trả; góp quỹ du lịch là thứ MUỐN làm. Hai loại
+ * đứng CÙNG MỘT MÀN HÌNH (để thấy tháng 9 đóng học phí xong thì quỹ du lịch
+ * phải chậm lại) nhưng KHÔNG BAO GIỜ CÙNG MỘT CON SỐ: `projectRunway` chỉ cộng
+ * `mandatory`.
+ */
+export type NeedKind = 'mandatory' | 'optional';
 
 export type MoneyEventType =
   | 'created'
@@ -111,8 +138,9 @@ export type Freshness = 'fresh' | 'aging' | 'stale';
  */
 export type Basis = 'declared';
 
-/** Nguồn của một khoản cần chuẩn bị. Nhóm con của EntityType — view upcoming_needs. */
-export type NeedSource = 'upcoming_payment' | 'event' | 'document';
+/** Nguồn của một khoản cần chuẩn bị. Nhóm con của EntityType — view upcoming_needs.
+ *  `goal` vào từ v3 và LUÔN mang kind='optional' — xem NeedKind. */
+export type NeedSource = 'upcoming_payment' | 'event' | 'document' | 'goal';
 
 // --- Sổ hiếu hỉ (07 §3) ---
 
@@ -194,8 +222,18 @@ export const EVENT_KINDS = [
   'medical',
   'trip',
   'school',
+  'child',
   'other',
 ] as const satisfies readonly EventKind[];
+
+export const TASK_LISTS = ['recurring', 'flexible'] as const satisfies readonly TaskList[];
+
+export const FUND_ENTRY_KINDS = [
+  'deposit',
+  'withdrawal',
+] as const satisfies readonly FundEntryKind[];
+
+export const NEED_KINDS = ['mandatory', 'optional'] as const satisfies readonly NeedKind[];
 
 export const FINANCE_STATUSES = [
   'ok',

@@ -18,6 +18,9 @@ import type {
   EventOccurrence,
   FamilyEvent,
   FinanceMetrics,
+  Fund,
+  FundEntry,
+  FundMonthSummary,
   GiftEntry,
   GiftHistory,
   Goal,
@@ -50,6 +53,10 @@ import type {
   EventOccurrenceRow,
   EventRow,
   FinanceMetricsRow,
+  FundEntryRow,
+  FundMonthContributorRow,
+  FundMonthSummaryRow,
+  FundRow,
   GiftEntryRow,
   GiftHistoryRow,
   GoalRow,
@@ -130,6 +137,7 @@ export function toMember(r: MemberRow): Member {
     schoolName: r.school_name,
     schoolClass: r.school_class,
     healthInsuranceNo: r.health_insurance_no,
+    colorKey: r.color_key,
     isActive: r.is_active,
   };
 }
@@ -139,6 +147,7 @@ export function toTask(r: TaskRow): Task {
     id: r.id,
     title: r.title,
     notes: r.notes,
+    list: r.list as Task['list'],
     assigneeId: r.assignee_id,
     dueDate: r.due_date,
     dueTime: r.due_time,
@@ -192,6 +201,9 @@ export function toEvent(r: EventRow): FamilyEvent {
     isAllDay: r.is_all_day,
     recur: toRecurrence(r.recur),
     remindLeadDays: r.remind_lead_days,
+    prepLeadDays: r.prep_lead_days,
+    prepTaskId: r.prep_task_id,
+    childMemberId: r.child_member_id,
     nextOccurrenceDate: r.next_occurrence_date,
     estimatedCost: numOrNull(r.estimated_cost),
   };
@@ -297,6 +309,63 @@ export function toGoal(r: GoalRow): Goal {
     updatedByMemberId: r.updated_by_member_id,
     targetDate: r.target_date,
     isArchived: r.is_archived,
+  };
+}
+
+export function toFund(r: FundRow): Fund {
+  return {
+    id: r.id,
+    name: r.name,
+    currentAmount: num(r.current_amount),
+    asOfDate: r.as_of_date,
+    updatedByMemberId: r.updated_by_member_id,
+    isArchived: r.is_archived,
+  };
+}
+
+export function toFundEntry(r: FundEntryRow): FundEntry {
+  return {
+    id: r.id,
+    fundId: r.fund_id,
+    kind: r.kind as FundEntry['kind'],
+    amount: num(r.amount),
+    occurredOn: r.occurred_on,
+    purpose: r.purpose,
+    contributorName: r.contributor_name,
+    contributorMemberId: r.contributor_member_id,
+    note: r.note,
+  };
+}
+
+/**
+ * Ghép hai view của quỹ thành một summary của MỘT tháng.
+ *
+ * Nhận `contributors` đã lọc sẵn theo đúng tháng của `summary` — hàm này không
+ * tự lọc, và cũng không nhận mảng nhiều tháng. Ranh giới một-tháng của 03 §9
+ * ngoại lệ 2 được giữ ở tầng truy vấn (repository lọc `.eq('month', …)`) và ở
+ * chữ ký `summarizeFundMonth` bên domain.
+ *
+ * Sắp THEO TÊN ABC — không theo số tiền. Sắp theo tiền là một bảng xếp hạng, và
+ * xếp hạng hai vợ chồng là thứ cả spec này tránh.
+ */
+export function toFundMonthSummary(
+  summary: FundMonthSummaryRow | null,
+  contributors: FundMonthContributorRow[],
+  month: string,
+): FundMonthSummary {
+  return {
+    month: summary?.month ?? month,
+    deposits: num(summary?.deposits ?? 0),
+    withdrawals: num(summary?.withdrawals ?? 0),
+    net: num(summary?.net ?? 0),
+    entryCount: summary?.entry_count ?? 0,
+    byContributor: contributors
+      .map((c) => ({
+        name: c.contributor_name,
+        total: num(c.total),
+        count: c.entry_count,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi')),
   };
 }
 
@@ -440,6 +509,7 @@ export function toFinanceMetrics(r: FinanceMetricsRow): FinanceMetrics {
 export function toUpcomingNeed(r: UpcomingNeedRow): UpcomingNeed {
   return {
     source: r.source as UpcomingNeed['source'],
+    kind: r.kind as UpcomingNeed['kind'],
     id: r.id,
     title: r.title,
     amount: num(r.amount),

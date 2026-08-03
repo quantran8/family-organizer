@@ -88,6 +88,12 @@ export function SeedScreen() {
           // thông báo chứ không đi sửa. Người dùng bật lặp khi sửa sự kiện.
           recur: null,
           remindLeadDays: 3,
+          // CỐ Ý không đặt nhắc chuẩn bị: cùng lý do với `recur` ở trên. Gói
+          // khởi tạo không biết dịp nào cần chuẩn bị gì, và một việc "chuẩn bị
+          // cho đăng kiểm xe" tự mọc ra trong danh sách của một nhà vừa mở app
+          // lần đầu là thứ họ không xin. Người dùng bật khi sửa sự kiện.
+          prepLeadDays: null,
+          childMemberId: null,
           estimatedCost: null,
         });
       }

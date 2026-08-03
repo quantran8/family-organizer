@@ -25,6 +25,7 @@ export type {
   FamilySide,
   FinanceStatus,
   Freshness,
+  FundEntryKind,
   GiftDirection,
   GiftOccasion,
   IngestSource,
@@ -35,11 +36,13 @@ export type {
   MemberRole,
   MoneyEntityType,
   MoneyEventType,
+  NeedKind,
   NeedSource,
   PaymentState,
   RecurFreq,
   Recurrence,
   SubscriptionStatus,
+  TaskList,
   UUID,
 } from './types/base.ts';
 export {
@@ -50,10 +53,13 @@ export {
   EVENT_KINDS,
   FAMILY_SIDES,
   FINANCE_STATUSES,
+  FUND_ENTRY_KINDS,
   GIFT_DIRECTIONS,
   GIFT_OCCASIONS,
   INGEST_SOURCES,
   LIQUIDITIES,
+  NEED_KINDS,
+  TASK_LISTS,
 } from './types/base.ts';
 
 export type {
@@ -66,6 +72,8 @@ export type {
   EventOccurrence,
   FamilyDocument,
   FamilyEvent,
+  Fund,
+  FundEntry,
   GiftEntry,
   GiftHistory,
   Goal,
@@ -85,6 +93,7 @@ export type {
 
 export type {
   FinanceMetrics,
+  FundMonthSummary,
   HomeFeedItem,
   MoneyFeedItem,
   RunwayProjection,
@@ -139,7 +148,18 @@ export { expandRecurrence, nextDue } from './recurrence/expand.ts';
 
 // Gom việc theo hạn
 export type { TaskGroup, TaskGroupKey } from './tasks/group.ts';
-export { endOfWeek, groupTasksByDue, TASK_GROUP_ORDER, taskGroupOf } from './tasks/group.ts';
+export {
+  endOfWeek,
+  groupTasksByDue,
+  orderFlexibleTasks,
+  splitTaskLists,
+  TASK_GROUP_ORDER,
+  taskGroupOf,
+} from './tasks/group.ts';
+
+// Quỹ chung — 03 §6b. Chỉ HAI hàm, cả hai đều buộc phải biết tháng nào.
+// Thêm hàm thứ ba ở đây thì test đóng băng export trong fund.test.ts sẽ đỏ.
+export { fundMonthsPresent, summarizeFundMonth, UNNAMED_CONTRIBUTOR } from './funds/month.ts';
 
 // Gom sự kiện theo tháng
 export type { EventMonthGroup } from './events/group.ts';

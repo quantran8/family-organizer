@@ -22,6 +22,18 @@ import { createJSONStorage, persist } from 'zustand/middleware';
  */
 export type PlanTab = 'task' | 'shopping' | 'event';
 
+/**
+ * Tab con TRONG tab Việc — 03 §4b, v3 §7.3.
+ *
+ * Hai loại việc khác bản chất, ép chung một mô hình thì hỏng cả hai: danh sách
+ * định kỳ bị lấp bởi việc vặt không hạn, còn việc vặt mang một cái hạn giả mà
+ * không ai định đặt.
+ *
+ * Mặc định `recurring`: đó là thứ có hạn hôm nay, tức là câu hỏi người dùng mở
+ * app để trả lời. Việc linh hoạt không gấp — theo đúng định nghĩa của nó.
+ */
+export type TaskListTab = 'recurring' | 'flexible';
+
 /** Cùng union với `DocumentFilter` ở repository — khai lại để store không phụ
  *  thuộc vào tầng dữ liệu chỉ vì một union ba chuỗi. */
 export type DocFilter = 'all' | 'expiring' | 'no_expiry';
@@ -29,6 +41,8 @@ export type DocFilter = 'all' | 'expiring' | 'no_expiry';
 interface UIPrefsState {
   planTab: PlanTab;
   setPlanTab: (tab: PlanTab) => void;
+  taskListTab: TaskListTab;
+  setTaskListTab: (tab: TaskListTab) => void;
   docFilter: DocFilter;
   setDocFilter: (filter: DocFilter) => void;
   /**
@@ -49,6 +63,9 @@ export const useUIPrefs = create<UIPrefsState>()(
       // Mặc định là Việc: nó là vòng lặp hằng ngày (F3), sự kiện thì thưa hơn.
       planTab: 'task',
       setPlanTab: (planTab) => set({ planTab }),
+
+      taskListTab: 'recurring',
+      setTaskListTab: (taskListTab) => set({ taskListTab }),
 
       // Mặc định "Tất cả", KHÔNG phải "Sắp hết hạn": nhà mới dùng app chưa có
       // giấy tờ nào sắp hết hạn, và mở tab ra thấy trống rỗng trong khi mình

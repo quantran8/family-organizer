@@ -313,6 +313,14 @@ export const vi = {
      * làm nó chỉ là ước tính.
      */
     basisDeclared: 'theo những khoản nhà mình đã ghi',
+    /**
+     * Nhãn khối mục tiêu — v3 §7.2.
+     *
+     * Chữ "có thể hoãn" là phần quan trọng nhất của nhãn này: nó nói ra ngay
+     * rằng khối bên dưới KHÔNG cùng loại với những khoản phía trên, và vì thế
+     * không nằm trong con số hero. Bỏ nửa sau đi thì hai loại trông như một.
+     */
+    optionalTitle: 'Mục tiêu — có thể hoãn',
     usable: 'Tài sản dùng ngay',
     remaining: 'Còn lại dự kiến',
     /** Thay chỗ `remaining` khi thiếu. KHÔNG kèm lời khuyên nào (05 §6.1). */
@@ -351,6 +359,20 @@ export const vi = {
 
   task: {
     title: 'Việc',
+    /**
+     * Hai danh sách — 03 §4b, v3 §7.3.
+     *
+     * "Linh hoạt" chứ không "Việc vặt": việc vặt nghe như việc không quan trọng,
+     * mà gọi thợ sửa ống nước thì quan trọng — nó chỉ không có hạn cứng.
+     */
+    listRecurring: 'Định kỳ',
+    listFlexible: 'Linh hoạt',
+    /** Trạng thái rỗng riêng cho từng danh sách: hai câu khác nhau vì hai loại
+     *  việc khác nhau, và một câu chung sẽ sai với ít nhất một bên. */
+    emptyRecurringTitle: 'Chưa có việc định kỳ',
+    emptyRecurringBody: 'Việc lặp lại như đổ rác, tưới cây — thêm một lần, app nhắc mãi.',
+    emptyFlexibleTitle: 'Chưa có việc nào',
+    emptyFlexibleBody: 'Việc phát sinh, không gấp — ai rảnh thì làm.',
     groupOverdue: 'Quá hạn',
     groupToday: 'Hôm nay',
     groupTomorrow: 'Ngày mai',
@@ -406,6 +428,21 @@ export const vi = {
     fieldKind: 'Loại',
     fieldDate: 'Ngày',
     fieldSide: 'Bên gia đình',
+    /**
+     * Nhắc kép — 03 §5b.
+     *
+     * `prepHint` là phần quan trọng nhất: nó nói ra HỆ QUẢ trước khi người dùng
+     * chọn. Mốc này KHÔNG bắn thêm một thông báo nữa về cùng một sự kiện — nó
+     * thêm một dòng việc vào danh sách linh hoạt. Hai thứ đó khác nhau hoàn
+     * toàn về mức phiền, và người dùng phải biết trước khi bật.
+     */
+    fieldPrepLead: 'Nhắc chuẩn bị',
+    prepNone: 'Không',
+    prepDays: 'Trước {days} ngày',
+    prepHint: 'Sẽ thêm một việc vào danh sách Linh hoạt.',
+    /** Sự kiện của con nào — v3 §7.5. */
+    fieldChild: 'Của con',
+    childNone: 'Chưa chọn',
     fieldCalendar: 'Lịch',
     calendarSolar: 'Dương lịch',
     calendarLunar: 'Âm lịch',
@@ -514,6 +551,9 @@ export const vi = {
     medical: 'Khám bệnh',
     trip: 'Đi chơi',
     school: 'Trường lớp',
+    /** v3 §7.5: tiêm, họp phụ huynh, sinh nhật bạn cùng lớp. Con nào thì xem
+     *  `childMemberId` — mỗi con một màu. */
+    child: 'Của con',
     other: 'Khác',
   },
 
@@ -713,6 +753,69 @@ export const vi = {
     delete: 'Xoá mục tiêu này',
     emptyTitle: 'Chưa có mục tiêu nào',
     emptyBody: 'Đặt một mục tiêu chung để biết tiền để dành đang đi về đâu.',
+  },
+
+  /**
+   * Quỹ chung — v3 §7.6.
+   *
+   * BỐN CHỮ KHÔNG BAO GIỜ ĐƯỢC XUẤT HIỆN ở đây hay bất cứ đâu trong app:
+   * "còn thiếu", "chưa góp", "nợ quỹ", "đóng góp bắt buộc" (09 §A.5). Chúng
+   * biến một cuốn sổ ghi chép thành một bản cáo trạng. Kiểm bằng:
+   *   grep -rn "còn thiếu\|chưa góp\|nợ quỹ" apps/mobile/src/i18n/
+   *
+   * Dùng "Bỏ vào / Rút ra" chứ không "Đóng góp / Chi": "đóng góp" mang nghĩa
+   * nghĩa vụ với một mức đã định, mà app cố ý không biết mức đó là bao nhiêu.
+   */
+  fund: {
+    title: 'Quỹ chung',
+    formTitle: 'Quỹ mới',
+    formEditTitle: 'Sửa quỹ',
+    fieldName: 'Tên quỹ',
+    fieldNamePlaceholder: 'Quỹ sinh hoạt',
+    deposit: 'Bỏ vào',
+    withdraw: 'Rút ra',
+    depositTitle: 'Bỏ tiền vào quỹ',
+    withdrawTitle: 'Rút tiền khỏi quỹ',
+    fieldAmount: 'Số tiền',
+    fieldDate: 'Ngày',
+    fieldPurpose: 'Mục đích',
+    fieldPurposePlaceholder: 'Tiền nhà tháng 9',
+    /** Chỉ hỏi khi BỎ VÀO. Rút thì không hỏi ai rút — tiền trong quỹ là tiền chung. */
+    fieldContributor: 'Ai bỏ vào',
+    fieldContributorPlaceholder: 'Gõ tên khác nếu không phải hai vợ chồng',
+    saved: 'Đã ghi',
+    deleted: 'Đã xoá khoản này',
+    /**
+     * "Ghi lần cuối", KHÔNG phải "cập nhật lần cuối": số dư quỹ là tổng của
+     * những khoản đã ghi, khác số khai của tài sản vốn là con số một người nói
+     * ra tại một thời điểm.
+     */
+    /**
+     * Nhãn thời gian của số dư quỹ. CỐ Ý không dùng lại `declaredAt` của tài
+     * sản: chữ "cập nhật" hàm ý một người vừa khai lại một con số, còn số dư quỹ
+     * là TỔNG của những khoản đã ghi. Dùng lại câu kia là nói sai bản chất
+     * dữ liệu.
+     */
+    recordedNever: 'Chưa ghi khoản nào',
+    recordedToday: 'Ghi lần cuối hôm nay',
+    recordedYesterday: 'Ghi lần cuối hôm qua',
+    recordedDaysAgo: 'Ghi lần cuối {days} ngày trước',
+    recordedWeeksAgo: 'Ghi lần cuối {weeks} tuần trước',
+    recordedMonthsAgo: 'Ghi lần cuối {months} tháng trước',
+    monthDeposits: 'Bỏ vào',
+    monthWithdrawals: 'Rút ra',
+    /** BẮT BUỘC kèm mọi con số tổng — cùng luật với màn lịch sử biến động. */
+    entryCount: '{count} khoản nhà mình đã ghi',
+    /** Nhãn khối ngoại lệ. Không có chữ nào mang nghĩa so sánh hay thiếu đủ. */
+    contributors: 'Người bỏ vào',
+    contributorTimes: '{count} lần',
+    unnamedContributor: '(không ghi tên)',
+    emptyTitle: 'Chưa có quỹ chung',
+    emptyBody: 'Quỹ chung để hai người cùng thấy tiền nhà, ăn uống, điện nước đang còn bao nhiêu.',
+    emptyAction: 'Tạo quỹ',
+    /** Trạng thái rỗng của MỘT tháng — không có nút, bộ chọn tháng đã ở ngay trên. */
+    monthEmpty: 'Tháng này chưa ghi khoản nào',
+    delete: 'Xoá quỹ này',
   },
 
   attention: {
@@ -1216,6 +1319,9 @@ export const vi = {
     paymentName: 'Nhập tên khoản',
     debtName: 'Nhập tên khoản nợ',
     goalName: 'Nhập tên mục tiêu',
+    fundName: 'Nhập tên quỹ',
+    /** Rút mà không ghi để làm gì thì tháng sau không ai nhớ. Nạp thì không bắt. */
+    fundPurpose: 'Ghi rõ rút để làm gì',
     docTitle: 'Nhập tên giấy tờ',
     displayName: 'Nhập tên hiển thị',
     eventDate: 'Chọn ngày cho sự kiện',
@@ -1226,6 +1332,8 @@ export const vi = {
   },
 
   a11y: {
+    previousMonth: 'Tháng trước',
+    nextMonth: 'Tháng sau',
     checkboxTodo: 'Đánh dấu xong',
     checkboxDone: 'Bỏ đánh dấu xong',
     addButton: 'Thêm vào nhà mình',

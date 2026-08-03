@@ -7,18 +7,23 @@
  * thành một thao tác phải đợi — và người ta sẽ thôi dùng nó.
  */
 
-import type { ISODate, Task, UUID } from '@family-organizer/domain';
+import type { ISODate, Task, TaskList, UUID } from '@family-organizer/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/data/queries/keys';
 import { taskRepository, type TaskInput } from '@/features/task/repository';
 import { useHouseholdId, useSessionStore } from '@/stores/session';
 
-export function useTasks() {
+/**
+ * Việc nhà. `taskList` bỏ trống = cả hai danh sách (màn Nhà mình cần vậy).
+ *
+ * Hai danh sách là hai cache entry riêng — xem `queryKeys.tasks.list`.
+ */
+export function useTasks(taskList?: TaskList) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.tasks.list(hh),
-    queryFn: () => taskRepository.list(hh),
+    queryKey: queryKeys.tasks.list(hh, taskList ?? 'all'),
+    queryFn: () => taskRepository.list(hh, taskList),
   });
 }
 

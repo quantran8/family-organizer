@@ -36,11 +36,17 @@ const REFRESH_LOOKAHEAD_DAYS = 14;
  *      ghi". Đây là một dự tính, không phải một báo cáo.
  *   2. `usableAsOf` và `freshness` LUÔN được trả về, để không có đường nào
  *      hiển thị kết quả mà thiếu nhãn thời gian.
- *   3. Mục tiêu KHÔNG nằm trong `needs`. Nghĩa vụ khác nguyện vọng: học phí
+ *   3. Mục tiêu KHÔNG được cộng vào `total`. Nghĩa vụ khác nguyện vọng: học phí
  *      tháng 9 là thứ PHẢI trả, góp quỹ mua nhà là thứ MUỐN làm. Trộn hai loại
- *      làm con số "cần chuẩn bị" mất nghĩa, và làm màn hình hero trở nên đáng
- *      sợ mà không có lý do. Ràng buộc này được ép ở tầng view (`upcoming_needs`
- *      không union `goals`) — ghi lại ở đây để chỗ gọi không tự thêm vào.
+ *      vào một con số làm "cần chuẩn bị" mất nghĩa, và làm màn hình hero trở
+ *      nên đáng sợ mà không có lý do.
+ *
+ *      ĐỔI CƠ CHẾ Ở v3 (10 §5): mục tiêu GIỜ CÓ trong `needs`, mang
+ *      kind='optional', để hiện CÙNG MÀN HÌNH với nghĩa vụ. Nguyên tắc không
+ *      đổi — chỉ chỗ ép đổi: từ "view không union goals" sang "hàm này chỉ cộng
+ *      kind==='mandatory'". `optional` trả riêng cho UI vẽ khối riêng.
+ *
+ *      Chỗ gọi KHÔNG được tự cộng `total + optional`.
  */
 export function projectRunway(
   m: FinanceMetrics,
@@ -53,12 +59,24 @@ export function projectRunway(
   // tiền nhà mình còn phải chuẩn bị, và bỏ nó ra làm con số hero nói thiếu.
   const inWindow = needs.filter((n) => daysBetween(n.onDate, horizonEnd) >= 0);
 
-  const total = inWindow.reduce((s, n) => s + n.amount, 0);
+  // TÁCH NGHĨA VỤ KHỎI NGUYỆN VỌNG — 03 §1c ràng buộc 3, cơ chế đổi ở 10 §5.
+  //
+  // Mục tiêu giờ CÓ trong `needs` (mang kind='optional') để hiện CÙNG MÀN HÌNH
+  // với nghĩa vụ — hai người cần thấy tháng 9 đóng học phí xong thì quỹ du lịch
+  // phải chậm lại. Nhưng CÙNG MÀN HÌNH KHÔNG PHẢI CÙNG MỘT CON SỐ: trộn hai
+  // loại vào `total` làm con số "cần chuẩn bị" mất nghĩa, và làm màn hình hero
+  // đáng sợ mà không có lý do.
+  const mandatory = inWindow.filter((n) => n.kind === 'mandatory');
+  const optional = inWindow
+    .filter((n) => n.kind === 'optional')
+    .sort((a, b) => (a.onDate < b.onDate ? -1 : a.onDate > b.onDate ? 1 : 0));
+
+  const total = mandatory.reduce((s, n) => s + n.amount, 0);
 
   // Gom theo 'YYYY-MM', không theo số tháng: cùng số tháng khác năm phải là
   // HAI nhóm. Cùng ca biên đã bắt được ở groupEventsByMonth (G6).
   const buckets = new Map<string, UpcomingNeed[]>();
-  for (const n of inWindow) {
+  for (const n of mandatory) {
     const key = n.onDate.slice(0, 7);
     const bucket = buckets.get(key);
     if (bucket) bucket.push(n);
@@ -80,6 +98,9 @@ export function projectRunway(
     horizonDays: RUNWAY_HORIZON_DAYS,
     total,
     byMonth,
+    // Trả riêng để UI vẽ khối riêng dưới nhãn "có thể hoãn". Không nằm trong
+    // bất kỳ phép cộng nào ở trên.
+    optional,
     projectedRemaining,
     // null khi dư. Vừa đủ (=== 0) KHÔNG phải thiếu — cùng ranh giới với bậc 2
     // của computeFinanceStatus.

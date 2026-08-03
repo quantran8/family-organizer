@@ -38,12 +38,27 @@ export type CalendarType = 'solar' | 'lunar';
  */
 export type FamilySide = 'husband_family' | 'wife_family' | 'both' | 'own';
 
+/** `child` (v3 §7.5): lịch tiêm, họp phụ huynh, sinh nhật bạn cùng lớp.
+ *  Con nào thì xem `FamilyEvent.childMemberId`. */
 export type EventKind =
   | 'death_anniversary' | 'wedding' | 'birthday' | 'holiday'
-  | 'medical' | 'trip' | 'school' | 'other';
+  | 'medical' | 'trip' | 'school' | 'child' | 'other';
 export type EntityType =
   | 'task' | 'event' | 'document'
-  | 'asset' | 'debt' | 'goal' | 'upcoming_payment' | 'shopping_item';
+  | 'asset' | 'debt' | 'goal' | 'upcoming_payment' | 'shopping_item'
+  | 'fund';
+
+/** Hai loại việc nhà, khác bản chất — xem 03 §4b. */
+export type TaskList = 'recurring' | 'flexible';
+
+export type FundEntryKind = 'deposit' | 'withdrawal';
+
+/**
+ * Nghĩa vụ hay nguyện vọng. Học phí tháng 9 là thứ PHẢI trả; góp quỹ du lịch
+ * là thứ MUỐN làm. Hai loại cùng một màn hình nhưng KHÔNG BAO GIỜ cùng một
+ * con số — `projectRunway` chỉ cộng `mandatory`. Xem 03 §1c và 10 §5.
+ */
+export type NeedKind = 'mandatory' | 'optional';
 
 export type RecurFreq = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 export interface Recurrence {
@@ -102,6 +117,12 @@ export interface Member {
   role: 'owner' | 'partner' | 'child' | 'relative';
   birthday: ISODate | null;
   isActive: boolean;
+  /**
+   * "Mỗi con một màu" (v3 §7.5). Màu BÁM THEO CON, không suy từ vị trí trong
+   * danh sách — thêm em bé thứ hai mà đổi màu anh chị là lỗi nhỏ nhưng đúng
+   * chỗ cảm xúc. Khoá vào bảng màu ở design tokens, không phải mã hex.
+   */
+  colorKey: string | null;
 }
 
 export interface Task {
@@ -109,9 +130,20 @@ export interface Task {
   title: string;
   notes: string | null;
   /**
+   * Hai loại việc khác bản chất — xem 03 §4b.
+   * `recurring`: lặp lại, có giờ, KHÔNG HOÃN ĐƯỢC.
+   * `flexible`:  phát sinh, không gấp, mặc định không tên, KHÔNG GÁN CHO
+   *              NGƯỜI KIA — đó là ranh giới giữ nó là danh sách việc của nhà
+   *              chứ không phải hộp thư nhiệm vụ.
+   */
+  list: TaskList;
+  /**
    * MẶC ĐỊNH null. Việc không gán ai là việc của nhà.
    * Bất kỳ thành viên nào cũng đổi được, bất cứ lúc nào, không cần xác nhận
    * và không sinh thông báo. Xem 06 §7.
+   *
+   * CHỈ HAI CHẾ ĐỘ: null hoặc có tên. KHÔNG có luân phiên tự động, không có
+   * `assigneeMode`, không có `rotationOrder`. Lý do ở 10 §2.2.
    */
   assigneeId: UUID | null;
   dueDate: ISODate | null;
@@ -160,8 +192,19 @@ export interface FamilyEvent {
   isAllDay: boolean;
   recur: Recurrence | null;
   remindLeadDays: number;
+  /**
+   * NHẮC KÉP (03 §5b). 1–3 ngày trước sự kiện, null = không có.
+   * Mốc này KHÔNG bắn thêm push — nó SINH MỘT VIỆC LINH HOẠT. Thông báo thứ
+   * hai về cùng một chuyện là phiền; một dòng việc trong danh sách thì hữu ích.
+   */
+  prepLeadDays: number | null;
+  /** Id việc đã sinh. Giữ để cron chạy lại không sinh trùng. Đọc-only. */
+  prepTaskId: UUID | null;
   nextOccurrenceDate: ISODate | null;   // đọc-only, do Edge tính
   estimatedCost: number | null;
+  /** Sự kiện của con nào (kind='child'). Không phải trục phân loại thứ hai —
+   *  chỉ để lọc và lấy màu từ `Member.colorKey`. */
+  childMemberId: UUID | null;
 }
 
 /** Lần diễn ra đã qua của sự kiện lặp. Nguồn của "trí nhớ năm ngoái". */
@@ -218,8 +261,10 @@ export interface UpcomingPayment {
 
 /**
  * P0. Mục tiêu NHÌN VỀ PHÍA TRƯỚC — cùng hướng với trái tim sản phẩm.
- * Ba ranh giới (08 §2.3):
- *   1. KHÔNG chảy vào UpcomingNeed — nghĩa vụ khác nguyện vọng.
+ * Ba ranh giới (08 §2.3, sửa ranh giới 1 ở 10 §5):
+ *   1. Mục tiêu CÓ trong UpcomingNeed, mang kind='optional' — để nó hiện cùng
+ *      màn hình với nghĩa vụ. Nhưng KHÔNG BAO GIỜ được cộng vào cùng con số:
+ *      `projectRunway` chỉ cộng `mandatory`. Cùng màn hình ≠ cùng con số.
  *   2. Không tiến độ theo thời gian, không lời khuyên góp bao nhiêu mỗi tháng.
  *   3. Không đóng góp theo người.
  */
@@ -233,6 +278,50 @@ export interface Goal {
   updatedByMemberId: UUID | null;
   targetDate: ISODate | null;
   isArchived: boolean;
+}
+
+/**
+ * QUỸ CHUNG (v3 §7.6). Tiền nhà, ăn uống, điện nước của cặp ở riêng.
+ * Tần suất nhập cực thấp — 2-4 lần/tháng — nên nó KHÔNG kéo sản phẩm về phía
+ * app thu chi.
+ */
+export interface Fund {
+  id: UUID;
+  name: string;
+  /** SỐ DẪN XUẤT. Chỉ RPC `record_fund_entry` ghi — xem §7. */
+  currentAmount: number;
+  /** "Ghi lần cuối", không phải "khai lần cuối": số dư quỹ là tổng của các
+   *  khoản đã ghi, khác Asset.currentValue vốn là một con số người ta nói ra. */
+  asOfDate: ISODate;
+  updatedByMemberId: UUID | null;
+  isArchived: boolean;
+}
+
+/**
+ * Một lần nạp hoặc rút. CÓ GHI TÊN NGƯỜI NẠP — ngoại lệ duy nhất của lệnh cấm
+ * "tổng tiền theo người", và chỉ trong phạm vi MỘT THÁNG. Xem 03 §9 ngoại lệ 2.
+ *
+ * Vì sao ở đây được mà chi tiêu vặt thì không: nạp quỹ là chuyển khoản rời rạc,
+ * đối chiếu được với sao kê — không ai quên mình vừa chuyển 10 triệu. Chi tiêu
+ * vặt thì dễ ghi thiếu, gán tên vào là gán tên cho dữ liệu không đầy đủ.
+ */
+export interface FundEntry {
+  id: UUID;
+  fundId: UUID;
+  kind: FundEntryKind;
+  amount: number;
+  occurredOn: ISODate;
+  /** Bắt buộc với `withdrawal`, tuỳ chọn với `deposit`. */
+  purpose: string | null;
+  /**
+   * TÊN, KHÔNG PHẢI KHOÁ NGOẠI. Người bỏ tiền vào quỹ không nhất thiết là
+   * thành viên household: bố mẹ đưa, em ruột góp.
+   */
+  contributorName: string | null;
+  /** CHỈ để điền sẵn ô nhập. KHÔNG BAO GIỜ là khoá gom nhóm. */
+  contributorMemberId: UUID | null;
+  note: string | null;
+  createdBy: UUID;
 }
 
 export interface FamilyDocument {
@@ -426,7 +515,9 @@ export interface FinanceMetrics {
 ```ts
 /** Một khoản tiền sắp phải chuẩn bị, bất kể nó sinh ra từ đâu. */
 export interface UpcomingNeed {
-  source: 'upcoming_payment' | 'event' | 'document';
+  source: 'upcoming_payment' | 'event' | 'document' | 'goal';
+  /** `mandatory` cho ba nguồn đầu, `optional` cho `goal`. Xem 03 §1c. */
+  kind: NeedKind;
   id: UUID;
   title: string;
   amount: number;
@@ -437,14 +528,33 @@ export interface UpcomingNeed {
 export interface RunwayProjection {
   basis: Basis;
   horizonDays: number;              // 90
+  /** CHỈ tổng của `kind === 'mandatory'`. Nguyện vọng không bao giờ vào đây. */
   total: number;
   byMonth: { month: ISODate; total: number; items: UpcomingNeed[] }[];
+  /** Nguyện vọng, trả riêng để UI vẽ khối riêng dưới nhãn "có thể hoãn".
+   *  KHÔNG cộng vào `total`, `projectedRemaining`, hay `shortfall`. */
+  optional: UpcomingNeed[];
   /** totalUsable − total. Âm = thiếu. */
   projectedRemaining: number;
   shortfall: number | null;
   /** Ngày khai của totalUsable, để UI in nhãn thời gian. */
   usableAsOf: ISODate | null;
   freshness: Freshness;
+}
+
+/**
+ * Quỹ chung gom theo MỘT tháng. Không tồn tại biến thể nào nhận khoảng thời
+ * gian — đó là chỗ ngoại lệ 03 §9 được ép ở tầng kiểu.
+ */
+export interface FundMonthSummary {
+  month: ISODate;                   // ngày đầu tháng
+  deposits: number;
+  withdrawals: number;
+  net: number;
+  /** BẮT BUỘC. Tổng không kèm số lượng bản ghi thì tự nhận là đầy đủ. */
+  entryCount: number;
+  /** Sắp THEO TÊN, ABC — không theo số tiền. Sắp theo tiền là bảng xếp hạng. */
+  byContributor: { name: string; total: number; count: number }[];
 }
 
 export interface MoneyFeedItem {
@@ -556,6 +666,30 @@ export interface GoalRepo {
   softDelete(hh: UUID, id: UUID): Promise<void>;
 }
 
+export interface FundRepo {
+  list(hh: UUID): Promise<Fund[]>;
+  get(hh: UUID, id: UUID): Promise<Fund | null>;
+  create(hh: UUID, input: FundInput): Promise<Fund>;
+  update(hh: UUID, id: UUID, patch: Partial<FundInput>): Promise<Fund>;
+  /**
+   * `month` là THAM SỐ BẮT BUỘC. Không có `entries(hh, fundId)` không tháng,
+   * không có `entriesBetween(from, to)`. Đây là tầng thứ nhất trong ba tầng ép
+   * ranh giới một-tháng của 03 §9 ngoại lệ 2.
+   */
+  monthSummary(hh: UUID, fundId: UUID, month: ISODate): Promise<FundMonthSummary>;
+  entriesForMonth(hh: UUID, fundId: UUID, month: ISODate): Promise<FundEntry[]>;
+  /** Những tháng có bản ghi — để dựng bộ chọn tháng, không phải để cộng. */
+  monthsPresent(hh: UUID, fundId: UUID): Promise<ISODate[]>;
+  /** RPC nguyên tử: fund_entries + funds.current_amount + money_events. */
+  recordEntry(hh: UUID, fundId: UUID, input: FundEntryInput): Promise<UUID>;
+  /** Xoá mềm + tính lại số dư từ các dòng còn sống (không trừ dồn). */
+  deleteEntry(hh: UUID, entryId: UUID): Promise<void>;
+  archive(hh: UUID, id: UUID): Promise<void>;
+  softDelete(hh: UUID, id: UUID): Promise<void>;
+  // KHÔNG CÓ: allTimeSummary(), contributorTotals() thiếu tháng,
+  // balanceSeries(), whoOwesWhom(). Xem 03 §9 và 03 §6b.
+}
+
 export interface ContactRepo {
   list(hh: UUID, search?: string): Promise<Contact[]>;
   create(hh: UUID, input: ContactInput): Promise<Contact>;
@@ -626,6 +760,23 @@ export const shoppingInput = z.object({
   title: z.string().trim().min(1).max(120),
   note: z.string().max(200).nullable(),
 });
+
+export const fundInput = z.object({
+  name: z.string().trim().min(1, 'Nhập tên quỹ').max(120),
+});
+
+export const fundEntryInput = z.object({
+  kind: z.enum(FUND_ENTRY_KINDS),
+  amount: z.number().int().positive(),
+  occurredOn: isoDate,
+  purpose: z.string().max(200).nullable(),
+  contributorName: z.string().trim().max(60).nullable(),
+  contributorMemberId: z.string().uuid().nullable(),
+  note: z.string().max(500).nullable(),
+}).refine(
+  v => v.kind === 'deposit' || (v.purpose !== null && v.purpose.trim() !== ''),
+  { path: ['purpose'], message: 'Rút thì ghi rõ để làm gì' },
+);
 
 export const eventInput = z.object({
   title: z.string().trim().min(1, 'Nhập tên sự kiện').max(160),
@@ -706,6 +857,8 @@ UI không bao giờ được ghi các trường sau. Nếu có form nào chạm 
 | `documentFiles.isConfirmed` | Edge `confirm-upload` |
 | `ingestDrafts.parsed` | Edge `parse-capture` |
 | `goals.currentAmount`, `goals.asOfDate` | RPC `contribute_to_goal` |
+| `funds.currentAmount`, `funds.asOfDate` | RPC `record_fund_entry` / `delete_fund_entry` |
+| `events.prepTaskId` | Edge `build-reminders` |
 | `childVaccineDoses.dueDate` | Edge `seed-vaccine-doses` (từ `birthday`) |
 | `childVaccineDoses.status` khi thành `overdue` | Edge cron |
 | toàn bộ `vaccineScheduleItems` | seed script, service role |
@@ -726,6 +879,17 @@ interface ContributionByMember { … }// bảng điểm trông như minh bạch
 interface TaskStatsByMember { … }   // bảng điểm giữa hai vợ chồng
 interface GiftBalance       { … }   // biến họ hàng thành sổ nợ
 interface GrowthAssessment  { … }   // chẩn đoán y tế
+
+// Quỹ chung — ngoại lệ CHỈ trong phạm vi một tháng (03 §9 ngoại lệ 2):
+interface FundContributorTotal { … } // vắt qua nhiều tháng = sổ nợ vợ chồng
+interface FundBalanceSeries    { … } // số dư theo thời gian = đường xu hướng
+interface FundShortfallByPerson{ … } // "ai còn thiếu" — app phát ngôn thay người
+
+// Việc nhà:
+interface TaskCompletionRate   { … } // bảng điểm đội lốt phân loại
+interface EventCountBySide     { … } // đếm thứ không ai chọn được — 10.9
 ```
 
 Danh sách đầy đủ kèm lý do ở `03 §9`.
+
+**Phép thử cho quỹ chung:** một type mô tả tổng theo người mà **không có trường `month`** thì thuộc danh sách cấm. `FundMonthSummary` hợp lệ vì `month` là trường bắt buộc của nó.

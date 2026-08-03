@@ -53,7 +53,11 @@ export const queryKeys = {
 
   tasks: {
     all: (id: UUID) => [...hh(id), 'tasks'] as const,
-    list: (id: UUID) => [...hh(id), 'tasks', 'list'] as const,
+    /** `taskList` là ĐOẠN KHOÁ: hai danh sách phải là hai cache entry, nếu
+     *  không chuyển tab sẽ thấy dữ liệu của tab kia trong một nhịp. `'all'`
+     *  dành cho màn Nhà mình, nơi hai loại việc hiện chung. */
+    list: (id: UUID, taskList: 'recurring' | 'flexible' | 'all' = 'all') =>
+      [...hh(id), 'tasks', 'list', taskList] as const,
     detail: (id: UUID, taskId: UUID) => [...hh(id), 'tasks', 'detail', taskId] as const,
     instances: (id: UUID, from: ISODate, to: ISODate) =>
       [...hh(id), 'tasks', 'instances', from, to] as const,
@@ -129,6 +133,26 @@ export const queryKeys = {
     all: (id: UUID) => [...hh(id), 'goals'] as const,
     list: (id: UUID) => [...hh(id), 'goals', 'list'] as const,
     detail: (id: UUID, goalId: UUID) => [...hh(id), 'goals', 'detail', goalId] as const,
+  },
+
+  /**
+   * Quỹ chung — v3 §7.6.
+   *
+   * `month` là MỘT ĐOẠN KHOÁ BẮT BUỘC của `monthSummary` và `entries`, và cố ý
+   * KHÔNG có key nào đọc nhiều tháng. Một cache entry gom được dữ liệu nhiều
+   * tháng là chỗ đầu tiên ai đó sẽ cộng chúng lại — mà đó đúng là thứ 03 §9
+   * ngoại lệ 2 cấm.
+   */
+  funds: {
+    all: (id: UUID) => [...hh(id), 'funds'] as const,
+    list: (id: UUID) => [...hh(id), 'funds', 'list'] as const,
+    detail: (id: UUID, fundId: UUID) => [...hh(id), 'funds', 'detail', fundId] as const,
+    monthSummary: (id: UUID, fundId: UUID, month: string) =>
+      [...hh(id), 'funds', 'month-summary', fundId, month] as const,
+    entries: (id: UUID, fundId: UUID, month: string) =>
+      [...hh(id), 'funds', 'entries', fundId, month] as const,
+    monthsPresent: (id: UUID, fundId: UUID) =>
+      [...hh(id), 'funds', 'months-present', fundId] as const,
   },
 
   snapshots: {
@@ -255,6 +279,10 @@ export function financeAffectedKeys(id: UUID): readonly (readonly unknown[])[] {
     queryKeys.payments.all(id),
     queryKeys.debts.all(id),
     queryKeys.goals.all(id),
+    // Quỹ chung ăn theo mọi thao tác tiền: một khoản nạp đổi số dư quỹ VÀ sinh
+    // một dòng money_events. Bỏ sót dòng này thì màn quỹ và màn lịch sử hiện
+    // hai con số khác nhau cho cùng một thao tác.
+    queryKeys.funds.all(id),
     queryKeys.snapshots.all(id),
     queryKeys.moneyEvents.all(id),
   ];

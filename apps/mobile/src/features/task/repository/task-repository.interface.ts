@@ -6,11 +6,25 @@
  * dự án".
  */
 
-import type { ISODate, Recurrence, Task, TaskInstance, UUID } from '@family-organizer/domain';
+import type {
+  ISODate,
+  Recurrence,
+  Task,
+  TaskInstance,
+  TaskList,
+  UUID,
+} from '@family-organizer/domain';
 
 export interface TaskInput {
   title: string;
   notes: string | null;
+  /**
+   * Hai danh sách khác bản chất — 03 §4b.
+   *
+   * `recurring` lặp lại, có giờ, không hoãn được. `flexible` phát sinh, không
+   * gấp, mặc định không tên và KHÔNG GÁN CHO NGƯỜI KIA (ép ở tầng UI).
+   */
+  list: TaskList;
   assigneeId: UUID | null;
   dueDate: ISODate | null;
   dueTime: string | null;
@@ -21,7 +35,8 @@ export interface TaskInput {
 }
 
 export interface TaskRepository {
-  list(hh: UUID): Promise<Task[]>;
+  /** `list` lọc theo danh sách; bỏ trống thì trả cả hai (màn Nhà mình cần vậy). */
+  list(hh: UUID, taskList?: TaskList): Promise<Task[]>;
   get(hh: UUID, id: UUID): Promise<Task | null>;
   create(hh: UUID, input: TaskInput): Promise<Task>;
   update(hh: UUID, id: UUID, patch: Partial<TaskInput>): Promise<Task>;

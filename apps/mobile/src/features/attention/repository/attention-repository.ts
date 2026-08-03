@@ -84,6 +84,16 @@ async function fetchNames(
       );
       return rows;
     }
+    // Quỹ chung GẮN CỜ ĐƯỢC: một khoản rút lớn là đúng thứ hai người cần ngồi
+    // lại nói với nhau. Cờ trỏ vào cả quỹ, không vào một khoản nạp/rút cụ thể —
+    // gắn cờ vào một khoản có tên người nạp bên cạnh là biến lời nhắc thành lời
+    // tố (nguyên tắc 10.7).
+    case 'fund': {
+      const rows = await unwrap<{ id: string; name: string }[]>(
+        supabase.from('funds').select('id, name').eq('household_id', hh).in('id', ids).is('deleted_at', null),
+      );
+      return rows;
+    }
     // Hai loại này KHÔNG BAO GIỜ được gắn cờ, nhưng enum cho phép nên switch
     // phải xử lý — nếu không, thêm một giá trị enum ở migration sau sẽ làm hàm
     // này trả `undefined` lúc chạy mà typecheck vẫn xanh.

@@ -15,6 +15,7 @@ function toRow(input: Partial<TaskInput>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (input.title !== undefined) row.title = input.title;
   if (input.notes !== undefined) row.notes = input.notes;
+  if (input.list !== undefined) row.list = input.list;
   if (input.assigneeId !== undefined) row.assignee_id = input.assigneeId;
   if (input.dueDate !== undefined) row.due_date = input.dueDate;
   if (input.dueTime !== undefined) row.due_time = input.dueTime;
@@ -25,14 +26,18 @@ function toRow(input: Partial<TaskInput>): Record<string, unknown> {
 }
 
 export const taskRepository: TaskRepository = {
-  async list(hh) {
+  async list(hh, taskList) {
+    // Xây query rồi mới thêm điều kiện: `.eq()` trả về builder mới, nên gán lại
+    // là cách duy nhất giữ được kiểu mà vẫn lọc có điều kiện.
+    let q = supabase
+      .from('tasks')
+      .select('*')
+      .eq('household_id', hh)
+      .is('deleted_at', null);
+    if (taskList !== undefined) q = q.eq('list', taskList);
+
     const rows = await unwrap<TaskRow[]>(
-      supabase
-        .from('tasks')
-        .select('*')
-        .eq('household_id', hh)
-        .is('deleted_at', null)
-        .order('due_date', { ascending: true, nullsFirst: false }),
+      q.order('due_date', { ascending: true, nullsFirst: false }),
     );
     return rows.map(toTask);
   },

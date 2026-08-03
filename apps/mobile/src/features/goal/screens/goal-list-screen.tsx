@@ -6,13 +6,19 @@
  * câu về tương lai, không cần giả định đã-ghi-đủ nào. Nó thuộc về mô hình này,
  * khác hẳn phần theo dõi chi tiêu quá khứ đã bị cắt.
  *
- * **Mục tiêu KHÔNG chảy vào màn "Sắp tới"** (08 §2.3): nghĩa vụ khác nguyện
- * vọng. Học phí tháng 9 là thứ PHẢI trả; góp quỹ mua nhà là thứ MUỐN làm. Trộn
- * hai loại làm con số "cần chuẩn bị" mất nghĩa và làm màn hero đáng sợ mà không
- * có lý do. Ràng buộc đó ép ở tầng view — ghi lại ở đây để không ai nối tay.
+ * **Mục tiêu KHÔNG BAO GIỜ được cộng vào con số "cần chuẩn bị"** (08 §2.3):
+ * nghĩa vụ khác nguyện vọng. Học phí tháng 9 là thứ PHẢI trả; góp quỹ mua nhà
+ * là thứ MUỐN làm. Trộn hai loại vào một con số làm nó mất nghĩa và làm màn hero
+ * đáng sợ mà không có lý do.
  *
- * Cũng vì thế mục tiêu KHÔNG hiện trên Nhà mình: màn chính trả lời "sắp có gì
- * và cần chuẩn bị bao nhiêu", mục tiêu không trả lời câu đó.
+ * ĐỔI CƠ CHẾ Ở v3 (10 §5): mục tiêu GIỜ CÓ mặt trên màn "Sắp tới", ở một khối
+ * riêng dưới nhãn «Mục tiêu — có thể hoãn», để hai người thấy tháng 9 đóng học
+ * phí xong thì quỹ du lịch phải chậm lại. Nguyên tắc không đổi, chỉ chỗ ép đổi:
+ * từ "view không union goals" sang "projectRunway chỉ cộng kind='mandatory'".
+ * CÙNG MÀN HÌNH KHÔNG PHẢI CÙNG MỘT CON SỐ.
+ *
+ * Mục tiêu vẫn KHÔNG hiện trên Nhà mình: màn chính trả lời "sắp có gì và cần
+ * chuẩn bị bao nhiêu", mục tiêu không trả lời câu đó.
  */
 
 import { formatDeclaredAt, type Goal, type ISODate, type UUID } from '@family-organizer/domain';

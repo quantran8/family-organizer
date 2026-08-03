@@ -110,7 +110,16 @@ Ba ràng buộc bắt buộc:
 
 1. **`basis` luôn là `'declared'`.** UI in kèm câu *"theo những khoản nhà mình đã ghi"*. Đây là một dự tính, không phải một báo cáo.
 2. **`usableAsOf` và `freshness` luôn được trả về** để UI in nhãn thời gian ngay cạnh con số. Không có đường nào hiển thị kết quả mà thiếu nhãn.
-3. **Mục tiêu không nằm trong `needs`.** Nghĩa vụ khác nguyện vọng: học phí tháng 9 là thứ *phải* trả, góp quỹ mua nhà là thứ *muốn* làm. Trộn hai loại làm con số "cần chuẩn bị" mất nghĩa, và làm màn hình hero trở nên đáng sợ mà không có lý do.
+3. **Mục tiêu không được cộng vào `total`.** Nghĩa vụ khác nguyện vọng: học phí tháng 9 là thứ *phải* trả, góp quỹ mua nhà là thứ *muốn* làm. Trộn hai loại vào một con số làm con số "cần chuẩn bị" mất nghĩa, và làm màn hình hero trở nên đáng sợ mà không có lý do.
+
+   **Đổi ở v3 (`10 §5`):** mục tiêu giờ *có* trong `needs`, mang `kind = 'optional'`, để nó hiện **cùng màn hình** với nghĩa vụ — hai người cần thấy tháng 9 đóng học phí xong thì quỹ du lịch phải chậm lại. Nhưng cùng màn hình **không phải** cùng một con số:
+
+   ```ts
+   total = tổng của needs có kind === 'mandatory'   // KHÔNG BAO GIỜ gồm optional
+   optional = needs có kind === 'optional'          // trả riêng, UI vẽ khối riêng
+   ```
+
+   `projectedRemaining` và `shortfall` cũng chỉ tính trên `mandatory`. Nguyên tắc không đổi; chỉ cơ chế đổi từ *loại khỏi view* sang *tách bằng `kind`*.
 
 Về việc nhìn lại quá khứ: xem §12. Bản `06` cắt quá tay ở chỗ này — cái bị cấm là **cộng tổng rồi trình bày như bức tranh đầy đủ**, không phải bản thân việc xem lại.
 
@@ -173,6 +182,41 @@ export function nextDue(t: Task, after: ISODate): ISODate | null;
 
 ---
 
+## 4b. Hai danh sách việc
+
+Việc nhà chia thành hai loại có bản chất khác hẳn nhau (`10 §2.1`). Ép chung một mô hình thì hỏng cả hai: danh sách định kỳ bị lấp bởi việc vặt không hạn, còn việc vặt mang một cái hạn giả mà không ai định đặt.
+
+| | Định kỳ (`recurring`) | Linh hoạt (`flexible`) |
+|---|---|---|
+| Bản chất | lặp lại, có giờ, không hoãn được | phát sinh, không gấp, ai làm cũng được |
+| Ví dụ | rửa bát, đổ rác, tưới cây | lau quạt trần, gọi thợ, đặt vé |
+| Người phụ trách | gán được (`assigneeId`) | **mặc định không tên**, tự nhận |
+| Nhóm hiển thị | theo hạn (`groupTasksByDue`) | một danh sách phẳng |
+
+```ts
+export function splitTaskLists(
+  tasks: Task[],
+): { recurring: Task[]; flexible: Task[] }
+
+export function orderFlexibleTasks(tasks: Task[]): Task[]
+```
+
+`orderFlexibleTasks` sắp: chưa xong trước, rồi theo `createdAt`. **Không bao giờ sắp hay nhóm theo người** — một danh sách tồn đọng xếp theo tên là hai cột trong đó một cột dài hơn, và đó là bảng điểm.
+
+`groupTasksByDue` giữ nguyên và **chỉ áp cho danh sách định kỳ**.
+
+**Việc linh hoạt không gán cho người kia.** Ranh giới này giữ cho nó là danh sách việc của nhà, chứ không phải hộp thư nhiệm vụ một người gửi cho người kia. Ở tầng UI: chip người phụ trách hoặc ẩn hẳn, hoặc chỉ chọn được chính mình.
+
+**Việc định kỳ không hoãn được.** Cử chỉ vuốt-để-hoãn bị bỏ ở danh sách này. Với việc lặp, `dueDate` là **mốc neo** chứ không phải một lần xảy ra — hoãn một lần đang âm thầm dời cả chuỗi.
+
+### Không có luân phiên tự động
+
+Chỉ hai chế độ: `assigneeId = null` (việc của nhà) hoặc có tên (người đó làm). Bất kỳ thành viên nào cũng đổi được, bất cứ lúc nào, không sinh thông báo.
+
+**Không tồn tại** `assigneeMode`, `rotationOrder`, `assigneeForOccurrence()`, hay bất cứ hàm nào tính người phụ trách từ ngày tháng. Lý do đầy đủ ở `10 §2.2`.
+
+---
+
 ## 5. Nhắc nhở
 
 ```ts
@@ -217,6 +261,25 @@ Không bắn quá 2 thông báo mỗi ngày cho mỗi người.
 
 ---
 
+## 5b. Nhắc kép
+
+Phần lớn sự cố gia đình không phải quên sự kiện, mà là **nhớ sự kiện nhưng quên phần chuẩn bị cho nó**. Thứ 7 con đi sinh nhật bạn Bin — nhớ; mua quà cho bạn Bin — quên.
+
+Mọi sự kiện đặt được **hai mốc**:
+
+| Mốc | Ngày bắn | Việc nó làm |
+|---|---|---|
+| Nhắc sự kiện | `nextOccurrenceDate − remindLeadDays` | thông báo, như cũ |
+| Nhắc chuẩn bị | `nextOccurrenceDate − prepLeadDays` (1–3 ngày) | **sinh một việc linh hoạt** |
+
+**Nhắc chuẩn bị sinh việc, không bắn thêm push.** Đây là khác biệt quan trọng: thông báo thứ hai về cùng một sự kiện là phiền; một dòng việc xuất hiện trong danh sách là hữu ích, và nó gắn được với chi phí dự kiến ở §1c.
+
+Việc sinh ra có `eventId` trỏ về sự kiện, `list = 'flexible'`, không gán ai. `events.prepTaskId` giữ id của nó để không sinh trùng khi cron chạy lại.
+
+**Không cần xử lý đặc biệt cho trần 2 thông báo/ngày.** Nhắc chuẩn bị và nhắc sự kiện rơi cùng ngày cho cùng người sẽ gộp làm một theo đúng khoá `(ngày bắn, người nhận)` sẵn có.
+
+---
+
 ## 6. Gợi ý gắn cờ cần trao đổi
 
 ```ts
@@ -234,6 +297,34 @@ Chạy sau khi cập nhật giá trị tài sản. Đề xuất gắn cờ khi b
 Gợi ý **chỉ hiện cho người vừa thực hiện thay đổi** (`actorMemberId`), không bao giờ cho người kia. Nếu người kia cũng nhận được, nó thôi là ghi chú tự nguyện và thành lời triệu tập — vi phạm nguyên tắc 10.7 (không tạo bằng chứng dùng được lúc cãi nhau).
 
 Ở MVP có thể trả về mảng rỗng: `money_events` vẫn được ghi từ ngày đầu, nhưng tính năng gợi ý là Phase 2. Chữ ký hàm giữ nguyên để không phải sửa chỗ gọi.
+
+---
+
+## 6b. Quỹ chung
+
+Số dư quỹ + các khoản nạp/rút có mục đích và **tên người nạp**. Tần suất nhập cực thấp — 2–4 lần một tháng, không phải 200 — nên nó không kéo sản phẩm về phía app thu chi.
+
+```ts
+export function summarizeFundMonth(
+  entries: FundEntry[], month: ISODate,
+): FundMonthSummary
+```
+
+**`month` là tham số bắt buộc, và không có chữ ký nào nhận khoảng thời gian.** Đó không phải lựa chọn thẩm mỹ: nó là chỗ ngoại lệ §9 được ép ở tầng domain. Xem §9 ngoại lệ 2 cho phép thử, và `10 §3` cho lý do đầy đủ.
+
+`byContributor` sắp **theo tên, thứ tự ABC** — không theo số tiền. Sắp theo tiền là một bảng xếp hạng, và xếp hạng hai vợ chồng đúng là thứ đang tránh. ABC là thứ tự duy nhất không mang thông điệp nào.
+
+`entryCount` là **bắt buộc trong kiểu trả về**, cùng lý do với `groupHistoryByMonth` ở §12: một con số tổng không kèm số lượng bản ghi thì tự nhận là đầy đủ.
+
+### Ba tình huống app phải im lặng
+
+1. **Một người góp ít hơn tỷ lệ đã chốt.** Không đánh dấu, không cảnh báo, không đổi màu. Con số hiển thị đúng như nó là, hai người tự nói với nhau. Góp ít hơn không phải một lỗi cần app phát hiện.
+2. **Đóng góp không bằng tiền.** Nghỉ thai sản, bỏ việc chăm con, bên nội ngoại đỡ tiền nhà — quỹ không có ô nào ghi được những thứ này, nên **mọi kết luận rút ra từ riêng con số đều thiếu**. Đây chính là lý do app ghi mà không phán.
+3. **Chi cho nhà bằng tiền riêng, không qua quỹ.** Vẫn ghi ở khoản vừa và lớn, nhưng **không cộng vào phần nạp quỹ** — hai loại này không cùng đơn vị, gộp lại là bắt đầu làm kế toán.
+
+### Không tồn tại
+
+`summarizeFundAllTime`, `contributorTotals(entries)` thiếu tham số tháng, `fundBalanceSeries`, và mọi hàm trả về số dư nợ giữa hai người.
 
 ---
 
@@ -304,10 +395,29 @@ Danh sách hàm **cấm viết**, kể cả khi người dùng yêu cầu. Đây
 | So sánh giữa các con trong nhà | Như trên, và tệ hơn về mặt cảm xúc |
 | Gợi ý hoãn hoặc bỏ mũi tiêm | Gây hại thật |
 | Lịch sử "ai sửa gì" tổng hợp được | Nguyên tắc 10.7 |
+| Tổng quỹ chung theo người, vắt qua nhiều hơn một tháng | Sổ nợ giữa hai vợ chồng, dựng bằng dữ liệu trung thực — xem ngoại lệ 2 |
+| Kết luận "ai còn thiếu bao nhiêu" ở quỹ chung | Như trên, và tệ hơn: app phát ngôn thay một người |
+| Xếp người đóng góp quỹ theo số tiền | Xếp hạng hai vợ chồng; sắp theo tên ABC |
+| Đếm hoặc so sánh số sự kiện theo `side` | Đếm thứ không ai chọn được — nguyên tắc 10.9 |
+| Tỷ lệ hoàn thành theo danh sách việc | Bảng xếp hạng đội lốt phân loại |
 
-**Được phép có điều kiện:** tổng của những gì đã ghi trong một kỳ — bắt buộc kèm số lượng bản ghi và chữ "đã ghi", và không bao giờ được vẽ thành đường. Xem §12.
+### Hai ngoại lệ có điều kiện
 
-Test phải có ít nhất một ca khẳng định các view và hàm tổng hợp **không** trả về nhóm theo `member_id` hay `actor_profile_id`.
+**Ngoại lệ 1 — tổng của một kỳ.** Tổng của những gì đã ghi trong một kỳ, bắt buộc kèm số lượng bản ghi và chữ "đã ghi", và không bao giờ được vẽ thành đường. Xem §12.
+
+**Ngoại lệ 2 — quỹ chung theo người, trong phạm vi một tháng.** Được hiện tổng theo từng người đóng góp, **chỉ trong một tháng**, chỉ ở màn hình quỹ, và bắt buộc kèm số lượng bản ghi.
+
+Cấm: cộng dồn qua nhiều tháng; mọi câu kết luận ("còn thiếu", "chưa góp", "chưa đạt"); tỷ lệ phần trăm so với một mức chuẩn; xuất hiện ngoài màn hình quỹ.
+
+Phép thử một câu, dùng khi review:
+
+> **Con số này có vắt qua nhiều hơn một tháng không? Có → cấm.**
+
+Vì sao ngoại lệ này an toàn còn ngoại lệ với tài sản thì không: quỹ chung là một cái hộp hai người cùng bỏ tiền vào **trong tháng đó**. Câu *"tháng này anh bỏ 5 triệu, em bỏ 5 triệu"* là một câu ghi chép, và nó **đóng lại vào cuối tháng** — không để lại gì. Câu *"tính tới nay anh bỏ 180 triệu, em bỏ 60 triệu"* là một câu phán xét: cùng dữ liệu, khác hoàn toàn về việc nó dùng để làm gì. Một con số cộng dồn thì không bao giờ đóng; giữa vợ chồng không có cơ chế tất toán nào để xoá nó, và đến lúc nào đó nó sẽ được đem ra dùng.
+
+Ranh giới này **được ép bằng cấu trúc, không bằng kỷ luật** — xem §7.6. Đầy đủ lý do ở `10 §3`.
+
+Test phải có ít nhất một ca khẳng định các view và hàm tổng hợp **không** trả về nhóm theo `member_id` hay `actor_profile_id` — trừ đúng ngoại lệ 2, và ca đó phải khẳng định thêm rằng không có chữ ký hàm nào nhận khoảng thời gian.
 
 ---
 
@@ -496,5 +606,11 @@ Vì sao vẫn cần: niềm tin của người không giữ tiền đến từ v
 - `suggestGiftAmount` trả `null` khi contact chưa từng mừng nhà mình.
 - `groupHistoryByMonth` luôn trả `count`; tháng không có bản ghi thì không xuất hiện (không phải trả 0).
 - Không có hàm exported nào nhận `WHOStandard` hay trả về percentile.
+- `projectRunway`: `total` **không** đổi khi thêm một `need` có `kind='optional'`; `shortfall` cũng vậy; mảng `optional` được trả về đầy đủ.
+- `summarizeFundMonth`: khoản ngoài tháng được hỏi bị loại; `byContributor` sắp theo tên ABC chứ không theo số tiền; khoản không ghi tên gom vào một nhóm mà không mất số tiền; `entryCount` luôn có.
+- **Đóng băng danh sách export của `src/funds/`**: một test khẳng định tập tên hàm exported khớp đúng danh sách cho trước. Đây là bản kiểm được bằng máy của §9 ngoại lệ 2 — lần sau ai thêm một hàm nhận khoảng thời gian thì test đỏ ngay.
+- `splitTaskLists` chia đúng hai nhóm, kể cả việc `list='flexible'` nhưng lỡ có `recur`.
+- `orderFlexibleTasks`: kết quả **không đổi** khi hoán vị `assigneeId` của đầu vào (khẳng định không bao giờ sắp theo người).
+- `buildReminders`: sự kiện có `prepLeadDays` sinh hai draft ở hai ngày; nhắc chuẩn bị và nhắc sự kiện cùng ngày cùng người thì gộp làm một.
 
 Không viết test cho component ở MVP. Toàn bộ ngân sách test dồn vào đây, vì đây là nơi lỗi gây hậu quả im lặng: một ngày giỗ sai không báo lỗi, nó chỉ đơn giản không nhắc.

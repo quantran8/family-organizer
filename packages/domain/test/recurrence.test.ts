@@ -157,6 +157,7 @@ describe('nextDue', () => {
       id: 't1',
       title: 'Đổ rác',
       notes: null,
+      list: 'recurring',
       assigneeId: null,
       dueDate: '2026-07-30',
       dueTime: null,

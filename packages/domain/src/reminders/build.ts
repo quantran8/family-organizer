@@ -54,6 +54,13 @@ export interface ReminderSource {
   title: string;
   /** Ngày đến hạn thật của mục. */
   dueOn: ISODate;
+  /**
+   * `'preparation'` = mốc nhắc chuẩn bị của nhắc kép (03 §5b), khác với mốc
+   * nhắc sự kiện thường. Tầng gọi dùng cờ này để SINH MỘT VIỆC LINH HOẠT thay
+   * vì chỉ bắn thông báo — thông báo thứ hai về cùng một sự kiện là phiền, một
+   * dòng việc trong danh sách thì hữu ích.
+   */
+  purpose?: 'preparation';
 }
 
 /**
@@ -128,6 +135,25 @@ export function buildReminders(
       title: e.title,
       dueOn: e.nextOccurrenceDate,
     });
+
+    // NHẮC KÉP (03 §5b): mốc thứ hai, 1-3 ngày trước, để chuẩn bị.
+    //
+    // Phần lớn sự cố gia đình không phải quên sự kiện, mà là nhớ sự kiện nhưng
+    // quên phần chuẩn bị cho nó — nhớ thứ 7 con đi sinh nhật bạn Bin, quên mua
+    // quà.
+    //
+    // Không cần xử lý đặc biệt cho trần 2 thông báo/ngày: nếu mốc này trùng
+    // ngày với mốc nhắc sự kiện thì `add` gộp chúng vào cùng bucket theo đúng
+    // khoá (ngày bắn, người nhận) sẵn có.
+    if (e.prepLeadDays !== null) {
+      add(addDays(e.nextOccurrenceDate, -e.prepLeadDays), null, {
+        entityType: 'event',
+        entityId: e.id,
+        title: e.title,
+        dueOn: e.nextOccurrenceDate,
+        purpose: 'preparation',
+      });
+    }
   }
 
   for (const d of input.documents) {

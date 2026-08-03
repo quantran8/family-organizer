@@ -43,10 +43,12 @@ export default function MoneyLayout() {
       <Stack.Screen name="history" options={{ ...HEADER, title: vi.money.historyTitle }} />
       <Stack.Screen name="changes" options={{ ...HEADER, title: vi.money.changesTitle }} />
       <Stack.Screen name="goals" options={{ ...HEADER, title: vi.goal.title }} />
+      <Stack.Screen name="fund" options={{ ...HEADER, title: vi.fund.title }} />
       <Stack.Screen name="asset/[id]" options={{ ...HEADER, title: '' }} />
       <Stack.Screen name="payment/[id]" options={{ ...HEADER, title: '' }} />
       <Stack.Screen name="debt/[id]" options={{ ...HEADER, title: '' }} />
       <Stack.Screen name="goal/[id]" options={{ ...HEADER, title: '' }} />
+      <Stack.Screen name="fund/[id]" options={{ ...HEADER, title: '' }} />
     </Stack>
   );
 }

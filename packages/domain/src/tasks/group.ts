@@ -88,3 +88,45 @@ export function groupTasksByDue(tasks: Task[], today: ISODate): TaskGroup[] {
 
   return TASK_GROUP_ORDER.map((key) => ({ key, tasks: buckets.get(key) ?? [] }));
 }
+
+/**
+ * Chia hai danh sách — 03 §4b.
+ *
+ * Hai loại việc khác bản chất, ép chung một mô hình thì hỏng cả hai: danh sách
+ * định kỳ bị lấp bởi việc vặt không hạn, còn việc vặt mang một cái hạn giả mà
+ * không ai định đặt.
+ *
+ * Chia theo `list`, KHÔNG suy từ `recur`. Người dùng đổi được phân loại này, và
+ * một việc `flexible` lỡ có `recur` vẫn phải nằm ở nơi người dùng đặt nó.
+ */
+export function splitTaskLists(tasks: Task[]): { recurring: Task[]; flexible: Task[] } {
+  const recurring: Task[] = [];
+  const flexible: Task[] = [];
+  for (const t of tasks) {
+    if (t.list === 'recurring') recurring.push(t);
+    else flexible.push(t);
+  }
+  return { recurring, flexible };
+}
+
+/**
+ * Sắp danh sách việc linh hoạt: chưa xong trước, rồi giữ nguyên thứ tự đầu vào
+ * (repository đã sắp theo ngày tạo).
+ *
+ * KHÔNG BAO GIỜ SẮP HAY NHÓM THEO NGƯỜI. Một danh sách tồn đọng xếp theo tên là
+ * hai cột trong đó một cột dài hơn — và đó là bảng điểm giữa hai vợ chồng.
+ * Test `orderFlexibleTasks` khẳng định kết quả không đổi khi hoán vị assigneeId
+ * của đầu vào; nếu ai đó thêm một tiêu chí sắp có dính tới người, test sẽ đỏ.
+ *
+ * Khác groupTasksByDue: việc đã xong KHÔNG bị loại. Danh sách linh hoạt tự dọn
+ * chậm — người ta cần thấy thứ mình vừa tick, và nó mờ đi chứ không biến mất.
+ */
+export function orderFlexibleTasks(tasks: Task[]): Task[] {
+  const todo: Task[] = [];
+  const done: Task[] = [];
+  for (const t of tasks) {
+    if (t.status === 'done') done.push(t);
+    else todo.push(t);
+  }
+  return [...todo, ...done];
+}

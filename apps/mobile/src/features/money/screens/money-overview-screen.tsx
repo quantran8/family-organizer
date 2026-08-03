@@ -40,11 +40,18 @@ import {
   Toast,
 } from '@/design/components';
 import { useOpenAttention } from '@/features/attention/queries/use-attention';
+import { useFunds } from '@/features/fund/queries/use-funds';
 import { useGoals } from '@/features/goal/queries/use-goals';
 import { AddFab } from '@/features/home/components';
 import { useFinanceMetrics, useUpcomingNeeds } from '@/features/household/queries/use-household';
 import { usePayments } from '@/features/payment/queries/use-payments';
-import { declaredAtText, dueLabelText, financeReasonText, useT } from '@/i18n';
+import {
+  declaredAtText,
+  dueLabelText,
+  financeReasonText,
+  fundRecordedAtText,
+  useT,
+} from '@/i18n';
 import { useToday } from '@/lib/use-today';
 
 export function MoneyOverviewScreen() {
@@ -58,6 +65,7 @@ export function MoneyOverviewScreen() {
   const { data: payments } = usePayments('30d', today);
   const { data: attention } = useOpenAttention();
   const { data: goals } = useGoals();
+  const { data: funds } = useFunds();
 
   // `needs` gộp ba nguồn tiền — đầu vào bắt buộc của computeFinanceStatus từ v2.
   const { data: needs } = useUpcomingNeeds(today);
@@ -263,13 +271,51 @@ export function MoneyOverviewScreen() {
           </>
         ) : null}
 
+        {/* ── QUỸ CHUNG ──
+            v3 §7.6. Tiền nhà, ăn uống, điện nước của cặp ở riêng.
+
+            Ở màn này CHỈ hiện số dư và nhãn thời gian. Khối «Người bỏ vào» —
+            ngoại lệ duy nhất của lệnh cấm tổng-tiền-theo-người — nằm ở màn chi
+            tiết và CHỈ ở đó, vì nó chỉ hợp lệ khi có bộ chọn tháng ngay phía
+            trên (03 §9 ngoại lệ 2). Đừng mang nó lên đây. */}
+        {(funds ?? []).length > 0 ? (
+          <>
+            <SectionHeader title={t.fund.title} />
+            {(funds ?? []).map((fund) => (
+              <Pressable
+                key={fund.id}
+                accessibilityRole="button"
+                accessibilityLabel={fund.name}
+                onPress={() => router.push(`/(app)/money/fund/${fund.id}`)}
+                className="py-3 active:bg-soft"
+              >
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text numberOfLines={1} className="flex-1 text-body text-ink">
+                    {fund.name}
+                  </Text>
+                  <MoneyText amount={fund.currentAmount} size="heading" short />
+                  <Text className="text-body text-subtle">›</Text>
+                </View>
+                {/* Nhãn thời gian bắt buộc, và dùng câu của QUỸ chứ không phải
+                    của tài sản: số dư quỹ là tổng của những khoản đã ghi. */}
+                <Text className="text-caption text-subtle">
+                  {fundRecordedAtText(formatDeclaredAt(fund.asOfDate, null, today))}
+                </Text>
+              </Pressable>
+            ))}
+          </>
+        ) : null}
+
         {/* ── MỤC TIÊU ──
             P0 từ `08 §2` (đảo ngược quyết định hạ xuống P2 ở `06 §8`): mục tiêu
             NHÌN VỀ PHÍA TRƯỚC, cùng hướng với trái tim sản phẩm.
 
             Đặt DƯỚI tài sản và khoản sắp trả vì nó là nguyện vọng, không phải
-            nghĩa vụ — và vì lý do đó nó cũng không chảy vào con số ở màn "Sắp
-            tới". Ba con số và chỉ ba: đã có, cần đạt, còn thiếu. */}
+            nghĩa vụ. Ba con số và chỉ ba: đã có, cần đạt, còn thiếu.
+
+            v3 (10 §5) đưa mục tiêu LÊN màn "Sắp tới" ở một khối riêng «có thể
+            hoãn» — nhưng vẫn KHÔNG BAO GIỜ cộng vào con số hero. Cùng màn hình
+            không phải cùng một con số. */}
         {(goals ?? []).length > 0 ? (
           <>
             <SectionHeader

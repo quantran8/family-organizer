@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { endOfWeek, groupTasksByDue, taskGroupOf, TASK_GROUP_ORDER } from '../src/tasks/group.js';
+import {
+  endOfWeek,
+  groupTasksByDue,
+  orderFlexibleTasks,
+  splitTaskLists,
+  taskGroupOf,
+  TASK_GROUP_ORDER,
+} from '../src/tasks/group.js';
 import type { ISODate } from '../src/types/base.js';
 import type { Task } from '../src/types/entities.js';
 
@@ -9,6 +16,7 @@ function task(over: Partial<Task> = {}): Task {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     title: 'Đổ rác',
     notes: null,
+    list: 'flexible',
     assigneeId: null,
     dueDate: null,
     dueTime: null,
@@ -138,5 +146,75 @@ describe('groupTasksByDue', () => {
       ['sau'],
       ['khong'],
     ]);
+  });
+});
+
+describe('splitTaskLists — hai danh sách, 03 §4b', () => {
+  it('chia theo `list`, không suy từ `recur`', () => {
+    const { recurring, flexible } = splitTaskLists([
+      task({ id: 'a', list: 'recurring' }),
+      task({ id: 'b', list: 'flexible' }),
+      task({ id: 'c', list: 'recurring' }),
+    ]);
+
+    expect(recurring.map((t) => t.id)).toEqual(['a', 'c']);
+    expect(flexible.map((t) => t.id)).toEqual(['b']);
+  });
+
+  it('việc `flexible` lỡ có `recur` VẪN ở nhóm linh hoạt', () => {
+    // Người dùng đổi được phân loại này; một việc phải nằm ở nơi họ đặt nó,
+    // không phải nơi hệ thống đoán.
+    const { recurring, flexible } = splitTaskLists([
+      task({
+        id: 'x',
+        list: 'flexible',
+        recur: { freq: 'weekly', intervalN: 1 },
+      }),
+    ]);
+
+    expect(recurring).toEqual([]);
+    expect(flexible.map((t) => t.id)).toEqual(['x']);
+  });
+
+  it('mảng rỗng trả hai nhóm rỗng', () => {
+    expect(splitTaskLists([])).toEqual({ recurring: [], flexible: [] });
+  });
+});
+
+describe('orderFlexibleTasks — không bao giờ sắp theo người', () => {
+  it('chưa xong trước, đã xong sau, giữ nguyên thứ tự trong từng nhóm', () => {
+    const out = orderFlexibleTasks([
+      task({ id: 'a', status: 'done' }),
+      task({ id: 'b', status: 'todo' }),
+      task({ id: 'c', status: 'done' }),
+      task({ id: 'd', status: 'todo' }),
+    ]);
+
+    expect(out.map((t) => t.id)).toEqual(['b', 'd', 'a', 'c']);
+  });
+
+  it('việc đã xong KHÔNG bị loại — khác groupTasksByDue', () => {
+    const out = orderFlexibleTasks([task({ id: 'a', status: 'done' })]);
+    expect(out.map((t) => t.id)).toEqual(['a']);
+  });
+
+  it('kết quả KHÔNG đổi khi hoán vị assigneeId — 03 §4b', () => {
+    // Đây là khẳng định chống hồi quy: nếu ai thêm một tiêu chí sắp có dính tới
+    // người phụ trách, test này đỏ. Một danh sách tồn đọng xếp theo tên là hai
+    // cột trong đó một cột dài hơn — và đó là bảng điểm.
+    const base = [
+      task({ id: 'a', assigneeId: null }),
+      task({ id: 'b', assigneeId: 'm-1' }),
+      task({ id: 'c', assigneeId: 'm-2' }),
+    ];
+    const permuted = [
+      task({ id: 'a', assigneeId: 'm-2' }),
+      task({ id: 'b', assigneeId: null }),
+      task({ id: 'c', assigneeId: 'm-1' }),
+    ];
+
+    expect(orderFlexibleTasks(base).map((t) => t.id)).toEqual(
+      orderFlexibleTasks(permuted).map((t) => t.id),
+    );
   });
 });

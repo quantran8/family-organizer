@@ -33,6 +33,9 @@ function event(over: Partial<FamilyEvent> = {}): FamilyEvent {
     isAllDay: true,
     recur: null,
     remindLeadDays: DEFAULT_LEAD_DAYS.event,
+    prepLeadDays: null,
+    prepTaskId: null,
+    childMemberId: null,
     nextOccurrenceDate: '2026-08-10',
     estimatedCost: null,
     ...over,
@@ -386,6 +389,75 @@ describe('quy tắc người nhận — BẤT BIẾN (03 §5, 06 §7)', () => {
       TODAY,
       90,
     );
+    expect(drafts.every((d) => d.targetMemberId === null)).toBe(true);
+  });
+});
+
+describe('nhắc kép — 03 §5b', () => {
+  it('sự kiện có prepLeadDays sinh HAI draft ở HAI ngày khác nhau', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3, prepLeadDays: 1 })],
+      }),
+      TODAY,
+      90,
+    );
+
+    expect(drafts).toHaveLength(2);
+    expect(drafts.map((d) => d.fireOn).sort()).toEqual(['2026-08-07', '2026-08-09']);
+  });
+
+  it('draft chuẩn bị mang cờ `purpose: preparation`, draft thường thì không', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3, prepLeadDays: 2 })],
+      }),
+      TODAY,
+      90,
+    );
+
+    const prep = drafts.find((d) => d.fireOn === '2026-08-08');
+    const normal = drafts.find((d) => d.fireOn === '2026-08-07');
+
+    expect(prep?.items[0]?.purpose).toBe('preparation');
+    expect(normal?.items[0]?.purpose).toBeUndefined();
+  });
+
+  it('prepLeadDays null thì chỉ có draft thường', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3, prepLeadDays: null })],
+      }),
+      TODAY,
+      90,
+    );
+
+    expect(drafts).toHaveLength(1);
+  });
+
+  it('hai mốc rơi cùng ngày thì GỘP làm một draft — không cần xử lý đặc biệt', () => {
+    // Trần 2 thông báo/ngày được giữ bởi chính khoá (ngày bắn, người nhận) sẵn có.
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', remindLeadDays: 3, prepLeadDays: 3 })],
+      }),
+      TODAY,
+      90,
+    );
+
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.items).toHaveLength(2);
+  });
+
+  it('nhắc chuẩn bị vẫn gửi CẢ NHÀ — nó là việc của nhà', () => {
+    const drafts = buildReminders(
+      emptyInput({
+        events: [event({ nextOccurrenceDate: '2026-08-10', prepLeadDays: 2 })],
+      }),
+      TODAY,
+      90,
+    );
+
     expect(drafts.every((d) => d.targetMemberId === null)).toBe(true);
   });
 });

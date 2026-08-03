@@ -20,7 +20,7 @@ pnpm --filter @family-organizer/mobile ios                  # expo run:ios
 
 pnpm db:push                 # đẩy migration lên Supabase cloud
 pnpm db:pull                 # kéo schema về, đọc diff bằng git
-pnpm fn:deploy               # deploy toàn bộ 11 Edge Functions (cần --import-map)
+pnpm fn:deploy               # deploy toàn bộ 12 Edge Functions (cần --import-map)
 ```
 
 **Không có Docker local.** `supabase db reset`, `db diff`, `functions serve` đều không dùng được và đã bị bỏ khỏi `package.json` (xem `SETUP-CLOUD.md`). Hệ quả: không có bước tập dượt — một migration sai là dữ liệu thật, một Edge Function sai chỉ lộ ra sau khi deploy. Kiểm chứng qua Dashboard → Edge Functions → Logs và `supabase/tests/smoke.sql`.
@@ -29,7 +29,9 @@ pnpm fn:deploy               # deploy toàn bộ 11 Edge Functions (cần --impo
 
 Vi phạm những điều này là sản phẩm sai về bản chất, không phải sai kỹ thuật. Ba điều đầu có từ v1; ba điều sau thêm ở concept v2 (G11).
 
-1. **Không bao giờ tổng hợp tiền theo người.** `holderMemberId` / `actorProfileId` chỉ hiện ở cấp từng khoản — không tổng, không biểu đồ, không xếp hạng, không filter theo người.
+1. **Không bao giờ tổng hợp tiền theo người** — trừ **đúng một ngoại lệ có điều kiện**. `holderMemberId` / `actorProfileId` chỉ hiện ở cấp từng khoản: không tổng, không biểu đồ, không xếp hạng, không filter theo người.
+
+   Ngoại lệ duy nhất: **quỹ chung, trong phạm vi một tháng** — khối "Người bỏ vào" ở màn `money/fund/[id]`. Phép thử: *con số này có vắt qua nhiều hơn một tháng không? Có → cấm.* Ranh giới được ép ở ba tầng độc lập (view có `month` trong `group by` · `summarizeFundMonth` nhận `month` bắt buộc · `contributor-block.tsx` nhận `month` là prop bắt buộc). Đầy đủ ở `spec/03-business-logic.md §9` ngoại lệ 2 và `spec/10-delta-v3.md §3`.
 2. **Ngày âm là dữ liệu gốc.** `next_occurrence_date` là cache do **đúng một nơi** ghi: Edge `refresh-lunar-dates`. Không có đường code thứ hai nào tính lịch âm rồi ghi xuống.
 3. **`money_events` / `money_snapshots` ghi từ ngày đầu**, kể cả khi chưa có màn hình nào đọc chúng. Lịch sử không backfill được.
 4. **Mọi số tổng phải kèm nhãn thời gian** (`formatDeclaredAt`), không ngoại lệ. Con số tiền là thứ *một người đã nói ra tại một thời điểm*, không phải sự thật hiện tại — hiển thị trần trụi làm hai người cùng tin vào một thứ có thể đã sai.
@@ -50,11 +52,16 @@ supabase/migrations/    schema — không bao giờ sửa trên dashboard
 spec/                   nguồn sự thật của thiết kế (đọc trước khi sửa)
 ```
 
-`spec v2/` **không còn tồn tại** (dọn ở G16). Nội dung v2.1 đã ghi đè thẳng vào
-`spec/`: `02` · `03` · `05` · `schema.sql` là bản v2.1, và `06`/`07`/`08` là ba
-file mới. Không còn lớp "v2 thắng v1" nào phải nhớ — `spec/` giờ là nguồn sự
-thật duy nhất, và ba file `06`/`07`/`08` là **lịch sử thay đổi**, đọc để hiểu vì
-sao chứ không phải để tra hiện trạng.
+`spec v2/` **không còn tồn tại** (dọn ở G16). Nội dung v2.1 rồi v3 đã ghi đè
+thẳng vào `spec/`: `02` · `03` · `05` · `09` · `schema.sql` là **hiện trạng**,
+còn `06`/`07`/`08`/`10` là **lịch sử thay đổi** — đọc để hiểu *vì sao*, không
+phải để tra hiện trạng. Khi chúng vênh với nhóm hiện trạng thì nhóm hiện trạng
+đúng.
+
+**Concept v3** (`10-delta-v3.md`) bác bốn đề xuất của chính nó vì bản cũ có lập
+luận mà v3 không phản bác: trục nội/ngoại, "giá trị đã cứu", chọn một module bản
+địa, và widget trong MVP. Cộng thêm **luân phiên tự động** cũng bị bác. Nếu định
+làm một trong năm thứ đó thì đọc `10` trước — chúng đã được cân nhắc và loại.
 
 ### `packages/domain` — ràng buộc cứng
 
@@ -151,7 +158,7 @@ Mất mạng giữa chừng để lại hàng pending mà cron `sweep-orphan-upl
 
 ## Test
 
-Ngân sách test dồn hết vào `packages/domain` (168 test vitest) — mọi quy tắc nghiệp vụ nằm ở đó và test được không cần DB. Đây là chỗ lỗi **im lặng**: một ngày giỗ tính sai không ném exception, nó chỉ đơn giản là không nhắc.
+Ngân sách test dồn hết vào `packages/domain` (311 test vitest) — mọi quy tắc nghiệp vụ nằm ở đó và test được không cần DB. Đây là chỗ lỗi **im lặng**: một ngày giỗ tính sai không ném exception, nó chỉ đơn giản là không nhắc.
 
 Không viết test cho component ở MVP.
 
@@ -175,14 +182,16 @@ Không viết test cho component ở MVP.
 | `spec/03-business-logic.md` | hàm thuần: tài chính, lịch âm, lặp lại, nhắc |
 | `spec/04-design-system.md` | tokens, chữ, ngôn ngữ, mẫu trạng thái |
 | `spec/05-screens-and-flows.md` | route, bố cục màn hình, thứ tự dựng |
-| `spec/07-local-modules.md` | sổ mừng cưới, hồ sơ con — hai module bản địa |
+| `spec/07-local-modules.md` | sổ hiếu hỉ, hồ sơ con — hai module bản địa |
+| `spec/09-ui-build-spec.md` | số đo, màu, từng khối từng màn — đủ để dựng lại UI mà không đọc code |
 | `spec/sql-drafts/` | SQL thiết kế của v2, **không phải migration** — bản chạy thật ở `supabase/migrations/0004`+`0005` |
 
-Ba file **lịch sử thay đổi**, đọc để hiểu *vì sao*, không phải để tra hiện trạng — khi chúng vênh với năm file trên thì năm file trên đúng:
+Ba file **lịch sử thay đổi**, đọc để hiểu *vì sao*, không phải để tra hiện trạng — khi chúng vênh với nhóm trên thì nhóm trên đúng:
 
 | File | Ghi lại |
 |---|---|
 | `spec/06-delta-v2.md` | concept v2 đổi gì so với v1 và vì sao |
 | `spec/08-addendum-v2.1.md` | hai đảo ngược so với `06` (money_events lên UI, goals về P0) |
+| `spec/10-delta-v3.md` | concept v3: quỹ chung + ngoại lệ §9, hai danh sách việc, nhắc kép — và **năm đề xuất của v3 bị bác** kèm lý do |
 
-`TASKS.md` theo dõi tiến độ theo giai đoạn G0–G16. Cập nhật khi hoàn thành một mục.
+`TASKS.md` theo dõi tiến độ theo giai đoạn G0–G18. Cập nhật khi hoàn thành một mục.

@@ -49,6 +49,13 @@ const VI = {
   /** Nhiều mục cùng ngày — một dòng, không liệt kê hết. */
   many: (count: number) => `Nhà mình có ${count} việc cần chuẩn bị`,
   bodyMany: (titles: string[]) => titles.join(' · '),
+  /**
+   * Tên việc chuẩn bị sinh từ nhắc kép (03 §5b).
+   *
+   * "Chuẩn bị cho X" chứ không "Mua quà cho X": app không biết dịp này cần
+   * chuẩn bị gì, và đoán sai tạo ra một dòng việc sai mà người dùng phải sửa.
+   */
+  prepTask: (title: string) => `Chuẩn bị cho ${title}`,
 } as const;
 
 function addDaysISO(d: ISODate, n: number): ISODate {
@@ -266,6 +273,14 @@ async function rebuildForHousehold(
     ),
   );
 
+  // NHẮC KÉP: sinh việc chuẩn bị — 03 §5b.
+  //
+  // Chạy TRƯỚC khi dựng lại bảng `reminders`, và cố ý KHÔNG phụ thuộc vào
+  // `drafts`: việc chuẩn bị là một bản ghi thật trong `tasks`, không phải một
+  // thông báo. Nếu buộc nó vào lịch nhắc thì một sự kiện quá cửa sổ 90 ngày sẽ
+  // không bao giờ sinh việc, dù người dùng đã bật nhắc chuẩn bị.
+  await spawnPrepTasks(supabase, hh, events.data ?? [], today);
+
   // Xoá lịch TƯƠNG LAI chưa gửi rồi dựng lại. `sent_at is null` là điều kiện
   // không thể thiếu: nhắc nhở đã gửi là lịch sử.
   const { error: delError } = await supabase
@@ -286,6 +301,76 @@ async function rebuildForHousehold(
 
 function mapRows<T>(data: unknown[] | null, map: (r: Record<string, unknown>) => T): T[] {
   return (data ?? []).map((r) => map(r as Record<string, unknown>));
+}
+
+/**
+ * Sinh VIỆC CHUẨN BỊ cho sự kiện có `prep_lead_days` — 03 §5b.
+ *
+ * VÌ SAO SINH VIỆC CHỨ KHÔNG BẮN THÔNG BÁO THỨ HAI:
+ *   Phần lớn sự cố gia đình không phải quên sự kiện, mà là NHỚ SỰ KIỆN NHƯNG
+ *   QUÊN PHẦN CHUẨN BỊ CHO NÓ. Một thông báo thứ hai về cùng một sự kiện là
+ *   phiền; một dòng việc nằm trong danh sách thì hữu ích, và gắn được với chi
+ *   phí dự kiến.
+ *
+ * BA RÀNG BUỘC:
+ *
+ *   1. **Chạy lại được.** Cron chạy mỗi ngày. `prep_task_id` là cờ "đã sinh
+ *      rồi" — có giá trị thì bỏ qua. Thiếu nó, mỗi ngày một dòng việc mới mọc
+ *      ra cho tới khi sự kiện diễn ra.
+ *
+ *   2. **Việc LINH HOẠT, không gán ai.** Đó là danh sách đúng cho nó (03 §4b),
+ *      và không gán ai vì app không biết ai sẽ đi mua quà — gán bừa là biến một
+ *      lời nhắc thành một lời sai bảo.
+ *
+ *   3. **Chỉ sinh khi đã tới ngày.** Không sinh trước 90 ngày cho một đám giỗ
+ *      tháng sau: một việc nằm trong danh sách ba tháng trước khi cần làm là
+ *      rác, và người dùng sẽ học cách bỏ qua cả danh sách.
+ */
+async function spawnPrepTasks(
+  supabase: ReturnType<typeof serviceClient>,
+  hh: string,
+  eventRows: unknown[],
+  today: ISODate,
+): Promise<void> {
+  for (const raw of eventRows) {
+    const r = raw as Record<string, unknown>;
+    const prepLead = r.prep_lead_days as number | null;
+    const nextOn = r.next_occurrence_date as ISODate | null;
+
+    if (prepLead === null || prepLead === undefined || nextOn === null) continue;
+    // Đã sinh rồi — ràng buộc 1.
+    if (r.prep_task_id !== null && r.prep_task_id !== undefined) continue;
+    // Chưa tới ngày — ràng buộc 3.
+    if (addDaysISO(nextOn, -prepLead) > today) continue;
+    // Sự kiện đã qua: `refresh-lunar-dates` sẽ đẩy `next_occurrence_date` sang
+    // lần sau, và lúc đó mới sinh việc cho lần đó.
+    if (nextOn < today) continue;
+
+    const { data: created, error: taskError } = await supabase
+      .from('tasks')
+      .insert({
+        household_id: hh,
+        title: VI.prepTask(String(r.title)),
+        list: 'flexible',
+        assignee_id: null,
+        due_date: nextOn,
+        event_id: String(r.id),
+        remind_lead_days: 0,
+        created_by: r.created_by as string,
+      })
+      .select('id')
+      .single();
+    if (taskError) throw new Error(taskError.message);
+
+    // Ghi cờ NGAY sau khi tạo. Nếu bước này hỏng, lần cron sau sẽ sinh một việc
+    // trùng — chấp nhận được, và ít tệ hơn hẳn so với việc không bao giờ sinh.
+    const { error: flagError } = await supabase
+      .from('events')
+      .update({ prep_task_id: (created as { id: string }).id })
+      .eq('id', String(r.id))
+      .eq('household_id', hh);
+    if (flagError) throw new Error(flagError.message);
+  }
 }
 
 /**
@@ -310,8 +395,14 @@ function toEvent(r: Record<string, unknown>): FamilyEvent {
     isAllDay: true,
     recur: null,
     remindLeadDays: Number(r.remind_lead_days ?? 0),
+    // BẮT BUỘC đọc từ row: thiếu nó thì `buildReminders` không bao giờ sinh mốc
+    // chuẩn bị, và lỗi đó IM LẶNG HOÀN TOÀN — không có ngoại lệ nào ném ra, chỉ
+    // đơn giản là không ai được nhắc mua quà.
+    prepLeadDays: (r.prep_lead_days as number | null) ?? null,
+    prepTaskId: (r.prep_task_id as string | null) ?? null,
     nextOccurrenceDate: (r.next_occurrence_date as ISODate | null) ?? null,
     estimatedCost: null,
+    childMemberId: null,
   };
 }
 

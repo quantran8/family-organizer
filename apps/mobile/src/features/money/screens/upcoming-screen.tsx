@@ -172,6 +172,33 @@ export function UpcomingScreen() {
           </View>
         </View>
 
+        {/* ── MỤC TIÊU — CÓ THỂ HOÃN ──
+            v3 §7.2, cơ chế ở 10 §5.
+
+            RÀNG BUỘC QUAN TRỌNG NHẤT CỦA CẢ MÀN: con số ở khối này KHÔNG nằm
+            trong bất kỳ phép cộng nào phía trên — không vào hero, không vào tổng
+            tháng, không vào «Còn lại», không vào câu «Thiếu khoảng».
+            `projectRunway` đã tách sẵn: `total` chỉ cộng `kind='mandatory'`, còn
+            `optional` trả riêng cho đúng khối này.
+
+            Vì sao vẫn để cùng màn hình: hai người cần thấy tháng 9 đóng học phí
+            xong thì quỹ du lịch phải chậm lại. CÙNG MÀN HÌNH KHÔNG PHẢI CÙNG MỘT
+            CON SỐ.
+
+            Đặt DƯỚI khối đối chiếu, không xen vào giữa các tháng: nghĩa vụ đọc
+            hết trước, nguyện vọng đọc sau. Không thanh tiến độ, không phần trăm
+            — đó là ngôn ngữ của màn Mục tiêu, không phải của màn này. */}
+        {p.optional.length > 0 ? (
+          <View className="mt-8">
+            <Text className="text-label font-semibold uppercase text-muted">
+              {t.upcoming.optionalTitle}
+            </Text>
+            {p.optional.map((n) => (
+              <NeedRow key={`${n.source}:${n.id}`} need={n} />
+            ))}
+          </View>
+        ) : null}
+
         {/* ── HỎI LẠI SỐ DƯ ──
             Ngoại lệ DUY NHẤT được phép hỏi, và hỏi theo NGỮ CẢNH chứ không theo
             lịch. Không push, không badge, không chấm màu — chỉ một dòng ở đây,

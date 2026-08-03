@@ -32,6 +32,8 @@ function toRow(input: Partial<EventInput>): Record<string, unknown> {
   if (input.isAllDay !== undefined) row.is_all_day = input.isAllDay;
   if (input.recur !== undefined) row.recur = fromRecurrence(input.recur);
   if (input.remindLeadDays !== undefined) row.remind_lead_days = input.remindLeadDays;
+  if (input.prepLeadDays !== undefined) row.prep_lead_days = input.prepLeadDays;
+  if (input.childMemberId !== undefined) row.child_member_id = input.childMemberId;
   if (input.estimatedCost !== undefined) row.estimated_cost = input.estimatedCost;
   return row;
 }

@@ -79,6 +79,12 @@ export type MemberRow = {
   school_name: string | null;
   school_class: string | null;
   health_insurance_no: string | null;
+  /**
+   * "Mỗi con một màu" (v3 §7.5). Khoá vào bảng màu ở design tokens, KHÔNG phải
+   * mã hex. Màu bám theo con, không suy từ vị trí trong danh sách — thêm em bé
+   * thứ hai mà đổi màu anh chị là lỗi nhỏ nhưng đúng chỗ cảm xúc.
+   */
+  color_key: string | null;
   joined_at: string;
   deleted_at: string | null;
 };
@@ -99,6 +105,8 @@ export type TaskRow = {
   household_id: string;
   title: string;
   notes: string | null;
+  /** 'recurring' | 'flexible' — 03 §4b. Không có luân phiên (10 §2.2). */
+  list: string;
   assignee_id: string | null;
   due_date: string | null;
   due_time: string | null;
@@ -167,6 +175,12 @@ export type EventRow = {
   is_all_day: boolean;
   recur: RecurrenceRow | null;
   remind_lead_days: number;
+  /** Nhắc kép — 03 §5b. 1-3 ngày, null = không có. Mốc này SINH VIỆC LINH HOẠT. */
+  prep_lead_days: number | null;
+  /** Việc đã sinh. Chỉ Edge `build-reminders` ghi — 02 §7. */
+  prep_task_id: string | null;
+  /** Sự kiện của con nào (kind='child'). Chỉ để lọc và lấy màu. */
+  child_member_id: string | null;
   next_occurrence_date: string | null;
   estimated_cost: number | null;
   created_by: string;
@@ -297,6 +311,52 @@ export type GoalRow = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+};
+
+/**
+ * Quỹ chung (v3 §7.6). `current_amount` là SỐ DẪN XUẤT — chỉ RPC
+ * `record_fund_entry` / `delete_fund_entry` ghi, client không bao giờ update.
+ *
+ * `as_of_date` nghĩa là "GHI LẦN CUỐI", không phải "khai lần cuối": số dư quỹ là
+ * tổng của những khoản đã ghi, khác `assets.current_value` vốn là một con số ai
+ * đó nói ra. Câu chữ nhãn thời gian trên UI phải phản ánh đúng khác biệt này.
+ */
+export type FundRow = {
+  id: string;
+  household_id: string;
+  name: string;
+  current_amount: number;
+  as_of_date: string;
+  updated_by_member_id: string | null;
+  is_archived: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+/**
+ * Một lần nạp/rút. CÓ GHI TÊN NGƯỜI NẠP — ngoại lệ duy nhất của lệnh cấm "tổng
+ * tiền theo người", và CHỈ trong phạm vi một tháng (03 §9 ngoại lệ 2).
+ *
+ * `contributor_name` là CHỮ TỰ DO, không phải khoá ngoại: người bỏ tiền vào quỹ
+ * không nhất thiết là member (bố mẹ đưa, em ruột góp).
+ * `contributor_member_id` chỉ để điền sẵn ô nhập, KHÔNG BAO GIỜ là khoá gom nhóm.
+ */
+export type FundEntryRow = {
+  id: string;
+  fund_id: string;
+  household_id: string;
+  kind: string;
+  amount: number;
+  occurred_on: string;
+  purpose: string | null;
+  contributor_name: string | null;
+  contributor_member_id: string | null;
+  note: string | null;
+  created_by: string;
+  created_at: string;
   deleted_at: string | null;
 };
 
@@ -437,14 +497,49 @@ export type FinanceMetricsRow = {
   currency: string;
 };
 
-/** View `upcoming_needs` — ba nguồn tiền gộp làm một. Xem 0004 §10. */
+/**
+ * View `upcoming_needs` — bốn nguồn tiền gộp làm một. Xem 0008 §8.
+ *
+ * `kind` thêm ở v3: 'mandatory' cho ba nguồn nghĩa vụ, 'optional' cho `goal`.
+ * Mục tiêu hiện CÙNG MÀN HÌNH với nghĩa vụ nhưng KHÔNG BAO GIỜ cùng một con số
+ * — `projectRunway` chỉ cộng 'mandatory'. Xem 10 §5.
+ */
 export type UpcomingNeedRow = {
   source: string;
+  kind: string;
   id: string;
   household_id: string;
   title: string;
   on_date: string;
   amount: number;
+};
+
+/** View `fund_month_summary` — gom theo MỘT tháng. Xem 0008 §10. */
+export type FundMonthSummaryRow = {
+  household_id: string;
+  fund_id: string;
+  month: string;
+  deposits: number;
+  withdrawals: number;
+  net: number;
+  entry_count: number;
+};
+
+/**
+ * View `fund_month_contributors` — NGOẠI LỆ có điều kiện của lệnh cấm "tổng tiền
+ * theo người" (03 §9 ngoại lệ 2).
+ *
+ * `month` LUÔN có mặt và luôn nằm trong group by. Mọi truy vấn đọc view này bắt
+ * buộc lọc theo một tháng — bỏ điều kiện đó ra là dựng số dư nợ giữa hai vợ
+ * chồng. PHÉP THỬ: con số này có vắt qua nhiều hơn một tháng không? Có → sai.
+ */
+export type FundMonthContributorRow = {
+  household_id: string;
+  fund_id: string;
+  month: string;
+  contributor_name: string;
+  total: number;
+  entry_count: number;
 };
 
 /** View `money_history` — lịch sử biến động. CHỈ hiển thị dạng danh sách. */
@@ -676,6 +771,8 @@ export interface Database {
       debts: TableOf<DebtRow>;
       upcoming_payments: TableOf<UpcomingPaymentRow>;
       goals: TableOf<GoalRow>;
+      funds: TableOf<FundRow>;
+      fund_entries: TableOf<FundEntryRow>;
       money_events: TableOf<MoneyEventRow>;
       money_snapshots: TableOf<MoneySnapshotRow>;
       attention_items: TableOf<AttentionItemRow>;
@@ -696,6 +793,8 @@ export interface Database {
       money_history: ViewOf<MoneyHistoryRow>;
       gift_history: ViewOf<GiftHistoryRow>;
       gift_outstanding: ViewOf<GiftOutstandingRow>;
+      fund_month_summary: ViewOf<FundMonthSummaryRow>;
+      fund_month_contributors: ViewOf<FundMonthContributorRow>;
     };
     Functions: {
       // RPC nguyên tử ở 0001 §12
@@ -712,6 +811,24 @@ export interface Database {
         Args: { p_asset_id: string; p_value: number; p_as_of?: string; p_note?: string | null };
         Returns: void;
       };
+      /**
+       * RPC ở 0008 §11 — ba bảng trong một transaction: fund_entries +
+       * funds.current_amount + money_events. Trả về id khoản vừa ghi.
+       */
+      record_fund_entry: {
+        Args: {
+          p_fund_id: string;
+          p_kind: string;
+          p_amount: number;
+          p_occurred_on?: string;
+          p_purpose?: string | null;
+          p_contributor?: string | null;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      /** Xoá mềm + TÍNH LẠI số dư từ các dòng còn sống (không trừ dồn). */
+      delete_fund_entry: { Args: { p_entry_id: string }; Returns: void };
       // RPC onboarding ở 0002 — xem migration để biết vì sao cần
       ensure_profile: { Args: { p_display_name: string }; Returns: string };
       create_household: {

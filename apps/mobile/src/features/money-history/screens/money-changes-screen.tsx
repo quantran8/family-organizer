@@ -53,7 +53,13 @@ import { useToday } from '@/lib/use-today';
  * `MoneyEntityType` mà quên thêm chip thì cả một mảng lịch sử biến mất khỏi màn
  * này mà không có lỗi nào — bộ lọc "Tất cả" vẫn hiện nó, nên không ai để ý.
  */
-const ENTITY_TYPES: readonly MoneyEntityType[] = ['asset', 'debt', 'upcoming_payment', 'goal'];
+const ENTITY_TYPES: readonly MoneyEntityType[] = [
+  'asset',
+  'debt',
+  'upcoming_payment',
+  'goal',
+  'fund',
+];
 
 /** Nhãn cho từng loại. Ánh xạ tường minh để `t` không phải đoán theo tên khoá. */
 const ENTITY_LABEL: Record<MoneyEntityType, (t: Dictionary) => string> = {
@@ -61,6 +67,7 @@ const ENTITY_LABEL: Record<MoneyEntityType, (t: Dictionary) => string> = {
   debt: (t) => t.debt.title,
   upcoming_payment: (t) => t.payment.title,
   goal: (t) => t.goal.title,
+  fund: (t) => t.fund.title,
 };
 
 export function MoneyChangesScreen() {
