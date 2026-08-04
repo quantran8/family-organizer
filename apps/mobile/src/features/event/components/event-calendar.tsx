@@ -76,7 +76,7 @@ export function EventCalendar({
       {!embedded ? (
         <View className="flex-row items-center justify-between gap-4">
           <Text className="text-label font-semibold text-muted">{t.event.fieldDate}</Text>
-          <Text className="text-caption font-semibold text-brand-deep">
+          <Text className="text-caption font-semibold text-ink">
             {calendar === 'lunar' ? t.event.calendarBasisLunar : t.event.calendarBasisSolar}
           </Text>
         </View>
@@ -145,17 +145,20 @@ export function EventCalendar({
                   accessibilityLabel={`${weekdayShort(weekdayOf(date))}, ${civil.day}/${civil.month}/${civil.year}, ${lunar.day}/${lunar.month} âm lịch`}
                   onPress={() => select(date)}
                   className={`min-h-[54px] items-center justify-center rounded-control active:opacity-70 ${
-                    selected ? 'bg-brand shadow-brand' : ''
+                    // Không kèm bóng: `shadow-section` là bóng của một mảng
+                    // trắng lớn, đặt dưới một ô 54px thì thành vệt bẩn. Ô đang
+                    // chọn đã đủ rõ nhờ nền accent + chữ đen (§11.2).
+                    selected ? 'bg-accent' : ''
                   }`}
                 >
                   <Text
                     className={`text-body font-semibold tabular-nums ${
                       selected
-                        ? 'text-on-brand'
+                        ? 'text-accent-ink'
                         : outside
                           ? 'text-subtle'
                           : isToday
-                            ? 'text-brand-deep underline'
+                            ? 'text-ink underline'
                             : 'text-ink'
                     }`}
                   >
@@ -163,7 +166,7 @@ export function EventCalendar({
                   </Text>
                   <Text
                     className={`text-micro font-medium tabular-nums ${
-                      selected ? 'text-on-brand/80' : outside ? 'text-line' : 'text-subtle'
+                      selected ? 'text-accent-ink/70' : outside ? 'text-line' : 'text-subtle'
                     }`}
                   >
                     {`${lunar.day}/${lunar.month}`}
@@ -189,15 +192,15 @@ export function EventCalendar({
       </View>
 
       {!embedded && value !== null && selectedLunar !== null ? (
-        <View className="mt-4 flex-row items-center gap-3 rounded-featured bg-brand-soft px-4 py-3">
+        <View className="mt-4 flex-row items-center gap-3 rounded-section bg-accent-soft px-4 py-3">
           <View className="h-10 w-10 items-center justify-center rounded-control bg-surface">
-            <Icon name="date" size={20} color={ICON_COLOR.brand} />
+            <Icon name="date" size={20} color={ICON_COLOR.muted} />
           </View>
           <View className="min-w-0 flex-1">
             <Text numberOfLines={1} className="text-body font-semibold text-ink">
               {`${weekdayShort(weekdayOf(value))}, ${pad(parseISODate(value).day)} tháng ${parseISODate(value).month}, ${parseISODate(value).year}`}
             </Text>
-            <Text className="mt-0.5 text-caption font-semibold text-brand-deep">
+            <Text className="mt-0.5 text-caption font-semibold text-ink">
               {`${pad(selectedLunar.day)}/${pad(selectedLunar.month)}${selectedLunar.isLeapMonth ? ' nhuận' : ''} âm lịch`}
             </Text>
           </View>

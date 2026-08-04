@@ -49,7 +49,7 @@ export function ContributorBlock({ byContributor, month }: ContributorBlockProps
   return (
     <View accessibilityLabel={`${t.fund.contributors} — ${month}`}>
       <SectionHeader title={t.fund.contributors} />
-      <View className="rounded-featured border border-line bg-surface">
+      <View className="rounded-section border border-line bg-surface">
         {byContributor.map((c, i) => (
           <View
             key={c.name}

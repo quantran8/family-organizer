@@ -21,7 +21,7 @@ import { useT } from '@/i18n';
  * của cả sản phẩm là **hai thành viên được thể hiện ngang nhau**. Nhạt và gần
  * giống nhau là đúng ý đồ: avatar để phân biệt, không phải để gán danh tính.
  */
-const TONES = ['bg-soft', 'bg-brand-soft'] as const;
+const TONES = ['bg-soft', 'bg-accent-soft'] as const;
 
 function toneFor(name: string): string {
   let sum = 0;

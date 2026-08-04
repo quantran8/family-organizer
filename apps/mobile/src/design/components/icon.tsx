@@ -73,15 +73,17 @@ export type IconName = keyof typeof GLYPH;
  * Sửa màu ở `tailwind.config.js` thì phải sửa cả đây.
  */
 export const ICON_COLOR = {
-  ink: '#101014',
-  muted: '#707078',
-  subtle: '#A4A4AD',
-  // LƯU Ý: `design.md` nói hai giá trị brand khác nhau — §5.3 ghi `#2F63F5`, §17
-  // ghi `#6257F6`. `tailwind.config.js` theo §17, và cả app đang tô theo config,
-  // nên đây cũng theo §17. Đổi thì phải đổi cả hai chỗ cùng lúc.
-  brand: '#6257F6',
+  ink: '#111114',
+  muted: '#717177',
+  subtle: '#A2A2A8',
+  // Icon nằm TRÊN nền `bg-accent` (chanh). Accent sáng nên icon trên nó phải
+  // đen — không có "màu icon accent" để vẽ lên nền trắng, vì chanh trên trắng
+  // gần như không thấy. Một icon muốn nổi thì đổi NỀN sang accent, không đổi
+  // nét sang accent (§5.3).
+  accentInk: '#111114',
   /** Hạn chót và khoản sắp phải trả — KHÔNG dùng cho lỗi (§5.4). */
-  attention: '#FF643A',
+  attention: '#FF6B57',
+  positive: '#13A86B',
   critical: '#D64545',
   disabled: '#8B8B94',
   white: '#FFFFFF',

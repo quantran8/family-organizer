@@ -38,13 +38,15 @@ export function Checkbox({ checked, onToggle, disabled = false }: CheckboxProps)
         onToggle(!checked);
       }}
     >
+      {/* Xong = nền accent + dấu tick ĐEN (§13.3). Accent là màu sáng nên dấu
+          tick phải là `accent-ink`; tick trắng trên chanh thì mất hẳn. */}
       <View
         className={[
           'h-6 w-6 items-center justify-center rounded-full border-2',
-          checked ? 'border-brand bg-brand' : 'border-subtle bg-surface',
+          checked ? 'border-accent bg-accent' : 'border-subtle bg-surface',
         ].join(' ')}
       >
-        {checked ? <Text className="text-caption font-semibold text-on-brand">✓</Text> : null}
+        {checked ? <Text className="text-caption font-semibold text-accent-ink">✓</Text> : null}
       </View>
     </Pressable>
   );

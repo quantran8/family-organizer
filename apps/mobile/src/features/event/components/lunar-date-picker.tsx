@@ -79,11 +79,11 @@ export function LunarDatePicker({
       >
         <View
           className={`h-6 w-6 items-center justify-center rounded-[6px] border-2 ${
-            isLeapMonth ? 'border-brand bg-brand' : 'border-subtle bg-surface'
+            isLeapMonth ? 'border-accent bg-accent' : 'border-subtle bg-surface'
           }`}
         >
           {isLeapMonth ? (
-            <Text className="text-caption font-semibold text-on-brand">✓</Text>
+            <Text className="text-caption font-semibold text-accent-ink">✓</Text>
           ) : null}
         </View>
         <Text className="text-body text-ink">{t.event.fieldLeapMonth}</Text>
@@ -124,13 +124,13 @@ function LunarPreview({
   }
 
   return (
-    // Ngày âm là NGỮ CẢNH THỜI GIAN, và đó chính là vai trò của màu brand
-    // (design.md §5.3). Trước đây dùng một "màu module sự kiện" riêng — thứ
-    // design.md §5.4 nói thẳng là không được làm: màu ngữ nghĩa không phải màu
-    // trang trí theo module, và một bảng màu-theo-module thứ hai chạy song song
-    // với bảng ngữ nghĩa làm không màu nào còn nghĩa cố định.
-    <View className="rounded-control bg-brand-soft px-4 py-3">
-      <Text className="text-body text-brand-deep">
+    // Ngày là một trong bốn thứ §5.3 giao cho accent, nên ô xem trước này dùng
+    // `accent-soft` — bản nhạt, vì nó là một khối thông tin đứng yên chứ không
+    // phải một trạng thái đang chọn. Trước đây dùng một "màu module sự kiện"
+    // riêng, thứ §5.4 nói thẳng là không được làm: một bảng màu-theo-module
+    // chạy song song với bảng ngữ nghĩa làm không màu nào còn nghĩa cố định.
+    <View className="rounded-control bg-accent-soft px-4 py-3">
+      <Text className="text-body text-ink">
         {lunarPreviewText(solar, weekdayOf(solar))}
       </Text>
     </View>

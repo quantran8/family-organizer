@@ -17,7 +17,7 @@
 
 import { Tabs } from 'expo-router';
 
-import { TabIcon } from '@/design/components';
+import { ICON_COLOR, TabIcon } from '@/design/components';
 import { useT } from '@/i18n';
 
 export default function AppLayout() {
@@ -27,9 +27,13 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#6257F6',
-        tabBarInactiveTintColor: '#A4A4AD',
-        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#ECECF0' },
+        // Tab đang mở màu ĐEN, không phải accent (design.md §11.2): accent là
+        // màu nền, một nhãn 11px tô chanh trên nền trắng thì không đọc được.
+        // Việc phân biệt vẫn không dựa vào màu một mình — `TabIcon` đổi sang
+        // nét ĐẶC khi focused (§11.2, §15).
+        tabBarActiveTintColor: ICON_COLOR.ink,
+        tabBarInactiveTintColor: ICON_COLOR.subtle,
+        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#ECECEE' },
         tabBarLabelStyle: { fontSize: 11, fontFamily: 'BeVietnamPro_500Medium' },
       }}
     >

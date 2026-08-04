@@ -194,7 +194,7 @@ export function AssetFormScreen() {
         >
           <Text className="text-caption text-subtle">
             {`${t.liquidity[liquidity]} · `}
-            <Text className="text-brand">{t.asset.changeLiquidity}</Text>
+            <Text className="text-ink">{t.asset.changeLiquidity}</Text>
           </Text>
         </Pressable>
       )}

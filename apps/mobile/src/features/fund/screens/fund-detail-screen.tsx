@@ -111,7 +111,7 @@ export function FundDetailScreen() {
           <MonthPicker month={month} onChange={setMonth} />
         </View>
 
-        <View className="mt-4 rounded-featured border border-line p-4">
+        <View className="mt-4 rounded-section border border-line p-4">
           <View className="flex-row items-center justify-between">
             <Text className="text-body text-ink">{t.fund.monthDeposits}</Text>
             <MoneyText amount={summary?.deposits ?? 0} size="body" tone="ok" />

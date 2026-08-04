@@ -111,7 +111,7 @@ export function DatePicker({
   };
 
   return (
-    <View className={nativeOnly ? 'my-2 rounded-featured bg-soft px-3 py-2' : 'gap-3'}>
+    <View className={nativeOnly ? 'my-2 rounded-section bg-soft px-3 py-2' : 'gap-3'}>
       {!nativeOnly ? (
         <View className="flex-row flex-wrap gap-2">
           {quick.map((q) => (
@@ -134,7 +134,7 @@ export function DatePicker({
           className="min-h-touch flex-row items-center gap-3 border-t border-line pt-3 active:bg-soft"
         >
           <View className="w-8 items-center">
-            <Icon name="date" color={ICON_COLOR.brand} />
+            <Icon name="date" color={ICON_COLOR.muted} />
           </View>
           <View className="flex-1">
             <Text className="text-body font-medium text-ink">{t.task.otherDate}</Text>
@@ -182,11 +182,12 @@ function Chip({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
+      // Cùng quy tắc với `ChipSelect`: đang chọn = nền accent + chữ `accent-ink`.
       className={`min-h-touch justify-center rounded-full border px-4 ${
-        active ? 'border-brand bg-brand-soft' : 'border-line bg-surface active:bg-soft'
+        active ? 'border-accent bg-accent' : 'border-line bg-surface active:bg-soft'
       }`}
     >
-      <Text className={`text-label font-medium ${active ? 'text-brand-deep' : 'text-ink'}`}>
+      <Text className={`text-label font-medium ${active ? 'text-accent-ink' : 'text-ink'}`}>
         {label}
       </Text>
     </Pressable>

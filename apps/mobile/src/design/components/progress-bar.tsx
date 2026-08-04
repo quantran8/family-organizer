@@ -31,8 +31,12 @@ export function progressPct(current: number, target: number): number {
 export function ProgressBar({ value, total }: ProgressBarProps) {
   const pct = progressPct(value, total);
   return (
+    // Phần đã đạt tô `ink`, KHÔNG tô accent: một thanh cao 8px là mảng màu nhỏ
+    // nhất trên màn, và chanh trên nền `soft` gần như không phân biệt được —
+    // đúng thứ §5.5 gọi là dựa vào màu để truyền trạng thái. Đen trên xám nhạt
+    // thì đọc được ở mọi độ sáng màn hình.
     <View className="mt-2 h-2 overflow-hidden rounded-full bg-soft">
-      <View className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+      <View className="h-full rounded-full bg-ink" style={{ width: `${pct}%` }} />
     </View>
   );
 }

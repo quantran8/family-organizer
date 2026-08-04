@@ -157,7 +157,7 @@ export function TaskFormScreen() {
   return (
     <Sheet title={t.task.formTitle} onClose={close} scroll={false} header="close">
       <View
-        className={`overflow-hidden rounded-featured border bg-surface ${
+        className={`overflow-hidden rounded-section border bg-surface ${
           titleError ? 'border-critical' : 'border-line'
         }`}
       >
@@ -199,7 +199,7 @@ export function TaskFormScreen() {
                           titleRef.current?.focus();
                         }}
                         className={`min-h-[52px] flex-row items-center gap-3 rounded-2xl px-3 ${
-                          selected ? 'bg-brand-soft' : 'bg-surface active:bg-line'
+                          selected ? 'bg-accent-soft' : 'bg-surface active:bg-line'
                         }`}
                         style={{ flexBasis: '48%', flexGrow: 1 }}
                       >
@@ -210,7 +210,7 @@ export function TaskFormScreen() {
                         >
                           {label}
                         </Text>
-                        {selected ? <Icon name="check" size={18} color={ICON_COLOR.brand} /> : null}
+                        {selected ? <Icon name="check" size={18} color={ICON_COLOR.muted} /> : null}
                       </Pressable>
                     );
                   })}
@@ -266,12 +266,12 @@ export function TaskFormScreen() {
                 setActivePanel(null);
                 setDatePickerOpen((open) => !open);
               }}
-              className="h-11 flex-row items-center justify-center gap-1.5 rounded-full bg-brand-soft px-3 active:opacity-70"
+              className="h-11 flex-row items-center justify-center gap-1.5 rounded-full bg-accent-soft px-3 active:opacity-70"
             >
-              <Icon name="date" size={20} color={ICON_COLOR.brand} />
+              <Icon name="date" size={20} color={ICON_COLOR.muted} />
               <Text
                 numberOfLines={1}
-                className="max-w-[124px] text-[13px] font-semibold text-brand-deep"
+                className="max-w-[124px] text-[13px] font-semibold text-ink"
               >
                 {dateLabel(dueDate)}
               </Text>
@@ -283,7 +283,7 @@ export function TaskFormScreen() {
               accessibilityState={{ expanded: activePanel === 'assignee' }}
               onPress={() => togglePanel('assignee')}
               className={`h-11 flex-row items-center justify-center gap-1.5 rounded-full px-3 active:opacity-70 ${
-                activePanel === 'assignee' || assigneeId !== null ? 'bg-brand-soft' : ''
+                activePanel === 'assignee' || assigneeId !== null ? 'bg-accent-soft' : ''
               }`}
             >
               <Icon
@@ -291,14 +291,14 @@ export function TaskFormScreen() {
                 size={20}
                 color={
                   activePanel === 'assignee' || assigneeId !== null
-                    ? ICON_COLOR.brand
+                    ? ICON_COLOR.muted
                     : ICON_COLOR.muted
                 }
               />
               {assigneeLabel !== '' ? (
                 <Text
                   numberOfLines={1}
-                  className="max-w-[88px] text-[13px] font-semibold text-brand-deep"
+                  className="max-w-[88px] text-[13px] font-semibold text-ink"
                 >
                   {assigneeLabel}
                 </Text>
@@ -311,7 +311,7 @@ export function TaskFormScreen() {
               accessibilityState={{ expanded: activePanel === 'note' }}
               onPress={() => togglePanel('note')}
               className={`relative h-11 w-11 items-center justify-center rounded-full active:opacity-70 ${
-                activePanel === 'note' || notes.trim() !== '' ? 'bg-brand-soft' : ''
+                activePanel === 'note' || notes.trim() !== '' ? 'bg-accent-soft' : ''
               }`}
             >
               <Icon
@@ -319,12 +319,12 @@ export function TaskFormScreen() {
                 size={20}
                 color={
                   activePanel === 'note' || notes.trim() !== ''
-                    ? ICON_COLOR.brand
+                    ? ICON_COLOR.muted
                     : ICON_COLOR.muted
                 }
               />
               {notes.trim() !== '' ? (
-                <View className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-brand" />
+                <View className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-accent" />
               ) : null}
             </Pressable>
           </ScrollView>

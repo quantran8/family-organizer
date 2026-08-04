@@ -245,7 +245,7 @@ function InfoRow({
       <Text className="flex-1 text-body text-muted">{label}</Text>
       <Text
         numberOfLines={1}
-        className={`max-w-[55%] text-body ${onPress ? 'text-brand' : 'text-ink'}`}
+        className={`max-w-[55%] text-body ${onPress ? 'text-ink' : 'text-ink'}`}
         onPress={onPress}
         // Dòng "Đổi cách phân loại" là một nút thật — khai vai trò để trình đọc
         // màn hình không đọc nó thành một giá trị tĩnh.

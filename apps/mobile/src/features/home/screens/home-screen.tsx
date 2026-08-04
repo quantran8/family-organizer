@@ -18,9 +18,13 @@
  *      con số thứ hai chỉ có nghĩa khi đọc cạnh con số thứ nhất.
  *   2. **Cần mua** — bề mặt hằng ngày, lý do app được mở trong tuần không có
  *      sự kiện nào.
- *   3. **Sắp tới** — MỘT feed trộn việc/sự kiện/khoản phải trả, KHÔNG tách
- *      "Hôm nay" và "Tuần này" thành hai khối. Hai tiêu đề cho một dòng thời
- *      gian liên tục bắt người đọc ghép lại trong đầu thứ vốn đã liền mạch.
+ *   3. **Việc cần làm · Sự kiện sắp tới · Khoản sắp trả** — ba nhóm riêng, tách
+ *      theo LOẠI. Bên trong mỗi nhóm vẫn KHÔNG tách "Hôm nay" / "Tuần này":
+ *      hai tiêu đề cho một dòng thời gian liên tục bắt người đọc ghép lại trong
+ *      đầu thứ vốn đã liền mạch, nên mỗi dòng tự mang nhãn ngày. Nhưng ba LOẠI
+ *      thì tách, vì chúng đòi ba hành động khác nhau — việc thì tick tại chỗ,
+ *      sự kiện thì chuẩn bị trước nhiều ngày, khoản trả thì chuyển tiền — và
+ *      mỗi nhóm đi tới một màn khác khi bấm "Xem tất cả".
  *   4. **Cần chú ý** — thứ có hạn nhưng chưa tới hạn.
  *
  * Chỉ mục 1 là thẻ; ba mục còn lại là danh sách có đường kẻ (design.md §8 —
@@ -28,13 +32,19 @@
  */
 
 import {
+  addDays,
+  compareISODate,
   computeFinanceStatus,
   explainFinanceStatus,
   formatDeclaredAt,
   formatDueLabel,
   groupTasksByDue,
   projectRunway,
+  weekdayOf,
+  type FamilyEvent,
+  type ISODate,
   type Task,
+  type UpcomingPayment,
   type UUID,
 } from '@family-organizer/domain';
 import { useRouter } from 'expo-router';
@@ -44,28 +54,73 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
-  Card,
   EmptyState,
   Icon,
   ICON_COLOR,
   ListSkeleton,
   MemberAvatar,
   MoneyText,
+  Section,
   StatusPill,
   UndoToast,
   useUndo,
 } from '@/design/components';
 import { useOpenAttentionWithEntities } from '@/features/attention/queries/use-attention';
+import { EventRow } from '@/features/event/components';
 import { useCostAskPrompt } from '@/features/event/queries/use-cost-ask-prompt';
+import { useEvents } from '@/features/event/queries/use-events';
 import { AddFab } from '@/features/home/components';
 import { useFinanceMetrics, useUpcomingNeeds } from '@/features/household/queries/use-household';
 import { useMe, useMembers } from '@/features/member/queries/use-members';
+import { usePayments } from '@/features/payment/queries/use-payments';
 import { useShoppingItems } from '@/features/shopping/queries/use-shopping';
 import { TaskRow } from '@/features/task/components';
 import { useDeleteTask, useSetTaskDone, useTasks } from '@/features/task/queries/use-tasks';
-import { declaredAtText, dueLabelText, financeReasonText, interpolate, useT } from '@/i18n';
+import {
+  declaredAtText,
+  dueLabelText,
+  financeReasonText,
+  interpolate,
+  shortSolarDate,
+  useT,
+  weekdayShort,
+} from '@/i18n';
 import { useToday } from '@/lib/use-today';
 import { useSessionStore } from '@/stores/session';
+
+/**
+ * Cửa sổ của nhóm SỰ KIỆN trên Nhà mình.
+ *
+ * 30 ngày, dài hơn cửa sổ việc (hết tuần) vì hai loại này được chuẩn bị ở hai
+ * nhịp khác nhau: một cái giỗ báo trước ba ngày là đã muộn — phải đặt mâm, xếp
+ * lịch nghỉ, gọi họ hàng — trong khi việc nhà tuần sau kéo lên hôm nay chỉ làm
+ * loãng câu trả lời ba giây.
+ */
+const HOME_EVENT_HORIZON_DAYS = 30;
+
+/** Cắt ở 3 dòng như CẦN CHÚ Ý — con số trên tiêu đề vẫn đếm đủ. */
+const HOME_PAYMENT_LIMIT = 3;
+
+/**
+ * Sự kiện trong cửa sổ, sắp theo ngày dương gần nhất.
+ *
+ * Sự kiện chưa có `nextOccurrenceDate` bị LOẠI, không xếp xuống cuối: đó là
+ * sự kiện âm lịch vừa tạo mà Edge `refresh-lunar-dates` chưa chạy tới (ràng
+ * buộc #2 — không có đường code thứ hai nào tính lịch âm). Nó có chỗ ở tab Sự
+ * kiện, nơi `EventRow` nói rõ "chưa tính được ngày"; còn ở đây, một dòng không
+ * có ngày nằm giữa một danh sách sắp theo ngày là một dòng không đọc được.
+ */
+function pickUpcomingEvents(events: readonly FamilyEvent[], today: ISODate): FamilyEvent[] {
+  const until = addDays(today, HOME_EVENT_HORIZON_DAYS);
+  return events
+    .filter(
+      (e) =>
+        e.nextOccurrenceDate !== null &&
+        compareISODate(e.nextOccurrenceDate, today) >= 0 &&
+        compareISODate(e.nextOccurrenceDate, until) <= 0,
+    )
+    .sort((a, b) => compareISODate(a.nextOccurrenceDate ?? '', b.nextOccurrenceDate ?? ''));
+}
 
 export function HomeScreen() {
   const { t } = useT();
@@ -114,15 +169,31 @@ export function HomeScreen() {
   const { data: shopping } = useShoppingItems();
   const hasShopping = (shopping ?? []).some((i) => !i.isDone);
 
-  // "Sắp tới" là MỘT feed, nên hai nhóm cũ nối lại thành một danh sách. Việc
-  // hôm nay vẫn đứng trước việc cuối tuần vì `groupTasksByDue` đã trả theo thứ
-  // tự đó — nối, không sắp xếp lại.
+  // Việc hôm nay và việc cuối tuần vẫn đi CHUNG một danh sách — cái tách ra ở
+  // G17 là ba LOẠI (việc / sự kiện / khoản trả), không phải ba mốc thời gian.
+  // Thứ tự giữ nguyên vì `groupTasksByDue` đã trả đúng — nối, không sắp lại.
   const upcomingTasks = useMemo(
     () => [...todayTasks, ...weekTasks],
     [todayTasks, weekTasks],
   );
 
-  const isEmpty = !isPending && upcomingTasks.length === 0 && !hasShopping;
+  // Sự kiện và khoản trả phải được tính vào "rỗng" từ lúc chúng có mục riêng:
+  // thiếu vế này thì một nhà chưa có việc nào nhưng có ba cái giỗ sẽ vừa hiện
+  // "Bắt đầu từ điều gần nhất" vừa hiện ba dòng sự kiện ngay bên trên.
+  const { data: events } = useEvents();
+  const { data: payments } = usePayments('30d', today);
+  const upcomingEvents = useMemo(() => pickUpcomingEvents(events ?? [], today), [events, today]);
+  const upcomingPayments = useMemo(
+    () => (payments ?? []).filter((p) => p.state === 'unpaid'),
+    [payments],
+  );
+
+  const isEmpty =
+    !isPending &&
+    upcomingTasks.length === 0 &&
+    upcomingEvents.length === 0 &&
+    upcomingPayments.length === 0 &&
+    !hasShopping;
 
   const renderTask = (item: Task) => (
     <TaskRow
@@ -152,17 +223,20 @@ export function HomeScreen() {
     // header nào đứng giữa nội dung và notch. Cạnh dưới KHÔNG khai — tab bar đã
     // nằm ở đó và Expo Router tự chừa home indicator; khai thêm sẽ đội nội dung
     // lên một khoảng trống thừa ngay phía trên tab bar.
-    <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={['top']}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pb-24"
+        // `gap-4`: khoảng cách GIỮA các mảng section (§7.3 — 16–20px). Đây là
+        // thứ thay cho `mt-8` mà từng nhóm tự khai trước đây; để mỗi nhóm tự
+        // đặt lề trên thì nhóm nào ẩn đi sẽ để lại một khoảng trống khác nhau.
+        contentContainerClassName="gap-4 px-4 pb-24"
         showsVerticalScrollIndicator={false}
         refreshControl={
           // Kéo xuống để làm mới. Không auto-refresh theo chu kỳ (05 §4).
           <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
         }
       >
-        <HomeHeader householdName={householdName ?? t.app.name} />
+        <HomeHeader householdName={householdName ?? t.app.name} today={today} />
 
         <FinanceCard today={today} onPress={() => router.push('/(app)/money')} />
 
@@ -170,18 +244,68 @@ export function HomeScreen() {
 
         <InviteCard hasFirstRecord={(tasks ?? []).length > 0} />
 
-        {isPending ? <ListSkeleton rows={4} /> : null}
-
-        {upcomingTasks.length > 0 ? (
-          <Section title={t.home.sectionUpcoming} onAction={() => router.push('/(app)/plan')}>
-            {upcomingTasks.map(renderTask)}
+        {isPending ? (
+          <Section>
+            <ListSkeleton rows={4} />
           </Section>
+        ) : null}
+
+        {/* Ba nhóm theo thứ tự người dùng xử lý chúng trong ngày: việc tick
+            được ngay, sự kiện cần chuẩn bị trước, khoản trả cần tiền. Mỗi nhóm
+            ẩn HẲN khi rỗng và "Xem tất cả" đi tới đúng màn của nó — trước đây
+            cả ba loại chung một tiêu đề nên nút này chỉ đi được tới một chỗ. */}
+        {upcomingTasks.length > 0 ? (
+          <HomeSection
+            title={t.home.sectionTasks}
+            count={upcomingTasks.length}
+            onAction={() => router.push('/(app)/plan')}
+          >
+            {/* `gap-5` = 20px, mức sàn của §7.3 cho khoảng cách giữa hai dòng
+                phẳng. KHÔNG có `border-b` giữa các dòng: §8 nói khoảng cách là
+                dải phân cách mặc định, đường kẻ chỉ dành cho danh sách dày. */}
+            <View className="gap-5">{upcomingTasks.map(renderTask)}</View>
+          </HomeSection>
+        ) : null}
+
+        {upcomingEvents.length > 0 ? (
+          <HomeSection
+            title={t.home.sectionEvents}
+            onAction={() => router.push('/(app)/plan')}
+          >
+            <View className="gap-5">
+              {upcomingEvents.map((event) => (
+                <EventRow
+                  key={event.id}
+                  event={event}
+                  onPress={() => router.push(`/(app)/plan/event/${event.id}`)}
+                />
+              ))}
+            </View>
+          </HomeSection>
+        ) : null}
+
+        {upcomingPayments.length > 0 ? (
+          <HomeSection
+            title={t.home.sectionPayments}
+            onAction={() => router.push('/(app)/money/payments')}
+          >
+            <View className="gap-5">
+              {upcomingPayments.slice(0, HOME_PAYMENT_LIMIT).map((payment) => (
+                <HomePaymentRow
+                  key={payment.id}
+                  payment={payment}
+                  today={today}
+                  onPress={() => router.push(`/(app)/money/payment/${payment.id}`)}
+                />
+              ))}
+            </View>
+          </HomeSection>
         ) : null}
 
         <AttentionSection onPress={() => router.push('/(app)/money/attention')} />
 
         {isEmpty ? (
-          <View className="mt-10">
+          <View className="mt-6">
             <EmptyState
               title={t.home.emptyTitle}
               body={t.home.emptyBody}
@@ -205,30 +329,44 @@ export function HomeScreen() {
  * riêng ở đầu màn chỉ lặp lại thứ điện thoại nào cũng hiện sẵn trên thanh trạng
  * thái, và nó chiếm đúng khoảng chiều cao mà con số tài chính cần.
  */
-function HomeHeader({ householdName }: { householdName: string }) {
+function HomeHeader({ householdName, today }: { householdName: string; today: ISODate }) {
   const { t } = useT();
   const router = useRouter();
   const { data: me } = useMe();
 
   return (
-    <View className="flex-row items-center gap-4 pt-2">
-      <View className="flex-1">
-        <Text className="text-micro font-semibold tracking-[1.4px] text-muted">
-          {t.home.eyebrow}
-        </Text>
-        <Text className="mt-1 text-display font-semibold text-ink">{householdName}</Text>
+    <View className="pt-2">
+      {/* Hàng trên: avatar + ngày hôm nay. Ngày ở đây là DƯƠNG lịch và cố ý
+          ngắn — nó chỉ neo người đọc vào "hôm nay là ngày mấy" trước khi họ
+          đọc các mốc hạn bên dưới, không phải một ô lịch để tra cứu. */}
+      <View className="flex-row items-center gap-3">
+        {/* Đường vào Cài đặt — qua avatar, KHÔNG chiếm một tab (05 §2). */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.a11y.settings}
+          hitSlop={8}
+          onPress={() => router.push('/(app)/settings')}
+          className="min-h-touch justify-center"
+        >
+          <MemberAvatar name={me?.displayName ?? t.app.name} />
+        </Pressable>
+
+        <View className="flex-1">
+          <Text className="text-micro font-medium uppercase tracking-[1.4px] text-muted">
+            {`${weekdayShort(weekdayOf(today))} · ${shortSolarDate(today)}`}
+          </Text>
+          <Text className="mt-0.5 text-caption font-medium text-ink" numberOfLines={1}>
+            {householdName}
+          </Text>
+        </View>
       </View>
 
-      {/* Đường vào Cài đặt — qua avatar, KHÔNG chiếm một tab (05 §2). */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.a11y.settings}
-        hitSlop={8}
-        onPress={() => router.push('/(app)/settings')}
-        className="min-h-touch min-w-touch items-end justify-center"
-      >
-        <MemberAvatar name={me?.displayName ?? t.app.name} />
-      </Pressable>
+      {/* Câu hỏi trung tâm của màn (§2.1) — một dòng, không có đoạn giải thích
+          bên dưới: §12 cấm văn xuôi trên màn tổng quan, và câu trả lời nằm ngay
+          trong các nhóm phía dưới. */}
+      <Text className="mt-7 text-display font-semibold tracking-[-1.6px] text-ink">
+        {t.home.eyebrow}
+      </Text>
     </View>
   );
 }
@@ -261,19 +399,18 @@ function InviteCard({ hasFirstRecord }: { hasFirstRecord: boolean }) {
   if (withAccount > 1) return null;
 
   return (
-    <View className="mt-5">
-      <Card emphasis="brand">
-        <Text className="text-heading font-semibold text-ink">{t.home.inviteCardTitle}</Text>
-        <Text className="mt-1 text-body text-muted">{t.home.inviteCardBody}</Text>
-        <View className="mt-4">
-          <Button
-            label={t.home.inviteCardAction}
-            variant="secondary"
-            onPress={() => router.push('/(app)/settings/invite')}
-          />
-        </View>
-      </Card>
-    </View>
+    // Mảng trắng như mọi nhóm khác, và nút là CTA đen (§10.1) — đây là thứ duy
+    // nhất trên Nhà mình thật sự muốn người dùng bấm, nên nó được nút chính.
+    <Section>
+      <Text className="text-heading font-semibold text-ink">{t.home.inviteCardTitle}</Text>
+      <Text className="mt-2 text-body text-muted">{t.home.inviteCardBody}</Text>
+      <View className="mt-5 flex-row">
+        <Button
+          label={t.home.inviteCardAction}
+          onPress={() => router.push('/(app)/settings/invite')}
+        />
+      </View>
+    </Section>
   );
 }
 
@@ -304,50 +441,59 @@ function FinanceCard({ today, onPress }: { today: string; onPress: () => void })
   const runway = projectRunway(metrics, needsList, today);
 
   return (
+    // Mảng TRẮNG như mọi nhóm khác, KHÔNG tô nền accent: §5.3 giữ accent ở mức
+    // tín hiệu nhỏ, và §13.2 nói thẳng là khối tài chính không được có nền
+    // riêng. Thứ làm nó nổi lên đầu màn là CỠ của con số, không phải màu nền.
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t.home.financeMore}
       onPress={onPress}
-      className="mt-7 rounded-featured bg-brand-soft p-5"
+      className="rounded-section bg-surface p-5 shadow-section active:opacity-90"
     >
-      <View className="flex-row items-center gap-3">
-        <View className="h-9 w-9 items-center justify-center rounded-icon bg-surface">
-          <Icon name="wallet" size={19} color={ICON_COLOR.brand} />
-        </View>
-        <Text className="flex-1 text-heading font-semibold text-ink">{t.home.financeTitle}</Text>
-        <Icon name="openDetail" size={20} color={ICON_COLOR.brand} />
-      </View>
-
-      {/* ── Đang có ── */}
-      <View className="mt-5">
-        <Text className="text-caption font-medium text-muted">{t.home.financeUsable}</Text>
-        <MoneyText amount={metrics.totalUsable} size="display" className="mt-1" />
-        {/* Nhãn thời gian của SỐ KHAI — bắt buộc ở mọi chỗ hiện số tổng (03 §8).
-            Dùng nhóm "dùng ngay" vì đó là con số ngay bên trên. */}
-        <View className="mt-2 flex-row items-center gap-1">
-          <Icon name="declaredAt" size={13} color={ICON_COLOR.muted} />
-          <Text className="text-caption text-muted">
-            {declaredAtText(formatDeclaredAt(metrics.lastUsableUpdatedOn, null, today))}
-          </Text>
-        </View>
-      </View>
-
-      <View className="my-5 h-px bg-brand-line" />
-
-      {/* ── Sắp cần ── */}
-      <View className="flex-row items-end justify-between gap-4">
+      {/* ── Đang có ──
+          Nhãn nhóm đi kèm một chấm accent: đủ để khối này có nhận diện mà không
+          cần một mảng màu (§4.3). Con số là phần tử LỚN NHẤT của khối (§13.2). */}
+      <View className="flex-row items-start justify-between gap-4">
         <View className="flex-1">
-          <Text className="text-caption font-medium text-muted">{t.home.financeNeeded}</Text>
-          <MoneyText amount={runway.total} size="title2" className="mt-1" />
-          {/* `basis` luôn là 'declared' — đây là DỰ TÍNH từ số đã ghi, không
-              phải một báo cáo. Câu này là chỗ nói ra điều đó. */}
-          <Text className="mt-2 text-caption text-muted">{t.home.financeNeededBasis}</Text>
+          <View className="flex-row items-center gap-2">
+            <View className="h-2.5 w-2.5 rounded-full bg-accent" />
+            <Text className="text-caption font-medium text-muted">{t.home.financeUsable}</Text>
+          </View>
+
+          <MoneyText amount={metrics.totalUsable} size="display" className="mt-4" />
+
+          {/* Nhãn thời gian của SỐ KHAI — bắt buộc ở mọi chỗ hiện số tổng
+              (03 §8). Dùng nhóm "dùng ngay" vì đó là con số ngay bên trên. */}
+          <View className="mt-3 flex-row items-center gap-1">
+            <Icon name="declaredAt" size={13} color={ICON_COLOR.muted} />
+            <Text className="text-caption text-muted">
+              {declaredAtText(formatDeclaredAt(metrics.lastUsableUpdatedOn, null, today))}
+            </Text>
+          </View>
         </View>
+
         <StatusPill status={status} />
       </View>
 
+      <View className="my-5 h-px bg-line" />
+
+      {/* ── Sắp cần ──
+          Hai cột đơn giản (§13.2). Con số ở đây nhỏ hơn hẳn con số trên: đọc
+          cạnh nhau thì thứ tự quan trọng phải thấy được mà không cần nhãn. */}
+      <View className="flex-row gap-8">
+        <View className="flex-1">
+          <Text className="text-micro font-medium uppercase tracking-[0.8px] text-muted">
+            {t.home.financeNeeded}
+          </Text>
+          <MoneyText amount={runway.total} size="title2" className="mt-1" />
+          {/* `basis` luôn là 'declared' — đây là DỰ TÍNH từ số đã ghi, không
+              phải một báo cáo. Câu này là chỗ nói ra điều đó. */}
+          <Text className="mt-1 text-caption text-muted">{t.home.financeNeededBasis}</Text>
+        </View>
+      </View>
+
       {/* Nhãn màu không kèm lý do sẽ bị đọc là phán xét (03 §1). */}
-      <Text className="mt-4 text-body text-ink">{financeReasonText(reason)}</Text>
+      <Text className="mt-5 text-body text-ink">{financeReasonText(reason)}</Text>
     </Pressable>
   );
 }
@@ -384,29 +530,84 @@ function ShoppingSection({ onPress }: { onPress: () => void }) {
   const rest = pending.length - 2;
 
   return (
-    <View className="mt-8">
-      <SectionHeading title={t.shopping.cardTitle} count={pending.length} onPress={onPress} />
-
+    <HomeSection title={t.shopping.cardTitle} count={pending.length} onAction={onPress}>
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        className="min-h-touch flex-row items-center gap-4 border-b border-line py-4 active:bg-soft"
+        className="min-h-touch flex-row items-center gap-4 active:opacity-70"
       >
-        <View className="h-11 w-11 items-center justify-center rounded-icon bg-soft">
-          <Icon name="shopping" size={21} color={ICON_COLOR.ink} />
+        {/* Ô icon nền accent — §5.3 cho phép ô icon nhỏ mang màu này, và đây là
+            khối duy nhất trên màn có nó ngoài chấm ở khối tài chính. */}
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
+          <Icon name="shopping" size={20} color={ICON_COLOR.accentInk} />
         </View>
         <View className="flex-1">
-          <Text className="text-heading font-medium text-ink" numberOfLines={1}>
+          <Text className="text-body font-medium text-ink" numberOfLines={1}>
             {head}
           </Text>
           {rest > 0 ? (
-            <Text className="mt-1 text-label text-muted" numberOfLines={1}>
+            <Text className="mt-1 text-caption text-muted" numberOfLines={1}>
               {interpolate(t.home.shoppingMore, { count: rest })}
             </Text>
           ) : null}
         </View>
+        <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
       </Pressable>
-    </View>
+    </HomeSection>
+  );
+}
+
+/**
+ * Một khoản sắp trả trên Nhà mình.
+ *
+ * Cùng quy tắc với `PaymentRow` ở màn Sắp phải trả: khoản quá hạn KHÔNG tô đỏ
+ * cả dòng, chỉ riêng chữ nhãn mang màu cảnh báo (04 §7 — không doạ). Ở đầu màn
+ * chính thì điều đó còn quan trọng hơn: một khối đỏ chào buổi sáng là cách
+ * nhanh nhất để người ta thôi mở app.
+ *
+ * KHÔNG có nút [Đã trả] ở đây, dù `useSettlePayment` là thao tác một chạm có
+ * optimistic. Đánh dấu đã trả là một câu khẳng định về tiền thật; nó thuộc màn
+ * chi tiết nơi người dùng đọc được số tiền, ngày, và dư nợ còn lại — không phải
+ * một nút nhỏ cạnh mười thứ khác trên màn chính.
+ */
+function HomePaymentRow({
+  payment,
+  today,
+  onPress,
+}: {
+  payment: UpcomingPayment;
+  today: ISODate;
+  onPress: () => void;
+}) {
+  const { t } = useT();
+
+  const due = payment.dueDate ? formatDueLabel(payment.dueDate, today) : null;
+  const isOverdue = due?.kind === 'overdue_days';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={payment.name}
+      onPress={onPress}
+      className="min-h-touch flex-row items-center gap-3 active:opacity-70"
+    >
+      <View className="flex-1">
+        <Text numberOfLines={1} className="text-body font-medium text-ink">
+          {payment.name}
+        </Text>
+        <Text className={`mt-1 text-caption ${isOverdue ? 'text-critical' : 'text-muted'}`}>
+          {due
+            ? dueLabelText(due)
+            : // Khoản chỉ biết tháng ("học phí tháng 9") — hiện tháng, không bịa ra ngày.
+              payment.dueMonth
+              ? shortSolarDate(payment.dueMonth)
+              : t.event.noneYet}
+        </Text>
+      </View>
+
+      <MoneyText amount={payment.amount} size="body" />
+      <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
+    </Pressable>
   );
 }
 
@@ -424,40 +625,43 @@ function AttentionSection({ onPress }: { onPress: () => void }) {
   if (open.length === 0) return null;
 
   return (
-    <View className="mt-8">
-      <SectionHeading title={t.home.sectionAttention} count={open.length} onPress={onPress} />
-
+    <HomeSection title={t.home.sectionAttention} count={open.length} onAction={onPress}>
       {/* Tối đa 3 dòng; phần còn lại ở màn Cần trao đổi. Con số trên tiêu đề
           vẫn đếm ĐỦ, nên cắt ở đây không giấu mất thứ gì. */}
-      {open.slice(0, 3).map((flag) => {
-        // Cùng thứ tự dự phòng với màn `money/attention`: khoản bị xoá mềm trả
-        // `entityName = null`, và cờ vẫn phải đọc được thay vì hiện dòng trống.
-        const headline = flag.entityName ?? t.attention.title;
-        return (
-          <Pressable
-            key={flag.id}
-            accessibilityRole="button"
-            onPress={onPress}
-            className="min-h-touch flex-row items-center gap-4 border-b border-line py-4 active:bg-soft"
-          >
-            <View className="h-11 w-11 items-center justify-center rounded-icon bg-attention-soft">
-              <Icon name="alert" size={21} color={ICON_COLOR.attention} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-body font-medium text-ink" numberOfLines={1}>
-                {headline}
-              </Text>
-              {flag.note ? (
-                <Text className="mt-1 text-label text-muted" numberOfLines={1}>
-                  {flag.note}
+      <View className="gap-6">
+        {open.slice(0, 3).map((flag) => {
+          // Cùng thứ tự dự phòng với màn `money/attention`: khoản bị xoá mềm
+          // trả `entityName = null`, và cờ vẫn phải đọc được thay vì hiện dòng
+          // trống.
+          const headline = flag.entityName ?? t.attention.title;
+          return (
+            <Pressable
+              key={flag.id}
+              accessibilityRole="button"
+              onPress={onPress}
+              className="min-h-touch flex-row items-center gap-4 active:opacity-70"
+            >
+              {/* Ô icon mang màu ngữ nghĩa `attention` — đây là chỗ §13.6 cho
+                  phép, vì màu đang nói "thứ này có hạn", không phải trang trí. */}
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-attention-soft">
+                <Icon name="alert" size={20} color={ICON_COLOR.attention} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-body font-medium text-ink" numberOfLines={1}>
+                  {headline}
                 </Text>
-              ) : null}
-            </View>
-            <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
-          </Pressable>
-        );
-      })}
-    </View>
+                {flag.note ? (
+                  <Text className="mt-1 text-caption text-muted" numberOfLines={1}>
+                    {flag.note}
+                  </Text>
+                ) : null}
+              </View>
+              <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
+            </Pressable>
+          );
+        })}
+      </View>
+    </HomeSection>
   );
 }
 
@@ -479,14 +683,21 @@ function SectionHeading({
 }) {
   const { t } = useT();
   return (
-    <View className="mb-1 min-h-touch flex-row items-center justify-between gap-4">
+    // `mb-5` = 20px, khoảng cách tiêu đề → nội dung của §7.3. Không còn
+    // `min-h-touch` cho cả hàng: chiều cao đó sinh ra để nút "Xem tất cả" đủ
+    // vùng chạm, nhưng chính nút mới cần nó, còn ép cả hàng cao 44px làm tiêu
+    // đề của nhóm không có nút bị đội xuống lệch với nhóm có nút.
+    <View className="mb-5 flex-row items-center justify-between gap-4">
       <View className="flex-row items-center gap-3">
-        <Text className="text-title2 font-semibold text-ink">{title}</Text>
+        <Text className="text-title2 font-semibold tracking-[-0.6px] text-ink">{title}</Text>
         {/* Đếm số việc đang chờ, không đếm tổng cả việc đã xong: con số hữu ích
-            là "còn bao nhiêu", không phải "đã từng có bao nhiêu". */}
+            là "còn bao nhiêu", không phải "đã từng có bao nhiêu".
+
+            Nền accent — đây đúng là thứ §5.3 giao cho màu này ("counts"): một
+            mảng nhỏ, mang thông tin. Chữ trên nó là `accent-ink` vì nền sáng. */}
         {count !== undefined ? (
-          <View className="min-w-6 items-center justify-center rounded-status bg-soft px-2 py-1">
-            <Text className="text-caption font-semibold text-muted">{count}</Text>
+          <View className="min-w-6 items-center justify-center rounded-status bg-accent px-2.5 py-1">
+            <Text className="text-micro font-semibold text-accent-ink">{count}</Text>
           </View>
         ) : null}
       </View>
@@ -497,14 +708,21 @@ function SectionHeading({
           onPress={onPress}
           className="min-h-touch justify-center pl-3"
         >
-          <Text className="text-label font-semibold text-brand">{t.home.seeAll}</Text>
+          <Text className="text-label font-semibold text-ink">{t.home.seeAll}</Text>
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-function Section({
+/**
+ * Một nhóm trên Nhà mình = tiêu đề + nội dung, đặt trên MỘT mảng trắng.
+ *
+ * Mảng trắng do `Section` của `design/` lo (§13.1); phần thêm ở đây chỉ là
+ * tiêu đề cỡ lớn của màn này. Tách làm hai lớp vì mảng trắng còn dùng cho
+ * những khối KHÔNG có tiêu đề — khối tài chính, thẻ mời, skeleton lúc đang tải.
+ */
+function HomeSection({
   title,
   count,
   onAction,
@@ -516,13 +734,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <View className="mt-8">
+    <Section>
       <SectionHeading
         title={title}
         {...(count !== undefined ? { count } : {})}
         {...(onAction ? { onPress: onAction } : {})}
       />
       {children}
-    </View>
+    </Section>
   );
 }

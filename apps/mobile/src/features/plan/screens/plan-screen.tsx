@@ -217,7 +217,8 @@ function RecurringTaskList() {
         keyExtractor={(item: Task) => item.id}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-24"
+        contentContainerClassName="px-4 pb-24"
+        ItemSeparatorComponent={ListGap}
         refreshControl={
           // Kéo xuống để làm mới. Không auto-refresh theo chu kỳ (05 §4).
           <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
@@ -325,7 +326,8 @@ function FlexibleTaskList() {
         data={list}
         keyExtractor={(item: Task) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-24 pt-2"
+        contentContainerClassName="px-4 pb-24 pt-2"
+        ItemSeparatorComponent={ListGap}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
         }
@@ -418,7 +420,8 @@ function EventList() {
         keyExtractor={(item: FamilyEvent) => item.id}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-24"
+        contentContainerClassName="px-4 pb-24"
+        ItemSeparatorComponent={ListGap}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
         }
@@ -435,4 +438,16 @@ function EventList() {
       <AddFab />
     </>
   );
+}
+
+/**
+ * Khoảng cách giữa hai dòng trong danh sách — thay cho đường kẻ.
+ *
+ * `TaskRow`/`EventRow` không còn tự vẽ `border-b`: chúng là dòng PHẲNG, và §8
+ * nói khoảng cách là dải phân cách mặc định, đường kẻ chỉ dành cho danh sách
+ * dày bất thường. Đặt ở đây thay vì trong `py` của chính dòng để dòng cuối
+ * không thừa một khoảng đệm dưới đáy danh sách.
+ */
+function ListGap() {
+  return <View className="h-5" />;
 }

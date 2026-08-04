@@ -190,7 +190,7 @@ export function GiftBulkScreen() {
           onPress={addRow}
           className="mt-2 min-h-touch justify-center"
         >
-          <Text className="text-label font-medium text-brand">{t.gift.bulkAdd}</Text>
+          <Text className="text-label font-medium text-ink">{t.gift.bulkAdd}</Text>
         </Pressable>
 
         {bulk.isError ? (

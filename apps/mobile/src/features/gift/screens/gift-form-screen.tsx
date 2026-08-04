@@ -280,11 +280,11 @@ export function GiftFormScreen() {
         >
           <View
             className={`h-6 w-6 items-center justify-center rounded-control border-2 ${
-              noReciprocityNeeded ? 'border-brand bg-brand' : 'border-subtle bg-surface'
+              noReciprocityNeeded ? 'border-accent bg-accent' : 'border-subtle bg-surface'
             }`}
           >
             {noReciprocityNeeded ? (
-              <Text className="text-caption font-semibold text-on-brand">{CHECK_MARK}</Text>
+              <Text className="text-caption font-semibold text-accent-ink">{CHECK_MARK}</Text>
             ) : null}
           </View>
 

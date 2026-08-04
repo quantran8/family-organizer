@@ -77,7 +77,7 @@ export function GiftSuggestion({
           onPress={() => onUse(amount)}
           className="mt-3 min-h-touch justify-center self-start"
         >
-          <Text className="text-label font-medium text-brand">{t.gift.suggestUse}</Text>
+          <Text className="text-label font-medium text-ink">{t.gift.suggestUse}</Text>
         </Pressable>
       )}
     </View>

@@ -94,7 +94,7 @@ export function SignInScreen() {
               action={
                 <Link href="/(auth)/forgot-password" asChild>
                   <Pressable accessibilityRole="link" hitSlop={8}>
-                    <Text className="text-label font-medium text-brand-deep">
+                    <Text className="text-label font-medium text-ink">
                       {t.auth.forgotPassword}
                     </Text>
                   </Pressable>
@@ -131,7 +131,7 @@ export function SignInScreen() {
           <Text className="text-label text-muted">{t.auth.noAccount}</Text>
           <Link href="/(auth)/sign-up" asChild>
             <Pressable accessibilityRole="link" hitSlop={8}>
-              <Text className="text-label font-semibold text-brand-deep">{t.auth.goSignUp}</Text>
+              <Text className="text-label font-semibold text-ink">{t.auth.goSignUp}</Text>
             </Pressable>
           </Link>
         </View>

@@ -56,8 +56,14 @@ export {
   type TabIconName,
   type TabIconProps,
 } from './icon';
-export { Card, Divider, Row, Screen, SectionHeader } from './layout';
-export type { CardProps, RowProps, ScreenProps, SectionHeaderProps } from './layout';
+export { Card, Divider, Row, Screen, Section, SectionHeader } from './layout';
+export type {
+  CardProps,
+  RowProps,
+  ScreenProps,
+  SectionHeaderProps,
+  SectionSurfaceProps,
+} from './layout';
 export { MemberAvatar, type MemberAvatarProps } from './member-avatar';
 export { NavRow, type NavRowProps } from './nav-row';
 export { PasswordToggle, type PasswordToggleProps } from './password-toggle';

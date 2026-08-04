@@ -98,7 +98,7 @@ export function MoneyOverviewScreen() {
                 khoản nào đáng ghi. Đường cập nhật giờ nằm ở đúng chỗ có ngữ
                 cảnh — nút "Cập nhật giá trị" trong chi tiết từng khoản. */}
             <View className="mt-3">
-              <Card emphasis={status === 'ok' ? 'none' : 'brand'}>
+              <Card emphasis={status === 'ok' ? 'none' : 'accent'}>
                 <StatusPill status={status} />
                 <Text className="mt-2 text-body text-ink">
                   {financeReasonText(explainFinanceStatus(metrics, needsList, today).reason)}
@@ -203,7 +203,7 @@ export function MoneyOverviewScreen() {
                   hitSlop={8}
                   onPress={() => router.push('/(app)/money/payments')}
                 >
-                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
+                  <Text className="text-label font-medium text-ink">{t.common.see}</Text>
                 </Pressable>
               }
             />
@@ -249,7 +249,7 @@ export function MoneyOverviewScreen() {
                   hitSlop={8}
                   onPress={() => router.push('/(app)/money/attention')}
                 >
-                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
+                  <Text className="text-label font-medium text-ink">{t.common.see}</Text>
                 </Pressable>
               }
             />
@@ -327,7 +327,7 @@ export function MoneyOverviewScreen() {
                   hitSlop={8}
                   onPress={() => router.push('/(app)/money/goals')}
                 >
-                  <Text className="text-label font-medium text-brand">{t.common.see}</Text>
+                  <Text className="text-label font-medium text-ink">{t.common.see}</Text>
                 </Pressable>
               }
             />

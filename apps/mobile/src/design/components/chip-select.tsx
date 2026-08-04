@@ -34,11 +34,14 @@ export function ChipSelect<T>({ options, value, onChange, scroll = false }: Chip
         accessibilityState={{ selected: active }}
         accessibilityLabel={o.label}
         onPress={() => onChange(o.value)}
+        // Chip đang chọn = nền accent (§5.3 — "selected states"). Chữ trên nó
+        // là `accent-ink`, và viền cũng đổi theo nên trạng thái không chỉ nằm ở
+        // màu (§5.5 — không dùng màu một mình để truyền trạng thái).
         className={`min-h-touch justify-center rounded-full border px-4 ${
-          active ? 'border-brand bg-brand-soft' : 'border-line bg-surface active:bg-soft'
+          active ? 'border-accent bg-accent' : 'border-line bg-surface active:bg-soft'
         }`}
       >
-        <Text className={`text-label font-medium ${active ? 'text-brand-deep' : 'text-ink'}`}>
+        <Text className={`text-label font-medium ${active ? 'text-accent-ink' : 'text-ink'}`}>
           {o.label}
         </Text>
       </Pressable>

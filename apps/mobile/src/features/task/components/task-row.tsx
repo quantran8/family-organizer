@@ -77,21 +77,26 @@ export function TaskRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="min-h-touch flex-row items-center gap-3 border-b border-line bg-surface py-4 active:bg-soft"
+      // Dòng PHẲNG: không nền, không viền, không bo góc, không bóng (§8, §13.3).
+      // Mảng trắng của section bên ngoài đã gom nhóm rồi; thêm `border-b` ở đây
+      // là vẽ lưới bên trong một cái hộp, và `bg-surface` là tô trắng lên trắng.
+      // Khoảng cách giữa hai dòng do chỗ gọi đặt (`gap-5`), không do `py` —
+      // để dòng cuối không thừa một khoảng đệm sát mép dưới section.
+      className="min-h-touch flex-row items-center gap-3 active:opacity-70"
     >
       <Checkbox checked={done} onToggle={onToggle} />
 
       <View className="flex-1">
         <Text
           numberOfLines={2}
-          className={`text-heading font-medium ${done ? 'text-subtle line-through' : 'text-ink'}`}
+          className={`text-body font-medium ${done ? 'text-subtle line-through' : 'text-ink'}`}
         >
           {title}
         </Text>
         {/* Nhãn phụ xuống DÒNG DƯỚI thay vì nằm cuối dòng chính: "Hôm nay ·
             Trước 20:00" là hai mẩu thông tin, và nhét chúng vào cùng một hàng
             với tên việc làm tên việc bị cắt trước trên máy hẹp. */}
-        {meta ? <Text className="mt-1 text-label text-muted">{meta}</Text> : null}
+        {meta ? <Text className="mt-1 text-caption text-muted">{meta}</Text> : null}
       </View>
 
       {repeats ? <Text className="text-caption text-subtle">↻</Text> : null}

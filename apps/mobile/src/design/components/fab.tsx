@@ -5,10 +5,10 @@
  * dùng không phải nhớ "thêm việc thì vào tab nào" — sheet Thêm nhanh hỏi họ
  * đang muốn thêm gì.
  *
- * Màu ĐEN chứ không phải brand: đây là hành động chính của cả app, và
- * design.md §5.2 nói CTA chính màu đen, brand không được cạnh tranh với nó.
- * Trên tab bar thì brand đang là màu của tab đang mở (§5.3) — một nút [+] cùng
- * màu nằm ngay trên đó sẽ đọc như một tab thứ năm.
+ * Màu ĐEN chứ không phải accent: đây là hành động chính của cả app, và
+ * design.md §5.2 nói CTA chính màu đen, accent không được cạnh tranh với nó.
+ * Trên tab bar thì accent đang là dấu của tab đang mở (§11.2) — một nút [+]
+ * cùng màu nằm ngay trên đó sẽ đọc như một tab nữa.
  */
 
 import * as Haptics from 'expo-haptics';

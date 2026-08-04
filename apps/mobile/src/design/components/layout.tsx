@@ -40,10 +40,50 @@ export function Screen({ children, scroll = false, surface = 'surface', classNam
   return <SafeAreaView className={`flex-1 ${bg}`} edges={['top']}>{body}</SafeAreaView>;
 }
 
+export interface SectionSurfaceProps extends ViewProps {
+  children: ReactNode;
+}
+
+/**
+ * Mảng TRẮNG của một nhóm nội dung — design.md §13.1.
+ *
+ * Đây là đơn vị gom nhóm của cả app kể từ bản thiết kế này: nền `canvas` gần
+ * trắng ở dưới, các mảng `surface` trắng nổi lên trên, và chênh lệch giữa hai
+ * màu đó làm gần hết việc tách nhóm — bóng `shadow-section` chỉ đỡ thêm.
+ *
+ * Phân biệt với `Card` bên dưới, vì lẫn hai thứ này là lỗi hay gặp nhất:
+ *
+ * - `Section` gói MỘT NHÓM (Việc cần làm, Sự kiện, Cần chú ý). Bên trong nó,
+ *   từng dòng PHẲNG — không nền, không viền, không bo góc, không bóng riêng
+ *   (§8). Một danh sách mà mỗi dòng là một thẻ trông gọn lúc viết và chỉ lộ ra
+ *   khi có mười dòng thật.
+ * - `Card` gói MỘT khối đứng riêng (thẻ mời, một ô thông tin trong form).
+ *
+ * Đệm trong 20px và bo 24px là số của §7.1/§8 — không nhận prop để chỉnh, vì
+ * "bán kính khác một chút ở màn này" là cách một hệ thiết kế bắt đầu rời ra.
+ */
+export function Section({ children, className, ...rest }: SectionSurfaceProps) {
+  return (
+    <View
+      className={['rounded-section bg-surface p-5 shadow-section', className]
+        .filter(Boolean)
+        .join(' ')}
+      {...rest}
+    >
+      {children}
+    </View>
+  );
+}
+
 export interface CardProps extends ViewProps {
   children: ReactNode;
-  /** Thẻ nhấn: viền iris nhạt thay vì bóng đổ nặng (design.md §2.2). */
-  emphasis?: 'none' | 'brand';
+  /**
+   * Thẻ nhấn: viền accent nhạt thay vì bóng đổ nặng.
+   *
+   * KHÔNG tô nền accent đặc — §5.3 giữ accent ở mức tín hiệu nhỏ, và một thẻ
+   * nền chanh nguyên khối một mình đã vượt ngưỡng 8–10% của một viewport.
+   */
+  emphasis?: 'none' | 'accent';
 }
 
 export function Card({ children, emphasis = 'none', className, ...rest }: CardProps) {
@@ -51,7 +91,7 @@ export function Card({ children, emphasis = 'none', className, ...rest }: CardPr
     <View
       className={[
         'rounded-status border bg-surface p-4',
-        emphasis === 'brand' ? 'border-brand-soft' : 'border-line',
+        emphasis === 'accent' ? 'border-accent' : 'border-line',
         className,
       ]
         .filter(Boolean)

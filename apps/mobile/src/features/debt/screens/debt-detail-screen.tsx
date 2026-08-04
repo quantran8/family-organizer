@@ -130,14 +130,16 @@ export function DebtDetailScreen() {
       </View>
 
       {/* Thanh tiến độ — ẩn hẳn khi chưa nhập gốc (xem đầu file).
-          Màu `brand`, KHÔNG phải xanh "đạt chỉ tiêu": một khoản nợ đang trả dở
+          Màu `ink`, KHÔNG phải xanh "đạt chỉ tiêu": một khoản nợ đang trả dở
           không phải một thất bại cần cảnh báo, và cũng không phải một thành
-          tích cần thưởng. */}
+          tích cần thưởng. Cũng không dùng accent: một dải cao 8px là mảng nhỏ
+          nhất trên màn, và chanh trên nền `soft` gần như không thấy ranh giới
+          — cùng lý do với `ProgressBar` ở `design/components`. */}
       {paid !== null && debt.principalAmount !== null ? (
         <View className="mt-5">
           <View className="h-2 overflow-hidden rounded-full bg-soft">
             <View
-              className="h-full rounded-full bg-brand"
+              className="h-full rounded-full bg-ink"
               style={{ width: `${progressPct(paid, debt.principalAmount)}%` }}
             />
           </View>

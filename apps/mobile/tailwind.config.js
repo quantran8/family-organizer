@@ -13,20 +13,28 @@
  *
  * ── Ba luật màu dễ vi phạm nhất (design.md §5.5, §8, §10.1) ──
  *
- *   1. **CTA chính màu ĐEN** (`bg-action`), không phải màu brand. Brand không
+ *   1. **CTA chính màu ĐEN** (`bg-action`), không phải màu accent. Accent không
  *      được cạnh tranh với nút chính.
- *   2. **Tối đa MỘT mảng màu lớn mỗi màn hình.** Không tô nền màu cho mọi
- *      section.
- *   3. **Danh sách dùng khoảng cách và đường kẻ, KHÔNG dùng thẻ lặp lại**
- *      (§8). Đây là luật hay bị vi phạm nhất khi dựng màn mới, vì thẻ trông
- *      "gọn" hơn trong lúc viết và chỉ lộ ra khi có mười dòng thật.
+ *   2. **Accent là TÍN HIỆU, không phải nền module** (§5.3) — dưới 8–10% một
+ *      màn hình. Không tô nền accent cho cả một section.
+ *   3. **Section là mảng trắng trên nền `canvas`; dòng bên trong PHẲNG** (§4.1,
+ *      §8). Mỗi dòng KHÔNG có nền, bo góc, hay bóng riêng — một danh sách mà
+ *      mỗi dòng là một thẻ trông "gọn" lúc viết và chỉ lộ ra khi có mười dòng.
  *
- * ── Cảnh báo khi đọc code cũ ──
+ * ── Hai cảnh báo khi đọc code cũ ──
  *
- * `subtle` từng là tên của một màu NỀN trong bản config trước. Trong design.md
- * nó là **màu CHỮ** cho điều hướng không hoạt động và dấu `›` (§5.1); nền nhạt
- * giờ tên là `soft`. Đổi nhầm hai cái này cho ra một màn hình chữ gần như vô
- * hình trên nền trắng — và nó vẫn biên dịch bình thường.
+ * 1. `subtle` từng là tên của một màu NỀN trong bản config trước. Trong
+ *    design.md nó là **màu CHỮ** cho điều hướng không hoạt động và dấu `›`
+ *    (§5.1); nền nhạt giờ tên là `soft`. Đổi nhầm hai cái này cho ra một màn
+ *    hình chữ gần như vô hình trên nền trắng — và nó vẫn biên dịch bình thường.
+ *
+ * 2. **`brand` (chàm `#6257F6`) ĐÃ BỎ, thay bằng `accent` (chanh `#D9F06F`).**
+ *    Đây KHÔNG phải một phép đổi mã màu: hai token ngược nhau về độ sáng.
+ *    `brand` là màu TỐI — chữ trắng nằm trên nó, và bản thân nó dùng được làm
+ *    màu chữ trên nền trắng. `accent` là màu SÁNG — chỉ dùng làm NỀN với chữ
+ *    `accent-ink` (đen) ở trên. Đổi `text-brand` thành `text-accent` cho ra chữ
+ *    vàng chanh trên nền trắng, gần như không đọc được, mà vẫn biên dịch. Chữ
+ *    từng mang màu brand giờ mang `text-ink`, không phải `text-accent`.
  */
 
 /** @type {import('tailwindcss').Config} */
@@ -38,26 +46,30 @@ module.exports = {
       colors: {
         // ── Trung tính (§5.1) — xám LẠNH hơi mềm.
         // Không phải xám-xanh doanh nghiệp, cũng không phải be wellness.
-        canvas: '#F4F4F6',
+        //
+        // `canvas` phải NHẠT hơn hẳn bản cũ (#F4F4F6 → #FAFAF8): giờ nó là nền
+        // đứng sau các mảng `surface` trắng, nên khoảng cách giữa hai màu này
+        // chính là thứ tách section ra khỏi nhau (§4.1). Đủ khác để thấy ranh
+        // giới, đủ gần để không đọc thành xám.
+        canvas: '#FAFAF8',
         surface: '#FFFFFF',
-        soft: '#F7F7F9',
-        ink: '#101014',
-        muted: '#707078',
+        soft: '#F6F6F7',
+        ink: '#111114',
+        muted: '#717177',
         /** MÀU CHỮ: điều hướng không hoạt động và dấu `›`. KHÔNG phải nền. */
-        subtle: '#A4A4AD',
-        line: '#ECECF0',
+        subtle: '#A2A2A8',
+        /** Đường kẻ HIẾM — §8 nói khoảng cách là dải phân cách mặc định. */
+        line: '#ECECEE',
 
-        // ── Chữ/viền trên nền TỐI.
         // Cùng là #FFFFFF với `surface` nhưng mang nghĩa ngược lại: `surface`
-        // là nền, hai token này là thứ nằm LÊN nền tối. Tách tên theo nền để
-        // đọc code là thấy ngay cặp nền–chữ có khớp không, và để hôm nào nền
-        // tối đổi màu thì chữ đi theo mà không phải rà từng chỗ.
+        // là nền, token này là thứ nằm LÊN nền đen. Tách tên theo nền để đọc
+        // code là thấy ngay cặp nền–chữ có khớp không, và để hôm nào nền tối
+        // đổi màu thì chữ đi theo mà không phải rà từng chỗ. Cặp song song của
+        // nó là `accent-ink` — chữ nằm trên nền accent (sáng), nên là màu đen.
         /** Chữ/viền trên `bg-action` (đen) và trên toast. */
         'on-action': '#FFFFFF',
-        /** Chữ/viền trên `bg-brand` (chàm) — ngày được chọn, ô tick. */
-        'on-brand': '#FFFFFF',
 
-        // ── Hành động (§5.2) — CTA chính là ĐEN, không phải brand.
+        // ── Hành động (§5.2) — CTA chính là ĐEN, không phải accent.
         action: {
           DEFAULT: '#111114',
           pressed: '#29292F',
@@ -65,20 +77,23 @@ module.exports = {
           disabledText: '#8B8B94',
         },
 
-        // ── Brand (§5.3, §17) — chàm điện.
-        // Dùng cho nhận diện và ngữ cảnh THỜI GIAN (ngày được chọn, tab đang
-        // mở), không phải cho mọi hành động.
-        brand: {
-          DEFAULT: '#6257F6',
-          deep: '#4C43D8',
-          soft: '#F0EFFF',
-          line: '#DEDBFF',
+        // ── Accent (§5.3) — chanh điện.
+        //
+        // Dùng cho con số đếm, ngày, dấu đang-chọn và ô icon nhỏ. Đây là màu
+        // NỀN: nó sáng, nên chữ nằm trên nó phải là `accent-ink` (đen). Không
+        // có biến thể `deep` để làm màu chữ — chữ dùng `ink`. §5.3 đặt trần
+        // 8–10% một viewport, nên không có token nào ở đây dành cho mảng lớn.
+        accent: {
+          DEFAULT: '#D9F06F',
+          soft: '#F5F9DE',
+          /** Chữ và icon nằm TRÊN `bg-accent`. */
+          ink: '#111114',
         },
 
         // ── Ngữ nghĩa (§5.4). KHÔNG dùng làm màu trang trí theo module.
         positive: { DEFAULT: '#13A86B', soft: '#E9F9F1' },
         /** Hạn chót, khoản sắp trả, khoảng chuẩn bị còn thiếu. */
-        attention: { DEFAULT: '#FF643A', soft: '#FFF0EB' },
+        attention: { DEFAULT: '#FF6B57', soft: '#FFF0EB' },
         /** CHỈ cho lỗi và hậu quả không hoàn tác được. Một số tiền không mặc định màu này. */
         critical: { DEFAULT: '#D64545', soft: '#FFF0F0' },
       },
@@ -91,13 +106,18 @@ module.exports = {
         semibold: ['BeVietnamPro_600SemiBold'],
       },
       fontSize: {
-        display: ['30px', { lineHeight: '36px' }],
+        // §6.2. `display` lên 36px (bảng cho 36–40) vì nó gánh con số tài
+        // chính đầu màn Nhà mình — thứ phải đọc được ở khoảng cách cầm tay.
+        // Tracking âm cho hai cỡ lớn nằm ở chỗ gọi (§6.3 chỉ cho phép ở đây).
+        display: ['36px', { lineHeight: '37px' }],
         title1: ['26px', { lineHeight: '32px' }],
-        title2: ['23px', { lineHeight: '29px' }],
-        heading: ['16px', { lineHeight: '22px' }],
+        title2: ['23px', { lineHeight: '28px' }],
+        heading: ['18px', { lineHeight: '24px' }],
         body: ['15px', { lineHeight: '22px' }],
         label: ['14px', { lineHeight: '18px' }],
-        caption: ['12px', { lineHeight: '16px' }],
+        caption: ['12px', { lineHeight: '17px' }],
+        // §6.2: 10–11px CHỈ cho badge rất ngắn, đủ tương phản. Không dùng cho
+        // câu chữ đọc được — sàn của chữ thường là `caption`.
         micro: ['11px', { lineHeight: '14px' }],
       },
       borderRadius: {
@@ -107,7 +127,10 @@ module.exports = {
         icon: '14px',
         weekday: '16px',
         status: '20px',
-        featured: '24px',
+        /** Ô ngày của sự kiện (§8: 16–18px). */
+        date: '18px',
+        /** Mảng trắng của một section trên Nhà mình (§8, §13.1). */
+        section: '24px',
         sheet: '28px',
       },
       spacing: {
@@ -127,10 +150,14 @@ module.exports = {
         touch: '44px',
       },
       boxShadow: {
-        // §17. Bóng HIẾM và có mục đích (§8): nút chính, thẻ sự kiện nổi bật,
-        // bottom sheet. Không thêm bóng cho mọi dòng hay mọi section.
-        action: '0 1px 1px rgba(17,17,20,.16)',
-        brand: '0 10px 22px rgba(98,87,246,.22)',
+        // §17. Bóng HIẾM và có mục đích (§8): nút chính, mảng section, bottom
+        // sheet. Không thêm bóng cho từng DÒNG bên trong một section — §8 cấm
+        // chồng bóng section + bóng dòng + nền màu trong cùng một tầng.
+        //
+        // `section` cố ý gần như không thấy: việc tách section ra khỏi nhau do
+        // chênh lệch trắng-trên-gần-trắng đảm nhiệm, bóng chỉ đỡ thêm một chút.
+        section: '0 6px 18px rgba(0,0,0,.035)',
+        action: '0 8px 22px rgba(17,17,20,.14)',
         frame: '0 24px 80px rgba(21,21,27,.17)',
         sheet: '0 -16px 48px rgba(0,0,0,.18)',
       },

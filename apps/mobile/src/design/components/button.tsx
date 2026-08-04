@@ -4,20 +4,22 @@
  * Đặt tên nút bằng VIỆC NÓ LÀM và giữ nguyên tên đó suốt luồng (04 §7):
  * `[Lưu cập nhật]` → toast "Đã cập nhật", không phải "Thành công".
  *
- * ── CTA chính màu ĐEN, không phải màu brand (design.md §5.2, §10.1) ──
+ * ── CTA chính màu ĐEN, không phải màu accent (design.md §5.2, §10.1) ──
  *
  * Đây là luật dễ vi phạm nhất khi dựng màn mới, vì "nút chính = màu thương
  * hiệu" là phản xạ mặc định của gần như mọi design system khác. Ở đây thì
- * ngược lại: brand (chàm) dành cho **nhận diện và ngữ cảnh thời gian** — ngày
- * được chọn, tab đang mở. Nếu nút chính cũng mang màu đó thì trên một màn hình
- * có cả hai, mắt không còn phân biệt được "chỗ này là hành động" với "chỗ này
- * là thông tin", và cả hai cùng mất tác dụng.
+ * ngược lại: accent (chanh) dành cho **con số đếm, ngày, và trạng thái đang
+ * chọn** — những mảng nhỏ mang tính thông tin. Nếu nút chính cũng mang màu đó
+ * thì trên một màn hình có cả hai, mắt không còn phân biệt được "chỗ này là
+ * hành động" với "chỗ này là thông tin", và cả hai cùng mất tác dụng.
  *
  * Bán kính `999px` cho nút chính (§8) — không phải `rounded-control` như ô nhập.
  */
 
 import { forwardRef, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, type PressableProps, View } from 'react-native';
+
+import { ICON_COLOR } from './icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -26,19 +28,26 @@ const VARIANT: Record<ButtonVariant, { box: string; label: string }> = {
   // là việc chính.
   primary: { box: 'bg-action active:bg-action-pressed rounded-full', label: 'text-on-action' },
   secondary: { box: 'bg-surface border border-line active:bg-soft rounded-full', label: 'text-ink' },
-  ghost: { box: 'bg-transparent active:bg-soft rounded-full', label: 'text-brand-deep' },
+  // Nhãn `ink`, không phải accent: chữ chanh trên nền trắng không đạt AA (§15).
+  // Nút ghost phân biệt với `secondary` bằng việc KHÔNG có viền, không bằng màu.
+  ghost: { box: 'bg-transparent active:bg-soft rounded-full', label: 'text-ink' },
   danger: {
     box: 'bg-surface border border-critical active:bg-critical-soft rounded-full',
     label: 'text-critical',
   },
 };
 
-/** Màu vòng quay chờ — phải tương phản với nền của chính biến thể đó. */
+/**
+ * Màu vòng quay chờ — phải tương phản với nền của chính biến thể đó.
+ *
+ * Lấy từ `ICON_COLOR` chứ không viết hex tại chỗ: đó là chỗ duy nhất được phép
+ * nhân đôi giá trị của `tailwind.config.js` (xem `icon.tsx`).
+ */
 const SPINNER: Record<ButtonVariant, string> = {
-  primary: '#FFFFFF',
-  secondary: '#101014',
-  ghost: '#4C43D8',
-  danger: '#D64545',
+  primary: ICON_COLOR.white,
+  secondary: ICON_COLOR.ink,
+  ghost: ICON_COLOR.ink,
+  danger: ICON_COLOR.critical,
 };
 
 export interface ButtonProps extends Omit<PressableProps, 'children'> {

@@ -121,7 +121,7 @@ export function EventDetailScreen() {
           <Text className="text-body text-subtle">{t.event.pendingDate}</Text>
         )}
         {lunar ? (
-          <Text className="text-body font-medium text-brand-deep">
+          <Text className="text-body font-medium text-ink">
             {`${lunar.lunarDay}/${lunar.lunarMonth}${lunar.isLeapMonth ? ' nhuận' : ''} ${t.event.lunarSuffix}`}
           </Text>
         ) : null}

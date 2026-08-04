@@ -45,9 +45,10 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
       onPress={onPress}
       className="min-h-touch flex-row items-start gap-3 py-3 active:bg-soft"
     >
-      {/* Dấu ◆ nhận diện "đây là sự kiện". Màu brand vì nó là ngữ cảnh thời
-          gian (design.md §5.3), không phải một màu module riêng. */}
-      <Text className="mt-0.5 text-caption text-brand">◆</Text>
+      {/* Dấu ◆ nhận diện "đây là sự kiện" — hình, không phải màu. Nó mang màu
+          `ink` như chữ: accent là màu NỀN (§5.3), một glyph 12px tô chanh trên
+          nền trắng thì gần như biến mất. */}
+      <Text className="mt-0.5 text-caption text-ink">◆</Text>
 
       <View className="flex-1">
         <View className="flex-row items-start justify-between gap-3">
@@ -57,7 +58,7 @@ export function EventRow({ event, onPress, prepCount = 0 }: EventRowProps) {
 
           <View className="items-end">
             {lunar ? (
-              <Text className="text-caption font-medium text-brand-deep">
+              <Text className="text-caption font-medium text-ink">
                 {`${lunar.lunarDay}/${lunar.lunarMonth}${lunar.isLeapMonth ? ' N' : ''} ${t.event.lunarSuffix}`}
               </Text>
             ) : null}

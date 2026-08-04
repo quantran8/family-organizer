@@ -168,7 +168,7 @@ export function SignUpScreen() {
           <Text className="text-label text-muted">{t.auth.haveAccount}</Text>
           <Link href="/(auth)/sign-in" asChild>
             <Pressable accessibilityRole="link" hitSlop={8}>
-              <Text className="text-label font-semibold text-brand-deep">{t.auth.goSignIn}</Text>
+              <Text className="text-label font-semibold text-ink">{t.auth.goSignIn}</Text>
             </Pressable>
           </Link>
         </View>

@@ -217,7 +217,15 @@ export const vi = {
   },
 
   home: {
-    eyebrow: 'NHÀ MÌNH',
+    /**
+     * Tiêu đề lớn đầu màn — chữ thường, KHÔNG viết hoa toàn bộ.
+     *
+     * Trước đây đây là một dòng eyebrow 11px in hoa nằm trên tên nhà. Giờ nó là
+     * tiêu đề chính (`text-display`), còn tên nhà lùi lên hàng avatar: §7.4 cấm
+     * đặt một eyebrow lặp lại đúng nghĩa của thứ ngay bên dưới nó, và "NHÀ
+     * MÌNH" trên "Nhà mình" là đúng trường hợp đó.
+     */
+    eyebrow: 'Nhà mình',
     /** Còn dùng ở `date-picker` ("Cuối tuần" là một lựa chọn ngày nhanh). */
     sectionWeekend: 'Cuối tuần',
     sectionAttention: 'Cần chú ý',
@@ -233,10 +241,15 @@ export const vi = {
     financeNeededBasis: 'Dự tính hôm nay',
     financeMore: 'Xem chi tiết tài chính',
 
-    // Một feed "Sắp tới" duy nhất, KHÔNG tách Hôm nay/Tuần này thành hai khối.
-    // Vì thế mỗi dòng phải tự mang nhãn ngày (`dueLabelText`) — trước đây tiêu
-    // đề nhóm nói hộ điều đó.
+    // Ba nhóm "sắp tới", tách theo LOẠI chứ không theo mốc thời gian. Hôm
+    // nay/Tuần này vẫn KHÔNG tách (mỗi dòng tự mang nhãn ngày qua
+    // `dueLabelText`) — cái tách ở đây là ba thứ người đọc xử lý khác nhau:
+    // việc thì tick, sự kiện thì chuẩn bị, khoản trả thì chuyển tiền. Trộn
+    // chúng vào một danh sách bắt người đọc phân loại lại từng dòng.
     sectionUpcoming: 'Sắp tới',
+    sectionTasks: 'Việc cần làm',
+    sectionEvents: 'Sự kiện sắp tới',
+    sectionPayments: 'Khoản sắp trả',
     seeAll: 'Xem tất cả',
     shoppingMore: 'Và {count} món khác',
     emptyTitle: 'Bắt đầu từ điều gần nhất',

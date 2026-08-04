@@ -194,9 +194,9 @@ export function DocumentDetailScreen() {
         accessibilityRole="button"
         accessibilityLabel={t.doc.fieldPhysical}
         onPress={() => router.push({ pathname: '/(modals)/doc-form', params: { id: docId } })}
-        className="mt-5 rounded-status bg-brand-soft p-4 active:opacity-80"
+        className="mt-5 rounded-status bg-accent-soft p-4 active:opacity-80"
       >
-        <Text className="text-label font-medium text-brand-deep">{t.doc.fieldPhysical}</Text>
+        <Text className="text-label font-medium text-ink">{t.doc.fieldPhysical}</Text>
         <Text
           className={[
             'mt-1 text-title2',

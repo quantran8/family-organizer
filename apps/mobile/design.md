@@ -25,7 +25,10 @@ Use Apple platform conventions for hierarchy, navigation, feedback, accessibilit
 - Color used without meaning.
 - Calm wellness or meditation aesthetics.
 - Dense dashboards.
-- Excessive cards, borders, or shadows.
+- Excessive cards, borders, dividers, or shadows.
+- Black content surfaces; black is reserved for actions.
+- Colored section-header bands.
+- Turning each list row into a separate card.
 - Long explanatory text on overview screens.
 - Corporate workflow language.
 - Gender-coded member colors.
@@ -123,17 +126,17 @@ Gen Z users should understand an overview screen in approximately three seconds.
 
 ### 3.1 Content limits
 
-| Element | Rule |
-|---|---|
-| Screen question | One sentence, preferably `4–8` words |
-| Section title | `1–3` words |
-| Primary button | `1–2` words, maximum `3` |
-| Row title | One line |
-| Row metadata | One short line |
-| Badge | Number or `1–2` words |
-| Empty-state title | Maximum `6` words |
-| Empty-state body | Maximum `12–16` words |
-| Alert | State what happened, then the next action |
+| Element           | Rule                                      |
+| ----------------- | ----------------------------------------- |
+| Screen question   | One sentence, preferably `4–8` words      |
+| Section title     | `1–3` words                               |
+| Primary button    | `1–2` words, maximum `3`                  |
+| Row title         | One line                                  |
+| Row metadata      | One short line                            |
+| Badge             | Number or `1–2` words                     |
+| Empty-state title | Maximum `6` words                         |
+| Empty-state body  | Maximum `12–16` words                     |
+| Alert             | State what happened, then the next action |
 
 These are product constraints, not rigid localization character limits. Preserve meaning first.
 
@@ -171,16 +174,23 @@ Detail screens show:
 ```text
 Hôm nay nhà mình có gì?
 
-Hôm nay
-Chồng đổ rác
-Trước 20:00 · Chồng
+250 triệu
+Cập nhật 2 tuần trước
 
-Cuối tuần
-Giỗ ông ngoại
-15/8 âm lịch · Nhà vợ
+Việc cần làm · 2
+Đặt lịch đăng kiểm xe
+Trước 17:00 · Anh
+
+Sự kiện
+Sinh nhật mẹ
+Hôm nay · 19:00
+
+Khoản sắp tới
+Học phí con · 25 triệu
+05/09
 
 Cần chú ý
-Bảo hiểm xe hết hạn sau 25 ngày
+Bảo hiểm xe · 18 ngày
 ```
 
 Do not add descriptions unless they change the next decision.
@@ -189,36 +199,55 @@ Do not add descriptions unless they change the next decision.
 
 ## 4. Visual direction
 
-### 4.1 White-first, energetic premium
+### 4.1 Bright canvas, white section surfaces
 
-White is the main content surface. Energy comes from a small number of saturated accents, not from filling the screen with color.
+The app uses a very light neutral canvas and white section surfaces.
 
-Recommended visual balance:
+The canvas creates separation. The white sections create scan anchors. Users should be able to identify `Tiền`, `Việc`, `Sự kiện`, and `Cần chú ý` as distinct groups before reading the rows inside them.
 
-- `88–92%` white and neutral surfaces.
-- Black for text and primary actions.
-- Saturated color stays in markers, dates, active navigation, and compact icon fills.
-- Large content areas remain white; use tinted surfaces only inside temporary controls or very small highlights.
+Recommended balance:
 
-### 4.2 Color roles
+- `85–92%` white and near-white neutral surfaces.
+- App canvas: near-white, slightly darker than the sections.
+- Section surfaces: white.
+- Black: primary actions only.
+- Accent color: compact markers, dates, counts, selected states, and meaningful icon fills.
+- Semantic color: status and urgency only.
 
-- **Black:** action and decisive state.
-- **Signal blue:** brand, time rhythm, events, selected markers.
+A section is the visual grouping unit. An item inside a list is not a card.
+
+### 4.2 Section expression
+
+Each major section should have:
+
+- One white surface.
+- One short title.
+- One optional count, date, or secondary action.
+- Flat content rows inside.
+- Consistent radius, padding, and elevation.
+
+Section headers remain neutral. Do not use colored header bands or a different decorative color for every module.
+
+### 4.3 Color roles
+
+- **Black:** primary action buttons and decisive controls.
+- **Electric lime:** brand accent, counts, dates, selected markers, and compact highlights.
 - **Clear green:** positive status only.
-- **Tangerine:** attention, deadlines, and upcoming payments.
-- **Red:** destructive or critical only; rare.
+- **Tangerine:** deadlines, preparation gaps, and upcoming payments.
+- **Red:** destructive or critical states only; rare.
 
-A screen may use indigo, green, and coral, but only one should occupy a large surface.
+Financial amounts are neutral by default. A large amount is emphasized through scale and placement, not by making it green or red.
 
-### 4.3 Not a wellness palette
+### 4.4 Avoid a wellness palette
 
 Avoid:
 
+- Beige-heavy canvases.
 - Dusty sage as the main brand color.
-- Beige-heavy surfaces.
-- Muted plum or clay combinations.
-- Low-contrast pastel sections.
+- Low-contrast pastel section headers.
 - Soft colors on every container.
+- Black cards used as content highlights.
+- Multiple accent colors competing within one viewport.
 
 The product should feel active and current, not meditative.
 
@@ -228,70 +257,60 @@ The product should feel active and current, not meditative.
 
 ### 5.1 Neutral tokens
 
-| Token | Value | Usage |
-|---|---|---|
-| `canvas` | `#F4F4F6` | Desktop preview and outer canvas |
-| `surface` | `#FFFFFF` | Main screen background |
-| `soft` | `#F7F7F9` | Hover, grouped controls, subtle fill |
-| `ink` | `#101014` | Primary text |
-| `muted` | `#707078` | Metadata |
-| `subtle` | `#A4A4AD` | Inactive navigation and chevrons |
-| `line` | `#ECECF0` | Dividers |
-| `on-action` | `#FFFFFF` | Text and borders on top of `action` / `ink` backgrounds |
-| `on-brand` | `#FFFFFF` | Text and borders on top of `brand` backgrounds |
+| Token       | Value     | Usage                                                |
+| ----------- | --------- | ---------------------------------------------------- |
+| `canvas`    | `#FAFAF8` | App background behind section surfaces               |
+| `surface`   | `#FFFFFF` | Major section surfaces, sheets, navigation           |
+| `soft`      | `#F6F6F7` | Compact controls and subtle icon fills               |
+| `ink`       | `#111114` | Primary text                                         |
+| `muted`     | `#717177` | Metadata                                             |
+| `subtle`    | `#A2A2A8` | Inactive navigation and chevrons                     |
+| `line`      | `#ECECEE` | Rare structural divider when spacing is insufficient |
+| `on-action` | `#FFFFFF` | Content on black action backgrounds                  |
 
-Use cool-neutral grays with a slight softness. Avoid blue-gray corporate surfaces and beige wellness surfaces.
+Use neutral grays. The canvas must be visibly distinct from white sections without reading as gray or beige.
 
-`on-action` and `on-brand` hold the same value as `surface` but mean the
-opposite thing: `surface` is a background, these two are what sits *on* a dark
-background. They are named after the background they pair with so that a
-mismatched pair is visible while reading the code, and so that recoloring a dark
-background carries its foreground along instead of leaving white text behind.
-
-Never use Tailwind's own color classes (`bg-white`, `text-white`, `bg-gray-100`,
-…) in app code. A raw color class cannot be traced back to this table, so it
-survives every audit of this file — and it keeps rendering plausibly while
-slowly disagreeing with the palette around it.
+Never use Tailwind's raw color classes (`bg-white`, `text-white`, `bg-gray-100`, …) in app code. Use named design tokens so palette changes remain auditable.
 
 ### 5.2 Action tokens
 
-| Token | Value | Usage |
-|---|---|---|
-| `action` | `#111114` | Primary CTA background |
-| `action.pressed` | `#29292F` | Pressed state |
-| `action.disabled` | `#D8D8DE` | Disabled background |
-| `action.disabledText` | `#8B8B94` | Disabled label |
+| Token                 | Value     | Usage                  |
+| --------------------- | --------- | ---------------------- |
+| `action`              | `#111114` | Primary CTA background |
+| `action.pressed`      | `#29292F` | Pressed state          |
+| `action.disabled`     | `#D8D8DE` | Disabled background    |
+| `action.disabledText` | `#8B8B94` | Disabled label         |
 
-Primary actions are black. Brand color must not compete with the primary CTA.
+Black is reserved for actions and decisive controls. Do not use black as a finance, event, or section background.
 
-### 5.3 Brand tokens — signal blue
+### 5.3 Accent tokens — electric lime
 
-| Token | Value | Usage |
-|---|---|---|
-| `brand` | `#2F63F5` | Brand marker, selected date, active navigation |
-| `brand.deep` | `#1F4ED0` | Links and emphasized metadata |
-| `brand.soft` | `#F1F5FF` | Compact icon fills and selected controls |
-| `brand.line` | `#DEDBFF` | Divider inside brand surface |
+| Token         | Value     | Usage                                               |
+| ------------- | --------- | --------------------------------------------------- |
+| `accent`      | `#D9F06F` | Counts, dates, selected markers, compact icon fills |
+| `accent.soft` | `#F5F9DE` | Small selected controls and low-emphasis highlights |
+| `accent.ink`  | `#111114` | Text and icons on top of `accent`                   |
 
-Use brand color for identity and time-related context, not for every action.
+Accent is a signal, not a module background. It should normally occupy less than `8–10%` of a viewport.
 
 ### 5.4 Semantic tokens
 
-| Meaning | Foreground | Soft background | Usage |
-|---|---|---|---|
-| Positive | `#13A86B` | `#E9F9F1` | Stable status, completed positive state |
-| Attention | `#FF643A` | `#FFF0EB` | Deadline, upcoming payment, preparation gap |
-| Critical | `#D64545` | `#FFF0F0` | Error or destructive consequence only |
+| Meaning   | Foreground | Soft background | Usage                                       |
+| --------- | ---------- | --------------- | ------------------------------------------- |
+| Positive  | `#13A86B`  | `#E9F9F1`       | Stable status and completed positive state  |
+| Attention | `#FF6B57`  | `#FFF0EB`       | Deadline, upcoming payment, preparation gap |
+| Critical  | `#D64545`  | `#FFF0F0`       | Error or destructive consequence only       |
 
 Do not use semantic colors as decorative module colors.
 
 ### 5.5 Color rules
 
 - Use black for primary CTA.
-- Use one large tinted surface maximum per viewport.
-- Use colored icon containers only for semantic meaning.
-- Keep text on white primarily black or neutral gray.
-- Do not use color alone to communicate status.
+- Keep section surfaces white.
+- Keep section headers neutral.
+- Use accent in compact areas only.
+- Use colored icon containers only when color communicates identity, state, or time.
+- Do not rely on color alone to communicate status.
 - Do not assign colors to household members by gender.
 - Financial amounts are neutral by default.
 
@@ -301,10 +320,11 @@ Do not use semantic colors as decorative module colors.
 
 ### 6.1 Typeface
 
-Use the platform system font stack:
+Use `Be Vietnam Pro` for the branded interface, followed by platform fallbacks:
 
 ```css
 font-family:
+  "Be Vietnam Pro",
   ui-sans-serif,
   -apple-system,
   BlinkMacSystemFont,
@@ -314,72 +334,85 @@ font-family:
   sans-serif;
 ```
 
-This keeps Vietnamese legible, supports platform familiarity, and avoids loading a decorative font.
+This keeps Vietnamese legible while avoiding the appearance of an unmodified stock iOS interface.
 
 ### 6.2 Type scale
 
-| Style | Size | Line height | Weight | Usage |
-|---|---:|---:|---:|---|
-| Display | `32–40px` | `1.02` | `700–730` | Home question |
-| Section | `21–22px` | `1.25` | `700–720` | Main section titles |
-| Feature title | `18px` | `23px` | `700` | Featured event |
-| Body | `16px` | `22–23px` | `500–600` | Row title and main content |
-| Meta | `13px` | `17–18px` | `400–600` | Date, person, amount |
-| Caption | `12px` | `15px` | `600–700` | Compact labels and badges |
+| Style         |      Size | Line height |    Weight | Usage                                    |
+| ------------- | --------: | ----------: | --------: | ---------------------------------------- |
+| Display       | `36–40px` |      `1.02` | `650–700` | Home question or primary financial value |
+| Section       | `22–24px` |      `1.22` | `650–700` | Main section titles                      |
+| Feature title | `18–19px` |   `23–25px` | `600–700` | Featured event and payment title         |
+| Body          | `15–16px` |   `22–23px` | `500–600` | Row title and main content               |
+| Meta          | `12–13px` |   `17–18px` | `400–600` | Date, person, amount                     |
+| Badge         | `10–12px` |   `14–16px` | `600–700` | Count, deadline, compact state           |
 
-Avoid text below `11px`. Use `12px` as the normal minimum.
+Use `12px` as the normal minimum. `10–11px` is allowed only for very short badges with sufficient contrast.
 
 ### 6.3 Typography rules
 
 - Support Dynamic Type in native implementation.
 - Keep primary row titles to one line where possible.
-- Use negative tracking only for large titles.
-- Do not use uppercase for normal headings.
-- Uppercase is allowed only for very short identity labels such as `NHÀ MÌNH`.
-- Use tabular numerals for aligned financial values.
-- Avoid excessive bold; use weight to establish hierarchy, not decorate every label.
+- Use negative tracking only for large titles and large numbers.
+- Section titles use sentence case and `1–3` words.
+- Do not add an eyebrow label when the title already provides the same meaning.
+- Use tabular numerals for financial values and aligned dates.
+- Avoid excessive bold; reserve the strongest weight for section anchors and key values.
 
 ---
 
 ## 7. Layout and spacing
 
-### 7.1 Mobile frame
+### 7.1 Mobile frame and scrolling
 
 - Target width: `375–430px`.
-- Horizontal padding: `20px`.
+- Outer horizontal padding: `16px` for section surfaces.
+- Internal section padding: `20px`.
 - Minimum touch target: `44 × 44pt`.
 - Respect top and bottom safe areas.
-- Main content scrolls behind the bottom navigation layer.
+- Mobile uses natural document scrolling.
+- Persistent bottom navigation is fixed above the safe area.
+- Nested scrolling is allowed only inside the desktop demo frame.
 
 ### 7.2 Spacing scale
 
-| Token | Value |
-|---|---:|
-| `space.1` | `4px` |
-| `space.2` | `8px` |
-| `space.3` | `12px` |
-| `space.4` | `16px` |
-| `space.5` | `20px` |
-| `space.6` | `24px` |
-| `space.7` | `28px` |
-| `space.8` | `32px` |
-| `space.9` | `36px` |
+| Token      |  Value |
+| ---------- | -----: |
+| `space.1`  |  `4px` |
+| `space.2`  |  `8px` |
+| `space.3`  | `12px` |
+| `space.4`  | `16px` |
+| `space.5`  | `20px` |
+| `space.6`  | `24px` |
+| `space.7`  | `28px` |
+| `space.8`  | `32px` |
+| `space.9`  | `36px` |
 | `space.10` | `40px` |
 
-### 7.3 Hierarchy by spacing
+### 7.3 Section rhythm
 
-- Header to week rhythm: `8–12px`.
-- Week rhythm to status: `20px`.
-- Major sections: `32–36px`.
-- Section title to content: `8–12px`.
-- Row vertical padding: `12px`.
-- Row minimum height: `72–82px`.
+- Header to first section: `24–28px`.
+- Between major section surfaces: `16–20px`.
+- Section header to content: `16–20px`.
+- Between flat rows: `20–24px`.
+- Row minimum height: `68–76px`.
+- Content bottom padding must clear persistent navigation.
 
-Use whitespace before adding a container.
+The section surface provides grouping. Do not add a background to each row.
 
-### 7.4 Desktop preview
+### 7.4 Section header
 
-- Canvas: `#F4F4F6`.
+A section header contains:
+
+- One title.
+- One optional count or date badge.
+- One optional text action.
+
+Do not add a colored header background. Do not repeat the module name in an eyebrow label.
+
+### 7.5 Desktop preview
+
+- Outer canvas: `#F4F4F6`.
 - Maximum screen width: `430px`.
 - Frame radius: `42px`.
 - Frame shadow: `0 24px 80px rgba(21,21,27,.17)`.
@@ -390,25 +423,27 @@ The frame is a demo artifact, not part of the native mobile UI.
 
 ## 8. Shape and elevation
 
-| Component | Radius |
-|---|---:|
-| Avatar | `999px` |
-| Primary action | `999px` |
-| Week day | `16px` |
-| Icon container | `14–15px` |
-| Compact status surface | `20px` |
-| Feature event surface | `24px` |
-| Bottom sheet | `28px` top corners |
-| Desktop preview | `42px` |
+| Component       |               Radius |
+| --------------- | -------------------: |
+| Avatar          |              `999px` |
+| Primary action  |              `999px` |
+| Section surface |               `24px` |
+| Icon container  | `14–16px` or `999px` |
+| Compact badge   |              `999px` |
+| Event date tile |            `16–18px` |
+| Bottom sheet    |   `28px` top corners |
+| Desktop preview |               `42px` |
 
 ### Elevation rules
 
-- Lists use spacing and dividers, not cards.
-- Status may use a flat tinted surface without shadow.
-- The event date tile may use one small colored shadow.
-- Primary CTA may use a subtle black shadow.
-- Bottom sheet may use elevation to establish modality.
-- Do not add shadows to every row or section.
+- Major sections may use one shared subtle shadow: `0 6px 18px rgba(0,0,0,.035)`.
+- The white-on-near-white surface contrast should do most of the separation work.
+- Rows inside a section never receive their own shadow.
+- Rows do not receive individual rounded backgrounds.
+- Use dividers only for unusually dense lists; prefer spacing first.
+- Primary CTA may use a restrained black shadow.
+- Bottom sheet uses elevation to establish modality.
+- Do not stack section shadow, row shadow, and colored background in the same hierarchy.
 
 ---
 
@@ -447,7 +482,7 @@ Example: `Thêm`
 Examples: `Xem tất cả`, `Hủy`
 
 - Text-only or soft-neutral fill.
-- Brand color is allowed for contextual links.
+- Neutral text or accent is allowed for contextual links.
 - Must not visually compete with the primary action.
 
 ### 10.3 Destructive action
@@ -477,7 +512,7 @@ The tab bar is navigation only. Do not place the quick-add action as a tab item.
 
 - Filled or stronger icon.
 - Black label and icon.
-- Small indigo marker for brand expression.
+- Small accent marker for brand expression.
 - No large selected background.
 
 ### 11.3 Inactive state
@@ -491,7 +526,7 @@ The tab bar is navigation only. Do not place the quick-add action as a tab item.
 A light translucent navigation material is allowed only for persistent navigation or modal layers.
 
 ```css
-background: rgba(255, 255, 255, 0.90);
+background: rgba(255, 255, 255, 0.9);
 backdrop-filter: saturate(170%) blur(22px);
 ```
 
@@ -504,24 +539,30 @@ Do not use blur on cards, rows, or content surfaces.
 ```text
 Header
 ├── Household identity
-├── Black Add action
-├── Current solar + lunar date
-└── One central question
+├── Current date
+├── One central question
+└── Black Add action
 
-Week rhythm
-└── Seven compact day controls
+Finance section
+├── Total asset value
+├── Freshness
+├── Upcoming preparation total
+└── Estimated remaining value
 
-Status
-└── One compact semantic surface
-
-Today
-├── Section title + count
+Task section
+├── Title + count
 └── Flat task rows
 
-Weekend
-└── One featured indigo event surface
+Event section
+├── Current event
+└── Nearest upcoming event
 
-Attention
+Upcoming payment section
+├── Due date
+├── Amount
+└── One black detail action
+
+Notice section
 └── Flat semantic rows
 
 Bottom navigation
@@ -530,48 +571,54 @@ Bottom navigation
 
 ### Home hierarchy
 
-1. Current day and week rhythm.
-2. Status requiring no interpretation.
-3. Tasks due today.
-4. Nearest family event.
+1. Finance readiness.
+2. Tasks due now.
+3. Current and nearest event.
+4. Nearest upcoming payment.
 5. Items requiring attention.
 6. Navigation.
 
 ### Home rules
 
-- No charts.
-- No progress dashboard.
+- Sections are the scan anchors.
+- Use a near-white canvas and white section surfaces.
+- Section headers remain neutral; no colored header bands.
+- No separate `Ưu tiên hôm nay` summary that duplicates section content.
+- No charts or progress dashboard.
 - No paragraph copy.
-- No more than one prominent colored card.
 - Empty groups disappear.
-- Keep the first viewport useful without scrolling.
-- Every row must answer `what` and `when`.
+- Keep the first viewport useful without requiring interpretation.
+- Every row answers `what` and `when`.
+- Black appears on actions, not content surfaces.
+- List items remain flat inside their section.
 
 ---
 
 ## 13. Core components
 
-### 13.1 Week rhythm
+### 13.1 Section surface
 
-Purpose: create energy and make time visible without opening a calendar.
+Purpose: make the Home screen scannable by module without turning every row into a card.
 
-- Seven compact day controls.
-- Active day uses black fill.
-- Indigo or coral dot indicates meaningful activity.
-- Dots supplement labels; they never carry the full meaning alone.
-- Horizontal scrolling is allowed on narrow screens.
+- Background: `surface`.
+- Parent canvas: `canvas`.
+- Radius: `24px`.
+- Internal padding: `20px`.
+- Optional subtle section shadow.
+- Neutral header with one short title.
+- Optional count, due date, or text action.
+- No colored header band.
+- No nested card for each row.
 
-### 13.2 Compact status
+### 13.2 Finance summary
 
-Purpose: communicate financial readiness in one glance.
-
-- One semantic icon.
-- One short title.
-- One supporting line maximum.
-- Freshness shown as compact time text.
-- Positive uses green.
-- Attention uses coral.
-- Critical uses red only when necessary.
+- Total asset value is the largest element in the section.
+- Freshness appears directly below the value.
+- `Cập nhật` is a black primary action.
+- Secondary metrics sit in a simple two-column layout.
+- Accent may mark one metric or freshness state.
+- Financial amounts remain neutral.
+- Do not use a black finance background.
 
 ### 13.3 Task row
 
@@ -580,41 +627,49 @@ Structure:
 1. Completion control.
 2. One-line task name.
 3. One metadata line.
-4. Small semantic marker when needed.
+4. Optional overflow action.
 
 Rules:
 
-- Minimum row height: `76px`.
+- Minimum row height: `68–76px`.
 - Checkbox: `24px`.
-- Divider starts after the checkbox column.
-- Completion changes checkbox to black.
+- Row has no individual background, border, radius, or shadow.
+- Separate rows with `20–24px` spacing; use a divider only in dense mode.
+- Completion uses `accent` fill with an `accent.ink` check.
 - Completed text may use line-through and reduced contrast.
 - No extra status chips.
 
-### 13.4 Featured event
+### 13.4 Event block
 
-This is the only prominent color surface on Home.
-
-- Background: `brand.soft`.
-- Date tile: `brand`.
+- Event stays inside the white section surface.
+- Date is the main scan anchor.
+- Date tile or date marker may use `accent`.
 - Title: one line.
-- Lunar date and family side: one line.
-- Preparation summary: one line.
-- One clear drill-down action.
+- Time and location: one metadata line.
+- Preparation summary: one short line.
+- Upcoming event is a flat row below the featured event.
+- Do not add illustrations, gradients, or nested cards.
 
-Do not add illustrations, gradients, or multiple nested cards.
+### 13.5 Upcoming payment
 
-### 13.5 Attention row
+- Show one nearest payment on Home.
+- Due date may use an accent or attention badge.
+- Amount is large but neutral.
+- One black `Xem` or `Chi tiết` action.
+- Additional payments move to the Money detail view.
 
-- Flat row, not a full card.
+### 13.6 Notice row
+
+- Flat row inside the Notice section.
 - Semantic icon container.
 - One-line title.
 - One supporting line.
 - Chevron for drill-down.
-- Coral for deadlines and preparation gaps.
-- Indigo may identify an event-related financial item.
+- Tangerine for deadlines and preparation gaps.
+- Red only for critical consequences.
+- No individual row card.
 
-### 13.6 Quick-add sheet
+### 13.7 Quick-add sheet
 
 - Open from the black `Thêm` toolbar action.
 - Top radius: `28px`.
@@ -628,12 +683,12 @@ Do not add illustrations, gradients, or multiple nested cards.
 
 ## 14. Motion and feedback
 
-| Interaction | Duration |
-|---|---:|
-| Press feedback | `120–160ms` |
-| State change | `180–240ms` |
+| Interaction     |    Duration |
+| --------------- | ----------: |
+| Press feedback  | `120–160ms` |
+| State change    | `180–240ms` |
 | Page transition | `240–300ms` |
-| Bottom sheet | `300–340ms` |
+| Bottom sheet    | `300–340ms` |
 
 Recommended pressed state:
 
@@ -710,50 +765,58 @@ tailwind.config = {
     extend: {
       fontFamily: {
         sans: [
-          'ui-sans-serif',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'SF Pro Text',
-          'Inter',
-          'Segoe UI',
-          'sans-serif',
+          "Be Vietnam Pro",
+          "ui-sans-serif",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Text",
+          "Inter",
+          "Segoe UI",
+          "sans-serif",
         ],
       },
       colors: {
-        canvas: '#F4F4F6',
-        surface: '#FFFFFF',
-        ink: '#101014',
-        muted: '#707078',
-        subtle: '#A4A4AD',
-        line: '#ECECF0',
-        soft: '#F7F7F9',
-        'on-action': '#FFFFFF',
-        'on-brand': '#FFFFFF',
-        action: '#111114',
-        brand: {
-          DEFAULT: '#6257F6',
-          deep: '#4C43D8',
-          soft: '#F0EFFF',
-          line: '#DEDBFF',
+        canvas: "#FAFAF8",
+        surface: "#FFFFFF",
+        soft: "#F6F6F7",
+        ink: "#111114",
+        muted: "#717177",
+        subtle: "#A2A2A8",
+        line: "#ECECEE",
+        "on-action": "#FFFFFF",
+        action: {
+          DEFAULT: "#111114",
+          pressed: "#29292F",
+          disabled: "#D8D8DE",
+          "disabled-text": "#8B8B94",
+        },
+        accent: {
+          DEFAULT: "#D9F06F",
+          soft: "#F5F9DE",
+          ink: "#111114",
         },
         positive: {
-          DEFAULT: '#13A86B',
-          soft: '#E9F9F1',
+          DEFAULT: "#13A86B",
+          soft: "#E9F9F1",
         },
         attention: {
-          DEFAULT: '#FF643A',
-          soft: '#FFF0EB',
+          DEFAULT: "#FF6B57",
+          soft: "#FFF0EB",
         },
         critical: {
-          DEFAULT: '#D64545',
-          soft: '#FFF0F0',
+          DEFAULT: "#D64545",
+          soft: "#FFF0F0",
         },
       },
       boxShadow: {
-        action: '0 8px 22px rgba(17,17,20,.16)',
-        brand: '0 10px 22px rgba(98,87,246,.22)',
-        frame: '0 24px 80px rgba(21,21,27,.17)',
-        sheet: '0 -16px 48px rgba(0,0,0,.18)',
+        section: "0 6px 18px rgba(0,0,0,.035)",
+        action: "0 8px 22px rgba(17,17,20,.14)",
+        frame: "0 24px 80px rgba(21,21,27,.17)",
+        sheet: "0 -16px 48px rgba(0,0,0,.18)",
+      },
+      borderRadius: {
+        section: "24px",
+        sheet: "28px",
       },
     },
   },
@@ -767,17 +830,16 @@ tailwind.config = {
 ```css
 :root {
   /* Surfaces */
-  --canvas: #f4f4f6;
+  --canvas: #fafaf8;
   --surface: #ffffff;
-  --soft: #f7f7f9;
+  --soft: #f6f6f7;
 
   /* Text and structure */
-  --ink: #101014;
-  --muted: #707078;
-  --subtle: #a4a4ad;
-  --line: #ececf0;
+  --ink: #111114;
+  --muted: #717177;
+  --subtle: #a2a2a8;
+  --line: #ececee;
   --on-action: #ffffff;
-  --on-brand: #ffffff;
 
   /* Primary action */
   --action: #111114;
@@ -785,26 +847,29 @@ tailwind.config = {
   --action-disabled: #d8d8de;
   --action-disabled-text: #8b8b94;
 
-  /* Brand */
-  --brand: #2f63f5;
-  --brand-deep: #1f4ed0;
-  --brand-soft: #f1f5ff;
-  --brand-line: #dedbff;
+  /* Accent */
+  --accent: #d9f06f;
+  --accent-soft: #f5f9de;
+  --accent-ink: #111114;
 
   /* Semantic */
   --positive: #13a86b;
   --positive-soft: #e9f9f1;
-  --attention: #ff643a;
+  --attention: #ff6b57;
   --attention-soft: #fff0eb;
   --critical: #d64545;
   --critical-soft: #fff0f0;
 
   /* Radius */
-  --radius-week-day: 16px;
+  --radius-section: 24px;
   --radius-icon: 14px;
-  --radius-status: 20px;
-  --radius-featured: 24px;
+  --radius-date: 18px;
   --radius-sheet: 28px;
+
+  /* Shadow */
+  --shadow-section: 0 6px 18px rgba(0, 0, 0, 0.035);
+  --shadow-action: 0 8px 22px rgba(17, 17, 20, 0.14);
+  --shadow-sheet: 0 -16px 48px rgba(0, 0, 0, 0.18);
 
   /* Spacing */
   --space-1: 4px;
@@ -831,30 +896,35 @@ tailwind.config = {
 - [ ] The tab bar contains navigation only.
 - [ ] Primary actions are easy to find.
 - [ ] Touch targets are at least `44 × 44pt`.
+- [ ] Mobile uses natural document scrolling.
 - [ ] Feedback is immediate and restrained.
 - [ ] Accessibility states are supported.
 
 ### Less text
 
 - [ ] The screen is understandable in about three seconds.
+- [ ] Each section title uses `1–3` words.
+- [ ] No redundant eyebrow repeats the section title.
 - [ ] Each row communicates one idea.
 - [ ] Row titles fit on one line where possible.
 - [ ] Metadata is limited to one short line.
 - [ ] Buttons use short, action-oriented labels.
 - [ ] No fact is repeated across title, subtitle, and badge.
-- [ ] Detail is progressively disclosed.
 - [ ] Home contains no explanatory paragraph.
 
 ### Visual system
 
-- [ ] White remains the main surface.
+- [ ] Canvas is near-white and brighter than the desktop preview canvas.
+- [ ] Major sections are white and visibly separate from the canvas.
+- [ ] Section headers remain neutral with no colored band.
 - [ ] Primary CTA is black.
+- [ ] Black is not used as a content-section background.
+- [ ] Accent occupies compact, meaningful areas only.
 - [ ] No gradient is used.
-- [ ] Only one prominent colored surface appears in the viewport.
-- [ ] Indigo, green, and coral have distinct roles.
-- [ ] The palette feels energetic, not wellness-oriented.
-- [ ] Lists rely on spacing and dividers, not repeated cards.
-- [ ] Shadows are rare and purposeful.
+- [ ] List rows remain flat inside the section surface.
+- [ ] Rows do not receive individual backgrounds, radii, or shadows.
+- [ ] Dividers are rare; spacing is the default separator.
+- [ ] Section shadows are subtle and consistent.
 - [ ] The result feels branded without looking like stock iOS.
 
 ### Product behavior
@@ -869,22 +939,22 @@ tailwind.config = {
 
 ## 20. Current demo reference
 
-The reference implementation is:
+The current visual reference is:
 
 ```text
-home-premium-tailwind.html
+home-screen-light-canvas-clean-sections.html
 ```
 
-It currently demonstrates:
+It demonstrates:
 
-- HIG-based navigation and interaction behavior.
-- System typography with custom brand hierarchy.
-- White-first energetic premium styling.
-- Black primary actions.
-- Electric indigo, fresh green, and coral semantic accents.
-- Four-item navigation.
-- Toolbar quick-add action.
-- Week rhythm control.
-- One featured event surface.
-- Bottom sheet behavior.
-- Safe-area, increased-contrast, and reduced-motion support.
+- HIG-based interaction and accessibility behavior.
+- A bright near-white app canvas.
+- White section surfaces as scan anchors.
+- Clean neutral section headers.
+- Flat rows inside each section.
+- Black primary actions only.
+- Electric lime used as a compact accent.
+- Tangerine used for attention states.
+- Natural mobile document scrolling.
+- Bottom-sheet behavior.
+- Safe-area and reduced-motion support.

@@ -190,7 +190,7 @@ export function EventFormScreen() {
       }
     >
       <View className="gap-3 pt-2">
-        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+        <View className="overflow-hidden rounded-section border border-line bg-surface">
           <View className="px-4 pb-3 pt-4">
             <Text className="text-[13px] font-semibold text-muted">{t.event.fieldTitle}</Text>
             <TextInput
@@ -210,7 +210,6 @@ export function EventFormScreen() {
 
           <CardSelectRow
             icon="eventKind"
-            iconTone="brand"
             label={t.event.fieldKind}
             value={t.eventKind[kind]}
             divider
@@ -218,7 +217,7 @@ export function EventFormScreen() {
           />
         </View>
 
-        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+        <View className="overflow-hidden rounded-section border border-line bg-surface">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${t.event.fieldDate}: ${selectedDatePrimary}, ${selectedDateSecondary}`}
@@ -229,15 +228,15 @@ export function EventFormScreen() {
             }}
             className="min-h-[76px] flex-row items-center gap-3 px-4 active:bg-soft"
           >
-            <IconWell icon="date" tone="brand" />
+            <IconWell icon="date"/>
             <View className="min-w-0 flex-1">
-              <Text className="text-[13px] font-semibold text-muted">{t.event.fieldDate}</Text>
+              {/* <Text className="text-[13px] font-semibold text-muted">{t.event.fieldDate}</Text> */}
               <Text numberOfLines={1} className="mt-0.5 text-heading font-semibold text-ink">
                 {selectedDatePrimary}
               </Text>
-              <Text numberOfLines={1} className="mt-0.5 text-caption font-medium text-muted">
+              {/* <Text numberOfLines={1} className="mt-0.5 text-caption font-medium text-muted">
                 {selectedDateSecondary}
-              </Text>
+              </Text> */}
             </View>
             <View style={{ transform: [{ rotate: datePickerOpen ? '-90deg' : '90deg' }] }}>
               <Icon name="chevron" size={20} color={ICON_COLOR.subtle} />
@@ -267,13 +266,13 @@ export function EventFormScreen() {
             <View className="min-h-[68px] min-w-0 flex-1 flex-row items-center gap-3 border-t border-line">
               <View className="min-w-0 flex-1">
                 <Text className="text-body font-semibold text-ink">{t.event.repeatYearly}</Text>
-                <Text className="mt-0.5 text-caption font-medium text-muted">
+                {/* <Text className="mt-0.5 text-caption font-medium text-muted">
                   {repeatEnabled
                     ? calendar === 'lunar'
                       ? t.event.repeatLunar
                       : t.event.repeatSolar
                     : t.event.repeatNone}
-                </Text>
+                </Text> */}
               </View>
               <Switch
                 accessibilityLabel={t.event.repeatYearly}
@@ -300,7 +299,7 @@ export function EventFormScreen() {
           ) : null}
         </View>
 
-        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+        <View className="overflow-hidden rounded-section border border-line bg-surface">
           <SectionTitle label={t.event.sectionFamily} />
           <CardSelectRow
             icon="family"
@@ -336,7 +335,7 @@ export function EventFormScreen() {
           ) : null}
         </View>
 
-        <View className="overflow-hidden rounded-featured border border-line bg-surface">
+        <View className="overflow-hidden rounded-section border border-line bg-surface">
           <SectionTitle label={t.event.sectionDetails} />
           <CardInputRow icon="location">
             <TextInput
@@ -511,32 +510,25 @@ function SectionTitle({ label }: { label: string }) {
   return <Text className="px-4 pb-1 pt-4 text-[13px] font-semibold text-muted">{label}</Text>;
 }
 
-function IconWell({ icon, tone = 'neutral' }: { icon: IconName; tone?: 'brand' | 'neutral' }) {
-  return (
-    <View
-      className={`h-10 w-10 shrink-0 items-center justify-center rounded-icon ${
-        tone === 'brand' ? 'bg-brand-soft' : 'bg-soft'
-      }`}
-    >
-      <Icon
-        name={icon}
-        size={20}
-        color={tone === 'brand' ? ICON_COLOR.brand : ICON_COLOR.muted}
-      />
-    </View>
-  );
+/**
+ * Icon đứng đầu một dòng trong form.
+ *
+ * Hiện là icon TRẦN, không có ô nền: một cột icon mỗi cái một ô tô màu chạy dọc
+ * form làm mắt đọc thành một cột trang trí thay vì một cột nhãn. Ô nền để dành
+ * cho chỗ màu thật sự mang nghĩa (§5.5) — dòng form thì không.
+ */
+function IconWell({ icon }: { icon: IconName }) {
+  return <Icon name={icon} size={20} color={ICON_COLOR.muted} />;
 }
 
 function CardSelectRow({
   icon,
-  iconTone = 'neutral',
   label,
   value,
   onPress,
   divider = false,
 }: {
   icon: IconName;
-  iconTone?: 'brand' | 'neutral';
   label: string;
   value: string;
   onPress: () => void;
@@ -544,7 +536,7 @@ function CardSelectRow({
 }) {
   return (
     <View className="flex-row items-center gap-3 px-4">
-      <IconWell icon={icon} tone={iconTone} />
+      <IconWell icon={icon} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
@@ -601,12 +593,12 @@ function PickerOption({
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       onPress={onPress}
-      className={`mb-1 min-h-[60px] flex-row items-center gap-3 rounded-featured px-3 ${
-        selected ? 'bg-brand-soft' : 'active:bg-soft'
+      className={`mb-1 min-h-[60px] flex-row items-center gap-3 rounded-section px-3 ${
+        selected ? 'bg-accent-soft' : 'active:bg-soft'
       }`}
     >
       <Text className="flex-1 text-body font-medium text-ink">{label}</Text>
-      {selected ? <Icon name="check" size={20} color={ICON_COLOR.brand} /> : null}
+      {selected ? <Icon name="check" size={20} color={ICON_COLOR.muted} /> : null}
     </Pressable>
   );
 }
