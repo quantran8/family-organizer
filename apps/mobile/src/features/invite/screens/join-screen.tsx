@@ -68,7 +68,7 @@ export function JoinScreen() {
         // `''` không phải uuid hợp lệ nên Postgres từ chối cả câu update. Gate
         // điền đủ khi `my_households` trả về ở vòng sau.
         setHousehold({ id: householdId, name: null, memberId: null });
-        router.replace('/(app)/home');
+        router.replace('/(app)/(tabs)/home');
       },
     }),
   );

@@ -34,7 +34,7 @@ export function ResetPasswordScreen() {
   const onSubmit = handleSubmit(({ password }) =>
     update.mutate(password, {
       // Phiên đã hợp lệ sau khi đổi mật khẩu — gate ở _layout sẽ tự đưa vào app.
-      onSuccess: () => router.replace('/(app)/home'),
+      onSuccess: () => router.replace('/(app)/(tabs)/home'),
     }),
   );
 

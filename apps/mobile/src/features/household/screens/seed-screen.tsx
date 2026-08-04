@@ -42,7 +42,7 @@ export function SeedScreen() {
   );
   const [saving, setSaving] = useState(false);
 
-  const finish = () => router.replace('/(app)/home');
+  const finish = () => router.replace('/(app)/(tabs)/home');
 
   const toggle = (key: StarterPackKey) => {
     setSelected((prev) => {

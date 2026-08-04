@@ -123,7 +123,7 @@ export function AuthGate() {
     // bị đẩy về `home` ngay trong khung hình đầu tiên và người tạo nhà không
     // bao giờ thấy các bước đó.
     if (inPostHouseholdStep) return;
-    if (inAuth || atRoot) router.replace('/(app)/home');
+    if (inAuth || atRoot) router.replace('/(app)/(tabs)/home');
   }, [
     isReady,
     session,

@@ -1,89 +1,101 @@
 /**
- * Tab bar — 4 tab (05 §2).
+ * Stack bọc NGOÀI tab bar — chỗ mọi màn chi tiết được đẩy lên.
  *
- * `design.md §10` vẽ 5 mục (Nhà mình · Lịch · [+] · Giấy tờ · Tài khoản) nhưng
- * đó là mô tả một bản demo HTML tĩnh; `05 §2` là spec chức năng nên nó thắng.
- * `[+]` là FAB nổi trên nội dung, KHÔNG phải một tab — nó không dẫn tới màn hình
- * nào, nó mở sheet. Cài đặt vào qua avatar ở header, không chiếm một tab.
+ * Đây là điều khiến tab bar biến mất khi đi sâu, mà không cần ẩn nó: màn chi
+ * tiết không nằm trong tab navigator nữa, nó nằm TRÊN cả tab navigator. Tab bar
+ * không phải giấu đi — nó ở lại đúng chỗ, bên dưới.
  *
- * Badge: CHỈ trên tab Tiền, CHỈ khi trạng thái `tight`, và không đếm số. Một
- * con số đỏ trên tab Việc biến việc nhà thành danh sách nợ phải trả.
+ * Vì sao KHÔNG ẩn bằng `tabBarStyle`: cách đó buộc phải xoá tab bar khỏi một cây
+ * mà nó vẫn thuộc về, và mọi biến thể đều hỏng một kiểu — `display: 'none'` để
+ * lại phần đệm ~83px vì `getTabBarHeight` chỉ đọc `height`; vá bằng `height: 0`
+ * thì `onLayout` không bắn nữa nên animation hiện lại chạy sai quãng; còn đọc
+ * route để đổi style thì hoặc bị `useRouteCache` chặn (`options` không được gọi
+ * lại), hoặc chỉ biết sau khi transition xong (`useSegments` cập nhật trong
+ * `store.onStateChange`) nên tab bar hiện lại trễ. Đổi hình dạng cây thì không
+ * còn thứ nào trong số đó tồn tại.
  *
- * Icon dùng `TabIcon` (Ionicons) chứ không phải `Icon` (Feather) như phần còn
- * lại của app: tab đang mở phải đổi HÌNH sang nét đặc, không chỉ đổi màu
- * (design.md §11.2, và §15 cấm dùng màu một mình) — mà Feather không có bản đặc.
- * Xem chú thích ở `design/components/icon.tsx`.
+ * Đường dẫn KHÔNG đổi: `(tabs)` là route group nên nó vô hình với URL —
+ * `/(app)/plan/task/1` vẫn đúng như trước khi tách.
  */
 
-import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 
-import { ICON_COLOR, TabIcon } from '@/design/components';
-import { useT } from '@/i18n';
+import { vi } from '@/i18n';
+
+/** Header trắng, không bóng đổ — dùng lại cho mọi màn chi tiết trong stack này. */
+const HEADER = {
+  headerShown: true,
+  // Chỉ mũi tên, không chữ. KHÔNG dùng `headerBackTitle: ''` cho việc này —
+  // chuỗi rỗng là falsy nên bị bỏ qua, và nhãn rơi về mặc định là tên route
+  // trước đó ("(tabs)"). `'minimal'` mới là option ép ẩn chữ (typings:
+  // "Always displays only the icon without a title").
+  headerBackButtonDisplayMode: 'minimal',
+  headerShadowVisible: false,
+  headerStyle: { backgroundColor: '#FFFFFF' },
+  headerTintColor: '#101014',
+  headerTitleStyle: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 16 },
+} as const;
+
+/** Màn chi tiết để tiêu đề TRỐNG: tên khoản đã là dòng chữ to đầu màn hình. */
+const DETAIL = { ...HEADER, title: '' } as const;
 
 export default function AppLayout() {
-  const { t } = useT();
-
   return (
-    <Tabs
+    <Stack
       screenOptions={{
         headerShown: false,
-        // Tab đang mở màu ĐEN, không phải accent (design.md §11.2): accent là
-        // màu nền, một nhãn 11px tô chanh trên nền trắng thì không đọc được.
-        // Việc phân biệt vẫn không dựa vào màu một mình — `TabIcon` đổi sang
-        // nét ĐẶC khi focused (§11.2, §15).
-        tabBarActiveTintColor: ICON_COLOR.ink,
-        tabBarInactiveTintColor: ICON_COLOR.subtle,
-        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#ECECEE' },
-        tabBarLabelStyle: { fontSize: 11, fontFamily: 'BeVietnamPro_500Medium' },
+        contentStyle: { backgroundColor: '#FFFFFF' },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: t.tabs.home,
-          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="plan"
-        options={{
-          title: t.tabs.plan,
-          tabBarIcon: ({ color, focused }) => <TabIcon name="plan" color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="money"
-        options={{
-          title: t.tabs.money,
-          tabBarIcon: ({ color, focused }) => <TabIcon name="money" color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="docs"
-        options={{
-          title: t.tabs.docs,
-          tabBarIcon: ({ color, focused }) => <TabIcon name="docs" color={color} focused={focused} />,
-        }}
-      />
+      {/* Tab bar là MỘT màn của stack này, không phải cấp bọc ngoài. */}
+      <Stack.Screen name="(tabs)" />
+
+      {/* Việc & Sự kiện */}
+      <Stack.Screen name="plan/task/[id]" options={DETAIL} />
+      <Stack.Screen name="plan/event/[id]" options={DETAIL} />
+
       {/*
-        Cài đặt KHÔNG chiếm một tab (05 §2) — đúng bốn nhóm thông tin, không
-        thêm. Nhưng thư mục `settings/` nằm cạnh bốn tab kia nên expo-router
-        mặc định mọc thêm mục thứ năm; `href: null` giấu nó đi mà vẫn giữ
-        route điều hướng tới được. Vào qua avatar ở header màn Nhà mình.
+        Tiền — màn danh sách CÓ tiêu đề: người dùng tới đây bằng cách chạm một
+        dòng trên màn tổng quan ("Có thể dùng ngay ›"), nên tiêu đề header là
+        thứ xác nhận họ đã tới đúng chỗ.
       */}
-      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Stack.Screen name="money/upcoming" options={{ ...HEADER, title: vi.upcoming.title }} />
+      <Stack.Screen name="money/assets" options={{ ...HEADER, title: vi.asset.title }} />
+      <Stack.Screen name="money/payments" options={{ ...HEADER, title: vi.payment.title }} />
+      <Stack.Screen name="money/debts" options={{ ...HEADER, title: vi.debt.title }} />
+      <Stack.Screen name="money/attention" options={{ ...HEADER, title: vi.attention.title }} />
+      <Stack.Screen name="money/history" options={{ ...HEADER, title: vi.money.historyTitle }} />
+      <Stack.Screen name="money/changes" options={{ ...HEADER, title: vi.money.changesTitle }} />
+      <Stack.Screen name="money/goals" options={{ ...HEADER, title: vi.goal.title }} />
+      <Stack.Screen name="money/fund" options={{ ...HEADER, title: vi.fund.title }} />
+      <Stack.Screen name="money/asset/[id]" options={DETAIL} />
+      <Stack.Screen name="money/payment/[id]" options={DETAIL} />
+      <Stack.Screen name="money/debt/[id]" options={DETAIL} />
+      <Stack.Screen name="money/goal/[id]" options={DETAIL} />
+      <Stack.Screen name="money/fund/[id]" options={DETAIL} />
+
+      {/* Giấy tờ */}
+      <Stack.Screen name="docs/[id]" options={DETAIL} />
+
       {/*
-        Hai module bản địa (G15) — cùng lý do với `settings`: thư mục nằm cạnh
-        bốn tab nên expo-router mọc thêm mục, `href: null` giấu đi mà vẫn điều
-        hướng tới được.
+        Ba nhóm không chiếm tab (05 §2). Trước đây chúng phải khai `href: null`
+        để expo-router khỏi mọc thêm mục thứ năm trên tab bar; giờ chúng nằm
+        ngoài Tabs nên chuyện đó không còn đặt ra nữa.
 
         Sổ mừng vào qua tab Tiền; Hồ sơ con vào qua tab Giấy tờ hoặc từ dòng mũi
-        tiêm sắp tới trên Nhà mình (07 §4.5). Cả hai đều KHÔNG xứng một tab: sổ
-        mừng chỉ dùng vài lần một năm quanh mùa cưới, và hồ sơ con chỉ có nghĩa
-        với nhà đang có con nhỏ.
+        tiêm sắp tới trên Nhà mình (07 §4.5). Cài đặt vào qua avatar ở header.
       */}
-      <Tabs.Screen name="gifts" options={{ href: null }} />
-      <Tabs.Screen name="child" options={{ href: null }} />
-    </Tabs>
+      <Stack.Screen name="settings/index" options={{ ...HEADER, title: vi.settings.title }} />
+      <Stack.Screen name="settings/household" options={{ ...HEADER, title: vi.settings.household }} />
+      <Stack.Screen name="settings/invite" options={{ ...HEADER, title: vi.settings.inviteTitle }} />
+
+      <Stack.Screen name="gifts/index" options={{ ...HEADER, title: vi.gift.title }} />
+      <Stack.Screen name="gifts/bulk" options={{ ...HEADER, title: vi.gift.bulkTitle }} />
+      <Stack.Screen name="gifts/[contactId]" options={DETAIL} />
+
+      <Stack.Screen name="child/index" options={{ ...HEADER, title: vi.child.listTitle }} />
+      <Stack.Screen name="child/[memberId]/index" options={DETAIL} />
+      <Stack.Screen name="child/[memberId]/growth" options={{ ...HEADER, title: vi.child.growthTitle }} />
+    </Stack>
   );
 }

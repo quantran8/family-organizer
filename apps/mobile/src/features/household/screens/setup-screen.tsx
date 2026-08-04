@@ -129,7 +129,7 @@ function JoinHouseholdForm({ onBack }: { onBack: () => void }) {
         // `''` đi vào `completed_by` sẽ làm Postgres từ chối câu update mà
         // không có lỗi nào hiện lên màn hình.
         setHousehold({ id: householdId, name: null, memberId: null });
-        router.replace('/(app)/home');
+        router.replace('/(app)/(tabs)/home');
       },
     }),
   );

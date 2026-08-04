@@ -238,9 +238,9 @@ export function HomeScreen() {
       >
         <HomeHeader householdName={householdName ?? t.app.name} today={today} />
 
-        <FinanceCard today={today} onPress={() => router.push('/(app)/money')} />
+        <FinanceCard today={today} onPress={() => router.push('/(app)/(tabs)/money')} />
 
-        <ShoppingSection onPress={() => router.push('/(app)/plan')} />
+        <ShoppingSection onPress={() => router.push('/(app)/(tabs)/plan')} />
 
         <InviteCard hasFirstRecord={(tasks ?? []).length > 0} />
 
@@ -257,8 +257,7 @@ export function HomeScreen() {
         {upcomingTasks.length > 0 ? (
           <HomeSection
             title={t.home.sectionTasks}
-            count={upcomingTasks.length}
-            onAction={() => router.push('/(app)/plan')}
+            onAction={() => router.push('/(app)/(tabs)/plan')}
           >
             {/* `gap-5` = 20px, mức sàn của §7.3 cho khoảng cách giữa hai dòng
                 phẳng. KHÔNG có `border-b` giữa các dòng: §8 nói khoảng cách là
@@ -270,7 +269,7 @@ export function HomeScreen() {
         {upcomingEvents.length > 0 ? (
           <HomeSection
             title={t.home.sectionEvents}
-            onAction={() => router.push('/(app)/plan')}
+            onAction={() => router.push('/(app)/(tabs)/plan')}
           >
             <View className="gap-5">
               {upcomingEvents.map((event) => (
@@ -530,7 +529,7 @@ function ShoppingSection({ onPress }: { onPress: () => void }) {
   const rest = pending.length - 2;
 
   return (
-    <HomeSection title={t.shopping.cardTitle} count={pending.length} onAction={onPress}>
+    <HomeSection title={t.shopping.cardTitle} onAction={onPress}>
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
@@ -625,7 +624,7 @@ function AttentionSection({ onPress }: { onPress: () => void }) {
   if (open.length === 0) return null;
 
   return (
-    <HomeSection title={t.home.sectionAttention} count={open.length} onAction={onPress}>
+    <HomeSection title={t.home.sectionAttention} onAction={onPress}>
       {/* Tối đa 3 dòng; phần còn lại ở màn Cần trao đổi. Con số trên tiêu đề
           vẫn đếm ĐỦ, nên cắt ở đây không giấu mất thứ gì. */}
       <View className="gap-6">
