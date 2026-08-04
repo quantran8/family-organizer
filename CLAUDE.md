@@ -172,7 +172,9 @@ Không viết test cho component ở MVP.
 
 ## Tài liệu
 
-`spec/` là nguồn sự thật, tách theo ranh giới **bất biến vs chính sách** — nếu một thay đổi bắt phải sửa hai file cùng lúc thì ranh giới đã bị vi phạm ở đâu đó.
+`docs/app-concept-v3.md` là **concept sản phẩm** — trả lời *sản phẩm là gì và vì sao*. Đọc nó trước khi đụng vào một module lần đầu. Nó đã hợp nhất mọi quyết định triển khai: năm đề xuất của v3 bị bác được đánh dấu tại chỗ kèm lý do, và §21 ghi ba món nợ lớn nhất (AI chưa nối model, push đang tắt, seed lịch tiêm rỗng).
+
+`spec/` là nguồn sự thật **kỹ thuật**, tách theo ranh giới **bất biến vs chính sách** — nếu một thay đổi bắt phải sửa hai file cùng lúc thì ranh giới đã bị vi phạm ở đâu đó. Khi concept và `spec/` vênh nhau thì `spec/` đúng: nó là thứ được code và test.
 
 | File | Phạm vi |
 |---|---|
