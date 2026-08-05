@@ -195,8 +195,17 @@ export function AuthGate() {
         name="(modals)"
         options={{
           presentation: 'formSheet',
-          sheetAllowedDetents: [0.7],
-          sheetGrabberVisible: true,
+          // 0.85 — MỘT detent duy nhất, không phải dải cho người dùng kéo. Sheet
+          // giữ đúng một chiều cao để mọi form đọc như cùng một bề mặt; nhiều
+          // detent thì hai form giống nhau lại mở ra hai kích thước khác nhau
+          // tuỳ lần trước người dùng kéo tới đâu.
+          //
+          // Cao hơn 0.7 của bản trước vì các form sửa (fill sẵn dữ liệu) có
+          // nhiều trường hơn form thêm mới. Đổi số này là đổi chiều cao của MỌI
+          // modal — xem chú thích `flex-1` ở `design/components/sheet.tsx`, nơi
+          // bố cục bên trong bám vào chiều cao đã ghim này.
+          sheetAllowedDetents: [0.85],
+          sheetGrabberVisible: false,
           // Cùng bán kính với `rounded-status` của Card (04 §6): sheet đọc như
           // một thẻ lớn trượt lên, không phải cửa sổ của hệ điều hành khác.
           sheetCornerRadius: 24,

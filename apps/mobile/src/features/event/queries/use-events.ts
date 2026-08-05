@@ -18,11 +18,20 @@ export function useEvents() {
   });
 }
 
-export function useEvent(id: UUID) {
+/**
+ * Một sự kiện.
+ *
+ * `enabled`: form Sự kiện dùng chung cho thêm-mới và sửa, và ở chế độ thêm mới
+ * thì không có id. Luật hook cấm gọi có điều kiện, nên hook vẫn được gọi và
+ * `enabled` là chỗ chặn — thiếu nó thì mỗi lần mở form thêm mới sẽ bắn một
+ * truy vấn `id = null` chắc chắn hỏng.
+ */
+export function useEvent(id: UUID | null) {
   const hh = useHouseholdId();
   return useQuery({
-    queryKey: queryKeys.events.detail(hh, id),
-    queryFn: () => eventRepository.get(hh, id),
+    queryKey: queryKeys.events.detail(hh, id as UUID),
+    queryFn: () => eventRepository.get(hh, id as UUID),
+    enabled: id !== null,
   });
 }
 

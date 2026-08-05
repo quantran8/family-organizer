@@ -1,13 +1,29 @@
 /**
- * Form thêm Sự kiện — các nhóm thông tin nằm trong card trên nền canvas.
+ * Form Sự kiện — THÊM MỚI và SỬA dùng chung một màn.
  *
- * Lịch dương/âm dùng chung một lưới tháng. Card ngày chỉ mở lịch khi người dùng
- * yêu cầu và tự thu lại ngay sau khi chọn, để phần còn lại của form luôn gần.
+ * Các nhóm thông tin nằm trong card trên nền canvas. Lịch dương/âm dùng chung
+ * một lưới tháng. Card ngày chỉ mở lịch khi người dùng yêu cầu và tự thu lại
+ * ngay sau khi chọn, để phần còn lại của form luôn gần.
+ *
+ * ── Một form, hai chế độ (09 §D.5) ──
+ *
+ * Có param `id` → chế độ SỬA: nạp bản ghi, fill sẵn mọi trường, nút Lưu gọi
+ * `update`, và có thêm nút Xoá. Không có `id` → thêm mới như trước.
+ *
+ * Gộp thay vì tách thành hai file: mười bốn trường này, cách lịch âm/dương liên
+ * động với nút «Lặp hằng năm», và luật `childMemberId` chỉ giữ khi `kind` là
+ * "của con" — tất cả đều phải giống hệt nhau ở hai chế độ. Hai bản sao của bốn
+ * trăm dòng ấy sẽ lệch nhau ở lần sửa thứ nhất, và lệch âm thầm: form thêm mới
+ * đúng, form sửa sai, không có gì báo.
+ *
+ * Khác biệt giữa hai chế độ vì thế được gom vào đúng ba chỗ — giá trị khởi tạo,
+ * phép tính `dirty`, và hàm `save`.
  */
 
 import {
   EVENT_KINDS,
   FAMILY_SIDES,
+  nextLunarOccurrence,
   parseISODate,
   solarToLunar,
   weekdayOf,
@@ -17,22 +33,29 @@ import {
   type FamilySide,
   type ISODate,
 } from '@family-organizer/domain';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
 
 import {
   AmountInput,
   Button,
+  ErrorState,
   Icon,
   ICON_COLOR,
+  ListSkeleton,
   PickerSheet,
   Segmented,
   Sheet,
   type IconName,
 } from '@/design/components';
 import { EventCalendar } from '@/features/event/components';
-import { useCreateEvent } from '@/features/event/queries/use-events';
+import {
+  useCreateEvent,
+  useDeleteEvent,
+  useEvent,
+  useUpdateEvent,
+} from '@/features/event/queries/use-events';
 import { useMembers } from '@/features/member/queries/use-members';
 import { useT, weekdayShort } from '@/i18n';
 import { useSheetAutoFocus } from '@/lib/use-sheet-autofocus';
@@ -61,6 +84,16 @@ export function EventFormScreen() {
   const today = useToday();
   const titleRef = useSheetAutoFocus();
   const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
+
+  const params = useLocalSearchParams<{ id?: string }>();
+  const eventId = (params.id ?? null) as UUID | null;
+  const isEdit = eventId !== null;
+
+  // Hook vẫn được gọi ở chế độ thêm mới (luật hook cấm gọi có điều kiện), nhưng
+  // `enabled: id !== null` bên trong `useEvent` chặn truy vấn lại.
+  const { data: event, isError: eventError, refetch } = useEvent(eventId);
 
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<EventKind>('death_anniversary');
@@ -84,64 +117,151 @@ export function EventFormScreen() {
   );
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
+  /**
+   * Nạp bản ghi vào form ở chế độ SỬA.
+   *
+   * Phần khó là `selectedDate`: form làm việc bằng MỘT ngày dương, còn sự kiện
+   * âm lịch lưu ngày/tháng âm (ràng buộc #2 — `next_occurrence_date` là cache do
+   * Edge ghi, và có thể còn cũ hoặc chưa có).
+   *
+   * Nên ngày dương được TÍNH LẠI tại chỗ bằng `nextLunarOccurrence` thay vì đọc
+   * `nextOccurrenceDate`: hàm này thuần, chạy được offline, và cho ra đúng lần
+   * kế tiếp kể cả khi Edge chưa kịp chạy. Đọc cache mà cache còn `null` thì form
+   * mở ra với ô ngày trống — người dùng thấy sự kiện của mình mất ngày.
+   */
+  useEffect(() => {
+    if (!event) return;
+    setTitle(event.title);
+    setKind(event.kind);
+    setCalendar(event.calendar);
+    setRepeatEnabled(event.recur !== null);
+    setSide(event.side);
+    setLocation(event.location ?? '');
+    setEstimatedCost(event.estimatedCost);
+    setRemindLeadDays(event.remindLeadDays);
+    setPrepLeadDays(event.prepLeadDays);
+    setChildMemberId(event.childMemberId);
+    setNotes(event.notes ?? '');
+
+    if (event.calendar === 'lunar' && event.lunarDay !== null && event.lunarMonth !== null) {
+      setSelectedDate(
+        nextLunarOccurrence(
+          {
+            day: event.lunarDay,
+            month: event.lunarMonth,
+            isLeapMonth: event.lunarLeapMonth,
+          },
+          today,
+        ),
+      );
+    } else {
+      setSelectedDate(event.solarDate);
+    }
+  }, [event, today]);
+
   const trimmed = title.trim();
-  const dirty =
-    trimmed !== '' ||
-    kind !== 'death_anniversary' ||
-    selectedDate !== today ||
-    calendar !== 'lunar' ||
-    !repeatEnabled ||
-    side !== null ||
-    location !== '' ||
-    estimatedCost !== null ||
-    remindLeadDays !== 3 ||
-    prepLeadDays !== null ||
-    childMemberId !== null ||
-    notes !== '';
+
+  /**
+   * `dirty` khác nhau ở hai chế độ, và phải khác.
+   *
+   * Thêm mới: so với giá trị MẶC ĐỊNH — "đã đụng vào gì chưa".
+   * Sửa: so với BẢN GHI — "đã đổi gì so với thứ đang lưu chưa".
+   *
+   * Dùng nhầm vế thứ nhất cho chế độ sửa thì mọi sự kiện đang có tên đều "dirty"
+   * ngay lúc mở, và hộp thoại "bỏ thay đổi?" hiện lên cả khi người dùng chỉ mở
+   * ra xem rồi đóng.
+   */
+  const dirty = event
+    ? trimmed !== event.title ||
+      kind !== event.kind ||
+      calendar !== event.calendar ||
+      repeatEnabled !== (event.recur !== null) ||
+      side !== event.side ||
+      location.trim() !== (event.location ?? '') ||
+      estimatedCost !== event.estimatedCost ||
+      remindLeadDays !== event.remindLeadDays ||
+      prepLeadDays !== event.prepLeadDays ||
+      childMemberId !== event.childMemberId ||
+      notes.trim() !== (event.notes ?? '')
+    : trimmed !== '' ||
+      kind !== 'death_anniversary' ||
+      selectedDate !== today ||
+      calendar !== 'lunar' ||
+      !repeatEnabled ||
+      side !== null ||
+      location !== '' ||
+      estimatedCost !== null ||
+      remindLeadDays !== 3 ||
+      prepLeadDays !== null ||
+      childMemberId !== null ||
+      notes !== '';
+
+  const saving = createEvent.isPending || updateEvent.isPending;
 
   const close = (): void => {
     if (!dirty) {
       router.back();
       return;
     }
-    Alert.alert(t.event.formTitle, t.common.cancel, [
+    Alert.alert(t.common.discardTitle, t.common.discardBody, [
+      { text: t.common.keepEditing, style: 'cancel' },
+      { text: t.common.discardConfirm, style: 'destructive', onPress: () => router.back() },
+    ]);
+  };
+
+  const confirmDelete = (): void => {
+    if (eventId === null) return;
+    // CÓ hỏi lại: sheet đóng luôn khi xoá nên không có chỗ đặt thanh hoàn tác.
+    Alert.alert(title.trim(), t.common.delete, [
       { text: t.common.cancel, style: 'cancel' },
-      { text: t.common.close, style: 'destructive', onPress: () => router.back() },
+      {
+        text: t.common.delete,
+        style: 'destructive',
+        onPress: () => deleteEvent.mutate(eventId, { onSuccess: () => router.back() }),
+      },
     ]);
   };
 
   const save = (): void => {
     setSubmitted(true);
-    if (trimmed === '' || selectedDate === null || createEvent.isPending) return;
+    if (trimmed === '' || selectedDate === null || saving) return;
 
     const lunar = solarToLunar(selectedDate);
     // Sự kiện không lặp là đúng MỘT ngày dương đã chọn. Chỉ khi bật lặp thì
     // `calendar` mới là cơ sở để tính lần hằng năm tiếp theo.
     const storedCalendar: CalendarType = repeatEnabled ? calendar : 'solar';
-    createEvent.mutate(
-      {
-        title: trimmed,
-        kind,
-        side,
-        location: location.trim() === '' ? null : location.trim(),
-        notes: notes.trim() === '' ? null : notes.trim(),
-        calendar: storedCalendar,
-        solarDate: storedCalendar === 'solar' ? selectedDate : null,
-        lunarDay: storedCalendar === 'lunar' ? lunar.day : null,
-        lunarMonth: storedCalendar === 'lunar' ? lunar.month : null,
-        lunarLeapMonth: storedCalendar === 'lunar' ? lunar.isLeapMonth : false,
-        startTime: null,
-        isAllDay: true,
-        recur: repeatEnabled ? { freq: 'yearly', intervalN: 1 } : null,
-        remindLeadDays,
-        prepLeadDays,
-        // Chỉ giữ khi loại sự kiện là "của con" — đổi loại rồi lưu không được
-        // để lại một tham chiếu mồ côi ở dòng dữ liệu.
-        childMemberId: kind === 'child' ? childMemberId : null,
-        estimatedCost,
-      },
-      { onSuccess: () => router.back() },
-    );
+
+    // Một `input` duy nhất cho cả hai chế độ: mọi luật dẫn xuất ở trên
+    // (`storedCalendar`, ngày âm/dương, `childMemberId`) phải áp y hệt nhau khi
+    // thêm và khi sửa. Dựng hai object riêng là mở đường cho chúng lệch nhau.
+    const input = {
+      title: trimmed,
+      kind,
+      side,
+      location: location.trim() === '' ? null : location.trim(),
+      notes: notes.trim() === '' ? null : notes.trim(),
+      calendar: storedCalendar,
+      solarDate: storedCalendar === 'solar' ? selectedDate : null,
+      lunarDay: storedCalendar === 'lunar' ? lunar.day : null,
+      lunarMonth: storedCalendar === 'lunar' ? lunar.month : null,
+      lunarLeapMonth: storedCalendar === 'lunar' ? lunar.isLeapMonth : false,
+      startTime: null,
+      isAllDay: true,
+      recur: repeatEnabled ? ({ freq: 'yearly', intervalN: 1 } as const) : null,
+      remindLeadDays,
+      prepLeadDays,
+      // Chỉ giữ khi loại sự kiện là "của con" — đổi loại rồi lưu không được
+      // để lại một tham chiếu mồ côi ở dòng dữ liệu.
+      childMemberId: kind === 'child' ? childMemberId : null,
+      estimatedCost,
+    };
+
+    const done = { onSuccess: () => router.back() };
+    if (eventId !== null) {
+      updateEvent.mutate({ id: eventId, patch: input }, done);
+    } else {
+      createEvent.mutate(input, done);
+    }
   };
 
   const titleError = submitted && trimmed === '' ? t.validation.eventTitle : undefined;
@@ -174,15 +294,34 @@ export function EventFormScreen() {
     setPicker(next);
   };
 
+  // Chế độ sửa mà bản ghi chưa về: KHÔNG dựng form với giá trị mặc định. Người
+  // dùng sẽ thấy "Giỗ ông ngoại" hiện ra dưới dạng một form trống mang ngày hôm
+  // nay, và nếu họ kịp bấm Lưu thì đó là ghi đè bằng dữ liệu mặc định.
+  if (isEdit && !event) {
+    return (
+      <Sheet title={t.event.formEditTitle} onClose={() => router.back()} background="canvas">
+        {eventError ? (
+          <ErrorState
+            message={t.error.unknown}
+            retryLabel={t.common.retry}
+            onRetry={() => void refetch()}
+          />
+        ) : (
+          <ListSkeleton rows={5} />
+        )}
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet
-      title={t.event.formTitle}
+      title={isEdit ? t.event.formEditTitle : t.event.formTitle}
       onClose={close}
       background="canvas"
       actions={
         <Button
           label={t.common.save}
-          loading={createEvent.isPending}
+          loading={saving}
           disabled={trimmed === ''}
           className="min-h-[56px]"
           onPress={save}
@@ -383,9 +522,18 @@ export function EventFormScreen() {
           </View>
         </View>
 
-        {createEvent.isError ? (
+        {createEvent.isError || updateEvent.isError ? (
           <View className="border-l-4 border-critical bg-critical-soft px-4 py-3">
             <Text className="text-caption font-semibold text-critical">{t.error.unknown}</Text>
+          </View>
+        ) : null}
+
+        {/* Nút Xoá chỉ có ở chế độ sửa, và nằm CUỐI form — cách xa nút Lưu ghim
+            ở đáy sheet. Hai nút cạnh nhau, một nguy hiểm một không, là chỗ ngón
+            tay chạm nhầm. */}
+        {isEdit ? (
+          <View className="mt-4">
+            <Button label={t.common.delete} variant="danger" onPress={confirmDelete} />
           </View>
         ) : null}
       </View>

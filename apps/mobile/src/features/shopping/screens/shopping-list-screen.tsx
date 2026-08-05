@@ -11,12 +11,31 @@
  * lần một tuần mà không làm ai bực.
  *
  * KHÔNG có màn chi tiết: một món cần mua không có gì để xem thêm.
+ *
+ * ── Bố cục (bản dựng lại theo mockup) ──
+ *
+ * Cả danh sách nằm trong MỘT mảng trắng (`Section`) trên nền `canvas`, giống
+ * mọi nhóm khác của app, và ô nhập nằm BÊN TRONG mảng đó ngay dưới tiêu đề.
+ *
+ * Ô nhập vẫn KHÔNG cuộn đi mất, nhưng lý do đổi: trước đây nó là một dải ghim
+ * cứng ở đầu màn, tách khỏi danh sách bằng một đường kẻ. Giờ nó là dòng đầu
+ * tiên của chính cái thẻ chứa danh sách — cùng một vật, nên "thêm món" đọc như
+ * một phần của danh sách chứ không phải một thanh công cụ đứng trên nó. Danh
+ * sách của một nhà hai người hiếm khi dài quá một màn, nên cuộn nó ra khỏi tầm
+ * mắt gần như không xảy ra.
  */
 
 import { useRef, useState } from 'react';
-import { RefreshControl, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { EmptyState, ErrorState, ListSkeleton } from '@/design/components';
+import {
+  EmptyState,
+  ErrorState,
+  Icon,
+  ICON_COLOR,
+  ListSkeleton,
+  Section,
+} from '@/design/components';
 import { ShoppingRow } from '@/features/shopping/components';
 import {
   useAddShoppingItem,
@@ -27,7 +46,7 @@ import {
 import { useT } from '@/i18n';
 
 export function ShoppingListScreen() {
-  const { t } = useT();
+  const { t, f } = useT();
   const { data: items, isPending, isError, refetch, isRefetching } = useShoppingItems();
 
   const add = useAddShoppingItem();
@@ -52,68 +71,106 @@ export function ShoppingListScreen() {
     inputRef.current?.focus();
   };
 
+  // Đếm món CHƯA mua, không đếm tổng: con số hữu ích là "còn phải mua bao
+  // nhiêu", không phải "danh sách này đã từng có bao nhiêu dòng".
+  const remaining = (items ?? []).filter((x) => !x.isDone).length;
+
   return (
-    <View className="flex-1">
-      {/* Ô nhập CỐ ĐỊNH trên cùng, không cuộn theo danh sách: trong siêu thị,
-          thêm một món là thao tác thường xuyên hơn đọc lại cả danh sách. */}
-      <View className="border-b border-line bg-surface px-4 py-3">
-        <TextInput
-          ref={inputRef}
-          value={draft}
-          onChangeText={setDraft}
-          placeholder={t.shopping.addPlaceholder}
-          placeholderTextColor="#A4A4AD"
-          returnKeyType="done"
-          blurOnSubmit={false}
-          onSubmitEditing={submit}
-          className="min-h-touch rounded-control bg-soft px-4 text-body text-ink"
-        />
-      </View>
-
-      {isError ? (
-        <View className="px-4 pt-6">
-          <ErrorState
-            message={t.error.unknown}
-            retryLabel={t.common.retry}
-            onRetry={() => void refetch()}
-          />
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName="px-4 pb-24 pt-5"
+      showsVerticalScrollIndicator={false}
+      // Chạm vào danh sách trong lúc đang gõ thì đóng bàn phím — nhưng chạm
+      // một ô tròn vẫn tick được (`handled` chứ không `always`).
+      keyboardShouldPersistTaps="handled"
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
+    >
+      <Section>
+        <View className="mb-4 flex-row items-start justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-heading font-semibold tracking-[-0.4px] text-ink">
+              {t.shopping.cardTitle}
+            </Text>
+            {/* "Cả hai cùng thêm" — nói ra rằng đây là danh sách CHUNG. Không
+                có nhãn "ai thêm" trên từng dòng (06 §4), nên câu này là chỗ duy
+                nhất nói điều đó, và nó nói một lần cho cả danh sách. */}
+            <Text className="mt-1 text-caption text-muted">{t.shopping.cardSubtitle}</Text>
+          </View>
+          <View className="rounded-status bg-accent px-2.5 py-1">
+            <Text className="text-micro font-semibold text-accent-ink">
+              {f(t.shopping.countLabel, { count: remaining })}
+            </Text>
+          </View>
         </View>
-      ) : null}
 
-      {isPending ? (
-        <View className="px-4 pt-4">
-          <ListSkeleton rows={5} />
-        </View>
-      ) : null}
-
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="px-4 pb-24"
-        showsVerticalScrollIndicator={false}
-        // Chạm vào danh sách trong lúc đang gõ thì đóng bàn phím — nhưng chạm
-        // một ô tròn vẫn tick được (`handled` chứ không `always`).
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
-        }
-      >
-        {(items ?? []).map((item) => (
-          <ShoppingRow
-            key={item.id}
-            title={item.title}
-            note={item.note}
-            done={item.isDone}
-            onToggle={(next) => toggle.mutate({ id: item.id, done: next })}
-            onDelete={() => remove.mutate(item.id)}
+        {/* Ô nhập là dòng ĐẦU TIÊN của thẻ, ngay dưới tiêu đề: trong siêu thị,
+            thêm một món là thao tác thường xuyên hơn đọc lại cả danh sách. */}
+        <View className="flex-row items-center gap-2 rounded-control bg-soft p-1.5">
+          <TextInput
+            ref={inputRef}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={t.shopping.addPlaceholder}
+            placeholderTextColor={ICON_COLOR.subtle}
+            returnKeyType="done"
+            blurOnSubmit={false}
+            onSubmitEditing={submit}
+            className="min-h-touch min-w-0 flex-1 px-3 text-body text-ink"
           />
-        ))}
+          {/* Nút gửi song song với phím Enter, không thay nó: bàn phím iOS có
+              nút "Xong" nhưng bàn phím Android nhiều máy thì không, và một ô
+              nhập không có cách nào để gửi ngoài một phím ẩn là một ô nhập
+              trông như bị hỏng. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.add}
+            onPress={submit}
+            className="h-touch w-touch items-center justify-center rounded-control bg-action active:bg-action-pressed"
+          >
+            <Icon name="plus" size={20} color={ICON_COLOR.white} />
+          </Pressable>
+        </View>
 
+        {isError ? (
+          <View className="pt-6">
+            <ErrorState
+              message={t.error.unknown}
+              retryLabel={t.common.retry}
+              onRetry={() => void refetch()}
+            />
+          </View>
+        ) : null}
+
+        {isPending ? (
+          <View className="pt-5">
+            <ListSkeleton rows={5} />
+          </View>
+        ) : null}
+
+        {(items ?? []).length > 0 ? (
+          <View className="mt-5 gap-5">
+            {(items ?? []).map((item) => (
+              <ShoppingRow
+                key={item.id}
+                title={item.title}
+                note={item.note}
+                done={item.isDone}
+                onToggle={(next) => toggle.mutate({ id: item.id, done: next })}
+                onDelete={() => remove.mutate(item.id)}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Trạng thái rỗng ở đây KHÔNG có nút (09 §D.2) — ô nhập đã ở ngay trên,
+            và một nút "Thêm món" ngay dưới một ô nhập trống là hai lời mời cho
+            cùng một hành động. */}
         {!isPending && !isError && (items ?? []).length === 0 ? (
-          <View className="mt-10">
+          <View className="pt-8">
             <EmptyState title={t.shopping.emptyTitle} body={t.shopping.emptyBody} />
           </View>
         ) : null}
-      </ScrollView>
-    </View>
+      </Section>
+    </ScrollView>
   );
 }

@@ -14,7 +14,8 @@
  * thường xuyên khi vừa đẩy xe vừa cầm điện thoại.
  */
 
-import { Swipeable } from 'react-native-gesture-handler';
+// Đường con, không phải export gốc của package — xem chú thích ở `task-row.tsx`.
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Pressable, Text, View } from 'react-native';
 
 import { Checkbox } from '@/design/components';
@@ -32,7 +33,13 @@ export function ShoppingRow({ title, note = null, done, onToggle, onDelete }: Sh
   const { t } = useT();
 
   const row = (
-    <View className="min-h-touch flex-row items-center gap-3 bg-surface py-3">
+    // Dòng PHẲNG: không nền, không `py` riêng (§8, §13.3). Mảng trắng của
+    // section bên ngoài đã gom nhóm, và khoảng cách giữa hai dòng do chỗ gọi
+    // đặt (`gap-5`) — để `py` ở đây thì dòng cuối thừa một khoảng đệm sát mép
+    // dưới section. `bg-surface` cũ là tô trắng lên trắng, trừ đúng một lúc:
+    // lúc `Swipeable` kéo dòng sang ngang và nền đỏ phải bị che. Nền đó giờ do
+    // nhánh vuốt bên dưới tự lo.
+    <View className="min-h-touch flex-row items-center gap-3">
       <Checkbox checked={done} onToggle={onToggle} />
       <View className="flex-1">
         <Text
@@ -54,8 +61,17 @@ export function ShoppingRow({ title, note = null, done, onToggle, onDelete }: Sh
 
   // Chỉ vuốt PHẢI để xoá. Không có "hoãn sang mai" như TaskRow: một món cần mua
   // không có hạn, nên hoãn nó không có nghĩa gì.
+  //
+  // `bg-surface` nằm ở ĐÂY chứ không trên chính dòng: nó chỉ tồn tại để che nền
+  // đỏ của nút xoá trong lúc dòng đang bị kéo ngang. Đặt nó trên dòng phẳng là
+  // tô trắng lên trắng ở mọi lúc khác, và nó sẽ đi theo dòng vào bất cứ nền nào
+  // khác trắng mà ai đó đặt nó lên sau này.
   return (
-    <Swipeable
+    <ReanimatedSwipeable
+      // `childrenContainerStyle`, KHÔNG phải `containerStyle`: cái sau tô cả
+      // vùng chứa — bao gồm chỗ nút xoá đứng — nên nền đỏ sẽ bị phủ trắng và
+      // cử chỉ vuốt trông như không có gì hiện ra.
+      childrenContainerStyle={{ backgroundColor: '#FFFFFF' }}
       renderRightActions={() => (
         <Pressable
           accessibilityRole="button"
@@ -68,6 +84,6 @@ export function ShoppingRow({ title, note = null, done, onToggle, onDelete }: Sh
       )}
     >
       {row}
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 }

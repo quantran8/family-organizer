@@ -21,7 +21,8 @@
  */
 
 import type { FundEntry } from '@family-organizer/domain';
-import { Swipeable } from 'react-native-gesture-handler';
+// Đường con, không phải export gốc của package — xem chú thích ở `task-row.tsx`.
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Pressable, Text, View } from 'react-native';
 
 import { MoneyText } from '@/design/components';
@@ -81,7 +82,7 @@ export function FundEntryRow({ entry, dateLabel, onPress, onDelete }: FundEntryR
   if (!onDelete) return pressable;
 
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       renderRightActions={() => (
         <Pressable
           accessibilityRole="button"
@@ -93,6 +94,6 @@ export function FundEntryRow({ entry, dateLabel, onPress, onDelete }: FundEntryR
       )}
     >
       {pressable}
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 }

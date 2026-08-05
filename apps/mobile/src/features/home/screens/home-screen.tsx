@@ -207,7 +207,7 @@ export function HomeScreen() {
       assigneeName={item.assigneeId ? (memberName.get(item.assigneeId) ?? null) : null}
       repeats={item.recur !== null}
       onToggle={(next) => setDone.mutate({ id: item.id, done: next })}
-      onPress={() => router.push(`/(app)/plan/task/${item.id}`)}
+      onPress={() => router.push({ pathname: '/(modals)/task-edit', params: { id: item.id } })}
       onDelete={() =>
         undo.schedule({
           id: item.id,
@@ -272,10 +272,14 @@ export function HomeScreen() {
             onAction={() => router.push('/(app)/(tabs)/plan')}
           >
             <View className="gap-5">
-              {upcomingEvents.map((event) => (
+              {upcomingEvents.map((event, i) => (
                 <EventRow
                   key={event.id}
                   event={event}
+                  // Dòng đầu = sự kiện gần nhất, vì `pickUpcomingEvents` đã sắp
+                  // theo ngày. ĐÚNG MỘT ô ngày mang accent trong cả nhóm — hai
+                  // ô chanh cạnh nhau làm chữ "gần nhất" mất nghĩa (§5.3).
+                  isNext={i === 0}
                   onPress={() => router.push(`/(app)/plan/event/${event.id}`)}
                 />
               ))}

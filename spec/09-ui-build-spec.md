@@ -24,7 +24,7 @@ liệu này nhắc tới một cái tên kỹ thuật thì chỉ để bạn đ�
 - [A. Hệ thống thị giác](#a-hệ-thống-thị-giác)
 - [B. Khung app](#b-khung-app) — tab bar, header, nút [+]
 - [C. Nhà mình](#c-nhà-mình) — tab 1
-- [D. Việc & Sự kiện](#d-việc--sự-kiện) — tab 2, việc chia «Định kỳ»/«Linh hoạt»
+- [D. Việc & Sự kiện](#d-việc--sự-kiện) — tab 2, «Định kỳ» + «Linh hoạt» hiện cùng lúc
 - [E. Tiền](#e-tiền) — tab 3, gồm quỹ chung (§E.9)
 - [F. Giấy tờ](#f-giấy-tờ) — tab 4
 - [G. Form & Sheet](#g-form--sheet)
@@ -122,10 +122,26 @@ hơn (ví dụ ô tick vẽ 24px) nhưng vùng bấm phải nới ra đủ 44.
 
 | Tên | Giá trị | Dùng cho |
 |---|---|---|
-| `action` | `0 8px 22px rgba(17,17,20,.16)` | nút [+] nổi |
-| `brand` | `0 10px 22px rgba(98,87,246,.22)` | (dự phòng) |
+| `section` | `0 4px 12px rgba(0,0,0,.025)` | mảng trắng của một nhóm |
 | `frame` | `0 24px 80px rgba(21,21,27,.17)` | bảng [+] khi mở |
 | `sheet` | `0 -16px 48px rgba(0,0,0,.18)` | bộ chọn bật lên — hắt **lên trên** |
+
+> **Nút [+] nổi KHÔNG có bóng** — nó phẳng. Token `action` (`0 8px 22px`) đã bỏ
+> hẳn, cùng với cả lớp view bóng riêng và nhịp animation thứ hai ở `fab.tsx`
+> vốn chỉ tồn tại để chữa triệu chứng của chính cái bóng đó: `0 8px 22px` quanh
+> một nút 56px là vệt tối gần bằng chính cái nút, nên khi nó nảy cùng nút thì
+> thứ nảy rõ nhất trong khung hình là mảng bóng.
+>
+> `section` **đã giảm** so với bảng cũ (`0 6px 18px/.035`). Mockup là trang web
+> xem trên màn hình lớn, nơi bóng phải mạnh mới đọc ra; trên điện thoại cầm tay,
+> cùng con số đó đọc thành "mọi thứ đang bay lơ lửng".
+>
+> `frame` và `sheet` **giữ nguyên**: chúng là lớp phủ nằm trên nền đã bị làm mờ,
+> và bóng ở đó làm việc tách-khỏi-nền chứ không phải trang trí. Riêng
+> `picker-sheet` đã cố ý bỏ nền mờ, nên `shadow-sheet` là thứ **duy nhất** tách
+> panel khỏi form bên dưới — bỏ nó là để lại một panel trắng trên nền trắng.
+>
+> Token `brand` (`0 10px 22px` tím) đã BỎ cùng với màu `brand` — xem `A.2`.
 
 ### A.4 Bộ component — dựng trước, dùng lại
 
@@ -459,15 +475,50 @@ Xoá xong dòng **biến mất ngay** và toast hoàn tác hiện ra 5 giây.
 
 ## D. Việc & Sự kiện
 
-Vỏ chung: tiêu đề màn «Lịch» (`title1` SemiBold, cách trên 8, cách dưới 16), rồi
-tab con ba mục — «Việc» · «Mua sắm» · «Sự kiện». Tab đang chọn được **nhớ lại
-cho lần mở app sau**.
+Vỏ chung: dòng dẫn «Nhà mình» (`caption` Medium `muted`) rồi tiêu đề màn
+«Việc & Sự kiện» (`title1` SemiBold, tracking −0.9). Cách dưới 24 là tab con ba
+mục — «Việc» · «Mua sắm» · «Sự kiện». Tab đang chọn được **nhớ lại cho lần mở
+app sau**.
+
+Thêm mới qua **FAB nổi** góc dưới phải như ba tab còn lại (`AddFab`).
+
+> Mockup vẽ một viên thuốc «+ Thêm» trong header và bản dựng đầu đã làm theo,
+> nhưng nó bị bỏ: cách thêm là thứ người dùng học một lần, và một tab đặt nút ở
+> chỗ khác bắt họ tìm lại.
+
+Nền màn là `canvas`. Mỗi nhóm nội dung là **một mảng trắng** (`Section`: bo 24,
+đệm 20, `shadow-section`) có badge đếm ở tiêu đề; bên trong, từng dòng PHẲNG
+cách nhau 20 (§8, §13.1). Cùng ngôn ngữ với màn Nhà mình, nên hai màn đọc như
+một app chứ không phải hai.
 
 ### D.1 Tab «Việc» — hai danh sách con
 
-Ngay dưới thanh tab con là **bộ chọn hai mục**: «Định kỳ» | «Linh hoạt». Kiểu
-`Segmented` cao 36, nền `soft` bo 10, mục đang chọn nền `surface` bo 8 + bóng
-nhẹ, chữ `label` Medium. Cách trên 12, cách dưới 16. **Nhớ lại lần mở sau.**
+**Cả hai danh sách hiện CÙNG LÚC**, xếp chồng trong một lần cuộn: mảng «Định kỳ»
+trước, «Linh hoạt» sau. Không còn bộ chọn `Segmented` con.
+
+Thứ tự đó không tuỳ ý: việc định kỳ là thứ có hạn hôm nay, tức là câu hỏi người
+dùng mở app để trả lời; việc linh hoạt theo đúng định nghĩa của nó thì không gấp.
+
+> Vì sao bỏ bộ chọn con (bản trước có, và lựa chọn được nhớ lại): nó bắt trả một
+> cái giá mỗi ngày — người dùng phải nhớ mình đang đứng ở danh sách nào, và việc
+> ở danh sách kia thì **vô hình**. Với một nhà có chừng năm việc định kỳ và vài
+> việc phát sinh, hai mảng chồng nhau vừa một màn hình rưỡi; ẩn một nửa để tiết
+> kiệm chỗ mà không có chỗ nào để tiết kiệm là đổi thông tin lấy một cử chỉ.
+>
+> `ui-prefs.taskListTab` vì thế **không còn ai đọc**. Khoá vẫn nằm trong store vì
+> nó đã persist trên máy người dùng — dọn nó là một việc riêng, có migration.
+
+Danh sách rỗng thì **ẩn hẳn mảng của nó**. Cả hai cùng rỗng → **một** trạng thái
+rỗng cho cả màn (có nút «Thêm việc»), không phải hai thẻ mỗi thẻ một câu «chưa có
+gì»: hai lời mời cạnh nhau cho cùng một hành động là hai lần nhắc người dùng rằng
+họ chưa làm gì.
+
+**Một toast hoàn tác dùng chung cho cả hai danh sách.** Hai toast riêng sẽ chồng
+nhau khi người dùng xoá nhanh một dòng ở mỗi bên, và cái thứ hai che mất cái thứ
+nhất trước khi ai kịp bấm «Hoàn tác».
+
+Badge đếm trên mỗi tiêu đề đếm việc **chưa xong** («{n} việc»), không đếm tổng:
+con số hữu ích là "còn bao nhiêu", không phải "đã từng có bao nhiêu".
 
 Hai danh sách khác nhau ở **ba** điểm, và cả ba đều có lý do sản phẩm — không
 được san bằng cho "nhất quán".
@@ -476,12 +527,13 @@ Hai danh sách khác nhau ở **ba** điểm, và cả ba đều có lý do sả
 |---|---|---|
 | Chia nhóm | sáu nhóm theo hạn | **một danh sách phẳng** |
 | Vuốt | **chỉ phải** («Xoá») | trái («Hoãn») + phải («Xoá») |
-| Chip người | bấm được để xoay vòng | **ẩn**, hoặc chỉ chọn được chính mình |
+| Chip người | bấm được để xoay vòng | **chỉ nhận được về mình** |
 
 #### D.1a «Định kỳ»
 
-Danh sách chia nhóm, **nhãn nhóm không dính khi cuộn**. Nhãn nhóm: `label`
-SemiBold `muted`, cách trên 24, cách dưới 4.
+Chia nhóm **bên trong mảng trắng**, `nhãn nhóm không dính khi cuộn`. Nhãn nhóm:
+`label` SemiBold `muted`; nhóm đầu không có lề trên (tiêu đề mảng ngay trên nó
+đã tạo khoảng cách), các nhóm sau cách trên 4.
 
 Sáu nhóm theo thứ tự: «Quá hạn» · «Hôm nay» · «Ngày mai» · «Tuần này» ·
 «Sau đó» · «Chưa có hạn». **Nhóm rỗng không hiện.**
@@ -498,8 +550,13 @@ Dòng việc như §C.4, thêm hai điểm:
 - **Chip người bấm được** để xoay vòng người phụ trách — nhưng chỉ khi nhà có từ
   2 người lớn trở lên. Một người thì chip chỉ để đọc.
 
-Trạng thái phải vẽ: đang tải (5 dòng skeleton) · lỗi · rỗng (**có** nút «Thêm
-việc») · có dữ liệu · đang vuốt · có toast hoàn tác.
+- **Nhãn ngày mang màu `attention`** ở nhóm «Quá hạn», `muted` ở năm nhóm còn
+  lại. Màu, KHÔNG phải icon cảnh báo hay nền đỏ cả dòng: quá hạn ở đây là một
+  việc nhà chưa làm, không phải một lỗi. §15 đòi màu không đứng một mình, nên
+  chính chữ đã nói («Quá hạn») — màu chỉ giúp mắt tìm ra nó nhanh hơn.
+
+Trạng thái phải vẽ: đang tải (5 dòng skeleton) · lỗi · **ẩn hẳn khi rỗng** (trạng
+thái rỗng do cả tab lo, xem §D.1) · có dữ liệu · đang vuốt · có toast hoàn tác.
 
 #### D.1b «Linh hoạt»
 
@@ -509,26 +566,57 @@ theo thứ tự thêm vào. Việc đã xong mờ đi và gạch ngang, không b
 **Không bao giờ sắp hay nhóm theo người.** Một danh sách tồn đọng xếp theo tên
 là hai cột trong đó một cột dài hơn — và đó là bảng điểm.
 
-Dòng việc như §C.4 nhưng **không có chip người phụ trách**. Nếu nhà muốn nhận
-việc: chi tiết việc có nấc «Mình làm», và chỉ nấc đó — **không chọn được người
-kia**.
+Dòng việc như §C.4, nhưng chỗ của chip người phụ trách hoạt động **khác hẳn**
+§D.1a — và đây là điểm dễ san bằng nhất:
+
+- Dòng **chưa ai nhận** → nút **«＋ Nhận»**: nền `accent-soft` bo tròn, cao 28,
+  chữ `micro` SemiBold `ink`, vùng chạm nới lên 44 bằng `hitSlop`. Bấm nó gán
+  việc cho **chính người đang chạm**. Không mở danh sách người, không có vòng
+  xoay tên.
+- Dòng **của chính mình** → chip avatar + tên; chạm lại để **bỏ nhận**.
+- Dòng **của người kia** → chip avatar + tên, **chỉ để đọc**.
+
+> Nền `accent-soft` chứ không `accent` đặc: đây là hành động phụ, và một nút
+> chanh nguyên khối trên mỗi dòng chưa ai nhận vượt ngưỡng 8–10% của §5.3 ngay
+> khi danh sách có bốn dòng.
+
+Khác biệt với vòng xoay của §D.1a là **toàn bộ vấn đề**: xoay vòng đặt được tên
+người kia lên một dòng việc; «Nhận» thì không — nó chỉ nói *"cái này để tôi"*.
 
 > Đây là ranh giới giữ cho nó là danh sách việc **của nhà**, chứ không phải hộp
-> thư nhiệm vụ một người gửi cho người kia.
+> thư nhiệm vụ một người gửi cho người kia. Ở danh sách định kỳ, nơi việc đã là
+> thoả thuận sẵn có, xoay vòng là đúng; ở danh sách việc phát sinh thì cùng cử
+> chỉ đó biến thành đường giao việc.
+
+**Không bao giờ sắp hay nhóm theo người** — kể cả sau khi đã nhận.
 
 Có đủ hai chiều vuốt: trái «Hoãn» (nền `soft`, chữ `muted`), phải «Xoá».
 
-Trạng thái phải vẽ: đang tải · lỗi · rỗng (**có** nút «Thêm việc») · có dữ liệu ·
-đang vuốt hai chiều · có toast hoàn tác.
+Trạng thái phải vẽ: đang tải · lỗi · **ẩn hẳn khi rỗng** (xem §D.1) · có dữ liệu ·
+đang vuốt hai chiều · có toast hoàn tác · ba trạng thái chip ở trên.
 
 ### D.2 Tab «Mua sắm»
 
-**Khác mọi màn khác: ô nhập ghim trên cùng, không cuộn.** Dải nền trắng, viền
-dưới `line`, padding `12×16`; ô nhập nền `soft` bo 14 cao 44, placeholder «Thêm
-món…».
+Cả danh sách nằm trong **một mảng trắng**. Tiêu đề «Cần mua» + dòng phụ «Cả hai
+cùng thêm» (`caption` `muted`), badge đếm nền `accent` đếm món **chưa mua**.
 
-> Lý do ghim: **thêm món phải luôn làm được** — kể cả lúc đang tải, lúc lỗi, lúc
-> danh sách rỗng. Mọi trạng thái khác chèn xuống *dưới* ô nhập, không thay nó.
+> Dòng phụ đó là chỗ **duy nhất** nói ra rằng đây là danh sách chung — từng dòng
+> cố ý không có nhãn "ai thêm" (06 §4). Nó nói một lần cho cả danh sách.
+
+Ngay dưới tiêu đề là **ô nhập**, tức dòng đầu tiên của chính mảng đó: khối nền
+`soft` bo 14 đệm 6, chứa ô gõ (placeholder «Thêm đồ cần mua…») và **nút gửi**
+44×44 nền `action` bo 14 với dấu `+` trắng.
+
+> Nút gửi song song với phím Enter, **không thay nó**: bàn phím iOS có nút «Xong»
+> nhưng nhiều bàn phím Android thì không, và một ô nhập không có cách gửi nào
+> ngoài một phím ẩn là một ô nhập trông như bị hỏng.
+
+> Vì sao ô nhập chuyển từ dải ghim cứng đầu màn vào trong mảng: trước đây nó tách
+> khỏi danh sách bằng một đường kẻ, đọc như một thanh công cụ đứng trên. Giờ nó
+> là dòng đầu của chính cái thẻ chứa danh sách — cùng một vật. **Thêm món vẫn
+> phải luôn làm được**: mọi trạng thái khác (đang tải, lỗi, rỗng) chèn xuống
+> *dưới* ô nhập, không thay nó. Danh sách của một nhà hai người hiếm khi dài quá
+> một màn nên cuộn nó khỏi tầm mắt gần như không xảy ra.
 
 Gõ xong nhấn Enter: món hiện ngay đầu danh sách, ô nhập trống lại, **bàn phím
 không tắt** để gõ món tiếp theo.
@@ -543,30 +631,80 @@ Trạng thái rỗng ở đây **không có nút** — ô nhập đã ở ngay t
 
 ### D.3 Tab «Sự kiện»
 
-Chia nhóm theo tháng («Tháng 8, 2026»), nhóm chưa có ngày để cuối.
+**Mỗi tháng là một mảng trắng riêng** («Tháng 8/2026»), badge đếm số sự kiện của
+tháng. Nhóm chưa tính được ngày để cuối, nhãn «Đang tính ngày».
 
-**Dòng sự kiện:**
+**Dòng sự kiện — ngày là MỐC QUÉT, đứng đầu dòng:**
 
 ```
-◆  Tên sự kiện (giãn)                    12/7 âm
-                                      Th 7 09/08
-   bên nội · 3 việc cần chuẩn bị      2 triệu
+┌────┐
+│ T6 │  Tên sự kiện
+│ 30 │  15/8 âm · Cả ngày · Nhà ngoại
+└────┘  🏷 3 triệu   ⏱ 3 việc cần chuẩn bị          ›
 ```
 
-- `◆` màu `brand`, `caption`, căn theo dòng đầu.
-- Tên `body` `ink`, tối đa 2 dòng.
-- **Ngày âm `caption` Medium `brand-deep`** — nổi hơn ngày dương.
-- Ngày dương `caption` `muted` ngay dưới. Chưa có ngày → «Chưa có ngày» màu `subtle`.
-- Dòng phụ ghép bằng « · », kèm số tiền dự kiến (`caption` `muted`, rút gọn).
+- **Ô ngày** 56×64 bo 16 (`DateTile`): thứ viết tắt `micro` SemiBold ở TRÊN, số
+  ngày `title2` SemiBold hai chữ số (`05`) ở DƯỚI, `tabular-nums`. Nền `soft`;
+  **đúng một dòng** trong cả danh sách mang nền `accent` — sự kiện gần nhất.
+- Tên `body` Medium `ink`, một dòng.
+- Dòng phụ `caption` `muted`, ghép bằng « · »: **ngày âm trước** · giờ (hoặc «Cả
+  ngày») · bên gia đình · địa điểm.
+- Dòng thứ ba, chỉ khi có: chi phí dự kiến (icon + `MoneyText` rút gọn `muted`)
+  và số việc cần chuẩn bị (icon + `caption` Medium **`attention`**).
+- Dấu `›` `subtle` ở mép phải.
 
-> Ngày âm được nhấn hơn ngày dương là **có chủ ý** — ngày âm là dữ liệu gốc của
-> loại sự kiện này, ngày dương chỉ là bản quy đổi năm nay.
+> **Vì sao ngày chuyển từ mép phải sang đầu dòng:** câu hỏi mang tới màn này là
+> *"sắp tới nhà mình có dịp gì"*, và câu trả lời được đọc theo trục thời gian.
+> Đặt ngày ở mép phải bắt mắt quét ngang từng dòng để dựng lại một thứ tự vốn đã
+> có sẵn. Ô ngày vì thế có **kích thước cố định** — nó là cột neo của danh sách,
+> và một ô rộng 52 cạnh một ô rộng 58 làm cả cột lệch.
+
+> Ngày âm vẫn **luôn hiện cùng** ngày dương và đứng đầu dòng phụ — ngày dương là
+> ngày người ta thật sự đến (nên nó ở trong ô ngày), ngày âm là ngày người ta
+> NHỚ. Thiếu vế nào cũng bắt họ tự quy đổi trong đầu.
+
+> Số việc cần chuẩn bị mang `attention` chứ không `muted`: nó có hạn và chưa
+> xong. KHÔNG phải `critical` — chưa chuẩn bị xong một cái giỗ còn ba tuần nữa
+> không phải một lỗi (§5.4).
+
+Sự kiện chưa tính được ngày: ô giữ **nguyên kích thước** (để cột neo không gãy)
+nhưng chứa chữ «Đang tính ngày» `micro` `subtle` — bỏ trống ở đúng vị trí ngày
+trông như dữ liệu hỏng.
 
 **Không có ô tick, không vuốt được.**
 
-### D.4 Chi tiết việc
+### D.4 Sửa việc — MODAL, không còn màn chi tiết
 
-Sửa **tại chỗ**, không có nút «Lưu» chung — mỗi trường tự lưu khi rời khỏi nó.
+Chạm một dòng việc (ở bất cứ đâu: hai danh sách của tab Việc, nhóm việc trên Nhà
+mình, dòng «Cần chú ý», danh sách việc chuẩn bị trong chi tiết sự kiện) mở
+`(modals)/task-edit` — sheet fill sẵn dữ liệu, có nút «Lưu».
+
+**Route `/(app)/plan/task/[id]` đã BỎ.**
+
+> **Đảo ngược so với bản trước**, vốn quy định *"sửa tại chỗ, không có nút «Lưu»
+> chung — mỗi trường tự lưu khi rời khỏi nó"*, với lý do "bản ghi đã tồn tại nên
+> huỷ không có nghĩa".
+>
+> Lý do đảo: một tấm sheet vuốt xuống được là một tấm sheet có thể bị đóng giữa
+> chừng — bằng **cử chỉ**, không phải bằng một nút ta kiểm soát. Nếu mỗi trường
+> đã tự lưu thì cú vuốt ấy không huỷ được gì, và người dùng vừa đổi bốn trường
+> rồi vuốt xuống sẽ tưởng mình vừa thoát mà không lưu. Mô hình tự-lưu đúng cho
+> một màn hình đẩy ngang; nó sai cho một tấm sheet.
+
+Đóng sheet khi **có thay đổi** thì hỏi lại («Bỏ thay đổi?»). Không có thay đổi
+thì đóng thẳng — `dirty` so từng trường với bản ghi, không so với giá trị mặc
+định. Một hộp thoại luôn hiện là một hộp thoại không ai đọc.
+
+**Hai thao tác KHÔNG đi qua nút «Lưu»** — chúng ghi ngay:
+
+- **Ô tròn đánh dấu xong.** Phải giữ lời hứa một-chạm-là-xong của F3; bắt tick
+  rồi bấm Lưu là thêm một nhịp vào thao tác được dùng nhiều nhất app.
+- **Nút Xoá.** Không phải "sửa một trường" mà là hành động trên chính bản ghi.
+
+Nút Xoá **hỏi lại** bằng hộp thoại (khác vuốt-xoá ở danh sách, vì sheet đóng
+luôn khi xoá nên không có chỗ đặt toast hoàn tác), và nằm **cuối form** — cách xa
+nút «Lưu» ghim ở đáy sheet, vì hai nút cạnh nhau, một nguy hiểm một không, là
+chỗ ngón tay chạm nhầm.
 
 | # | Khối | Điều kiện |
 |---|---|---|
@@ -577,23 +715,47 @@ Sửa **tại chỗ**, không có nút «Lưu» chung — mỗi trường tự l
 | 5 | Trường «Lặp lại» → chip | **chỉ khi có hạn** |
 | 6 | Trường «Nhắc trước» → chip | **chỉ khi có hạn** |
 | 7 | Trường «Ghi chú» → ô nhiều dòng | luôn |
-| 8 | Nhóm «5 lần gần nhất» | **chỉ khi việc lặp lại** |
+| 8 | Nhóm «5 lần gần nhất» | **chỉ khi việc lặp lại ĐÃ LƯU** |
 | 9 | Nút «Xoá» (nguy hiểm), cách trên 32 | luôn |
 
 **Liên động phải vẽ:** bỏ ngày đến hạn thì **ba khối biến mất cùng lúc** — Lặp
 lại, Nhắc trước, và nhóm «5 lần gần nhất».
 
 Nhóm «5 lần gần nhất»: mỗi dòng là `✓` màu `positive` + ngày. **Cố ý không hiện
-ai làm** — chỉ ngày.
+ai làm** — chỉ ngày. Khối này đọc theo `recur` **đã lưu**, không theo chip đang
+sửa: cho nó hiện ra lúc người dùng vừa chạm «hằng tuần» là hứa một lịch sử chưa
+tồn tại.
 
-Nút Xoá **hỏi lại** bằng hộp thoại (khác vuốt-xoá ở danh sách, vì màn này không
-có chỗ đặt toast hoàn tác).
+**Lặp lại và danh sách đi cùng một patch.** Đặt lặp → việc sang danh sách «Định
+kỳ»; bỏ lặp → về «Linh hoạt». Ghi hai lệnh riêng thì một lần mạng hỏng giữa
+chừng để lại việc có `recur` nhưng vẫn nằm ở tab Linh hoạt — một dòng kẹt không
+có đường nào sửa từ UI.
 
 ### D.5 Chi tiết sự kiện
 
+Màn này **GIỮ LẠI** dạng full-screen, khác việc — và đó không phải thiếu nhất
+quán. Nó là **trung tâm ngữ cảnh** (05 §5.4): việc chuẩn bị · chi phí · giấy tờ ·
+khối «NĂM NGOÁI» · ba nút tạo bản ghi đã gắn sẵn `eventId`. Một modal sửa không
+chứa được những thứ đó, và nhét chúng vào thì nó thôi là form sửa.
+
+Chạm một dòng sự kiện ở tab Sự kiện mở thẳng **modal sửa** (`(modals)/event-form`
+kèm param `id`); màn chi tiết này tới từ nhóm «Sự kiện sắp tới» trên Nhà mình.
+Trong màn chi tiết có nút **«Sửa»** cạnh tên, mở đúng modal đó.
+
+> Cùng một form dùng cho thêm mới và sửa — có `id` thì nạp bản ghi và gọi
+> `update`, không có thì `create`. Mười bốn trường, liên động lịch âm/dương với
+> «Lặp hằng năm», luật `childMemberId` chỉ giữ khi loại là "của con": tất cả phải
+> giống hệt ở hai chế độ. Hai bản sao sẽ lệch nhau ở lần sửa thứ nhất, và lệch
+> **âm thầm** — form thêm đúng, form sửa sai, không có gì báo.
+
+Ở chế độ sửa, ngày dương của sự kiện âm lịch được **tính lại tại chỗ** bằng
+`nextLunarOccurrence`, KHÔNG đọc `nextOccurrenceDate`: cột đó là cache do Edge
+ghi (ràng buộc #2) và có thể còn `null`, làm form mở ra với ô ngày trống — người
+dùng thấy sự kiện của mình mất ngày.
+
 | # | Khối | Rỗng thì sao |
 |---|---|---|
-| 1 | Tên `title1` SemiBold | — |
+| 1 | Tên `title1` SemiBold + nút «Sửa» cùng hàng | — |
 | 2 | Hàng ngày: dương `body` `ink` + âm `body` Medium `brand-deep` | — |
 | 3 | Dòng phụ `caption` `subtle` (bên nội/ngoại · địa điểm) | — |
 | 4 | **[đk]** Ghi chú `body` `muted` | ẩn |

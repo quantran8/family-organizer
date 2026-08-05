@@ -15,7 +15,7 @@
  * còn thứ nào trong số đó tồn tại.
  *
  * Đường dẫn KHÔNG đổi: `(tabs)` là route group nên nó vô hình với URL —
- * `/(app)/plan/task/1` vẫn đúng như trước khi tách.
+ * `/(app)/plan/event/1` vẫn đúng như trước khi tách.
  */
 
 import { Stack } from 'expo-router';
@@ -50,8 +50,9 @@ export default function AppLayout() {
       {/* Tab bar là MỘT màn của stack này, không phải cấp bọc ngoài. */}
       <Stack.Screen name="(tabs)" />
 
-      {/* Việc & Sự kiện */}
-      <Stack.Screen name="plan/task/[id]" options={DETAIL} />
+      {/* Sự kiện — trung tâm ngữ cảnh (việc, chi phí, giấy tờ quanh một dịp).
+          KHÔNG còn `plan/task/[id]`: sửa việc giờ là modal `(modals)/task-edit`
+          (09 §D.4), và sửa chính sự kiện là modal `(modals)/event-form`. */}
       <Stack.Screen name="plan/event/[id]" options={DETAIL} />
 
       {/*

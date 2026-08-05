@@ -12,6 +12,11 @@
  *
  * `push` chứ không `replace`: menu không phải một bước trong lịch sử điều hướng,
  * nó đóng lại trước khi form mở ra.
+ *
+ * MỘT hình dạng duy nhất — nút tròn nổi góc dưới phải, giống nhau ở cả bốn tab.
+ * Mockup của tab Việc & Sự kiện có vẽ một viên thuốc «+ Thêm» trong header và
+ * bản dựng đầu đã làm theo, nhưng nó bị bỏ: cách thêm là thứ người dùng học một
+ * lần, và một tab đặt nút ở chỗ khác bắt họ tìm lại.
  */
 
 import { useRouter } from 'expo-router';

@@ -66,6 +66,17 @@ export const vi = {
     all: 'Tất cả',
     note: 'Ghi chú',
     notePlaceholder: 'Có gì cần ghi lại không?',
+    /**
+     * Hỏi lại khi đóng một form sửa còn thay đổi chưa lưu.
+     *
+     * Chỉ hiện khi THẬT SỰ có thay đổi — mở ra rồi đóng lại ngay mà bị hỏi
+     * "bỏ thay đổi?" là app hỏi về một thứ không tồn tại, và người dùng học
+     * được rằng hộp thoại này vô nghĩa nên bấm bừa.
+     */
+    discardTitle: 'Bỏ thay đổi?',
+    discardBody: 'Những gì bạn vừa sửa sẽ không được lưu.',
+    discardConfirm: 'Bỏ thay đổi',
+    keepEditing: 'Tiếp tục sửa',
   },
 
   tabs: {
@@ -366,6 +377,10 @@ export const vi = {
     emptyBody: 'Gõ vào ô trên để thêm món đầu tiên.',
     /** Card trên Nhà mình. Đếm món CHƯA mua, không đếm tổng. */
     cardTitle: 'Cần mua',
+    /** Dòng phụ dưới tiêu đề: nói rõ đây là danh sách chung của hai người. */
+    cardSubtitle: 'Cả hai cùng thêm',
+    /** Badge đếm. Đếm món CHƯA mua — "còn bao nhiêu", không phải "đã từng có". */
+    countLabel: '{count} món',
     itemAdded: 'Đã thêm',
     itemDeleted: 'Đã xoá món',
   },
@@ -380,6 +395,19 @@ export const vi = {
      */
     listRecurring: 'Định kỳ',
     listFlexible: 'Linh hoạt',
+    /** Badge đếm trên tiêu đề mỗi danh sách. Đếm việc CHƯA xong. */
+    countLabel: '{count} việc',
+    /**
+     * Nút nhận việc ở danh sách Linh hoạt — 09 §D.1b.
+     *
+     * "Nhận", KHÔNG phải "Giao": nút này chỉ gán việc cho CHÍNH người đang
+     * chạm. Không có đường nào từ danh sách này đặt tên người kia lên một dòng
+     * việc — đó là ranh giới giữ nó là danh sách của nhà, không phải hộp thư
+     * nhiệm vụ. Muốn bỏ nhận thì chạm lại vào chính chip của mình.
+     */
+    claim: 'Nhận',
+    claimHint: 'Chạm để nhận việc này về mình',
+    unclaimHint: 'Chạm để bỏ nhận việc này',
     /** Trạng thái rỗng riêng cho từng danh sách: hai câu khác nhau vì hai loại
      *  việc khác nhau, và một câu chung sẽ sai với ít nhất một bên. */
     emptyRecurringTitle: 'Chưa có việc định kỳ',
@@ -490,6 +518,10 @@ export const vi = {
     /** Hậu tố sau ngày âm: "15/8 âm". Tách riêng để dòng ngày ghép được. */
     lunarSuffix: 'âm',
     monthLabel: 'Tháng {month}/{year}',
+    /** Badge đếm trên tiêu đề mỗi nhóm tháng. */
+    countLabel: '{count} sự kiện',
+    /** Cả ngày — sự kiện không có giờ cụ thể. Giỗ, sinh nhật thường là loại này. */
+    allDay: 'Cả ngày',
     /**
      * Sự kiện âm lịch vừa tạo, Edge `refresh-lunar-dates` chưa chạy xong.
      * Nói thẳng thay vì để trống — chỗ trống ở đúng vị trí ngày trông như dữ

@@ -156,8 +156,20 @@ module.exports = {
         //
         // `section` cố ý gần như không thấy: việc tách section ra khỏi nhau do
         // chênh lệch trắng-trên-gần-trắng đảm nhiệm, bóng chỉ đỡ thêm một chút.
-        section: '0 6px 18px rgba(0,0,0,.035)',
-        action: '0 8px 22px rgba(17,17,20,.14)',
+        // Đã giảm so với bản dựng theo mockup — mockup là trang web xem trên màn
+        // hình lớn, nơi bóng phải mạnh mới đọc ra; trên điện thoại cầm tay, cùng
+        // con số đó đọc thành "mọi thứ đang bay lơ lửng".
+        section: '0 4px 12px rgba(0,0,0,.025)',
+        // `action` (bóng của nút [+] nổi) ĐÃ BỎ HẲN — nút giờ phẳng. Đừng thêm
+        // lại: cả một lớp view riêng và một nhịp animation thứ hai ở `fab.tsx`
+        // từng tồn tại chỉ để chữa triệu chứng của chính cái bóng đó, và chúng
+        // đã được gỡ cùng nó.
+        //
+        // `frame` và `sheet` GIỮ NGUYÊN: chúng là lớp phủ nằm trên nền đã bị làm
+        // mờ, và bóng ở đó làm việc tách-khỏi-nền chứ không phải trang trí. Giảm
+        // hay bỏ chúng theo cho "nhất quán" sẽ làm menu [+] và bottom sheet dính
+        // vào nền phía sau — riêng `picker-sheet` đã cố ý bỏ nền mờ, nên bóng là
+        // thứ DUY NHẤT tách panel khỏi form bên dưới.
         frame: '0 24px 80px rgba(21,21,27,.17)',
         sheet: '0 -16px 48px rgba(0,0,0,.18)',
       },

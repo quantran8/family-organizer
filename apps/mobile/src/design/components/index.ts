@@ -27,9 +27,10 @@
  *
  * `FeaturedEventCard` (G6) — sẽ thêm đúng lúc cần thay vì dựng sẵn.
  *
- * `DateTile` hiện KHÔNG ai render (chỉ được export). Nó là tàn dư từ G4/G6;
- * để lại vì việc dọn nó nằm ngoài phạm vi đợt tái cấu trúc này, nhưng đừng dựng
- * màn mới quanh nó trước khi kiểm lại nó còn đúng với design.md không.
+ * `DateTile` giờ là mốc quét của `EventRow` (tab Sự kiện + nhóm sự kiện trên
+ * Nhà mình). Nó từng là code chết từ G4/G6 và đã được dựng lại theo mockup:
+ * thứ nằm trên, số ngày nằm dưới. Đổi kích thước của nó là đổi cột neo của cả
+ * danh sách sự kiện, không phải đổi một ô.
  *
  * `AttentionRow` đã cân nhắc ở G7 và BỎ: cờ "cần trao đổi" hiện ở ba chỗ với ba
  * hình dạng khác nhau (một dòng tóm tắt trên màn Tiền, một nút trong màn chi

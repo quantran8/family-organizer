@@ -108,7 +108,21 @@ export function EventDetailScreen() {
 
   return (
     <Screen scroll>
-      <Text className="pt-2 text-title1 font-semibold text-ink">{event.title}</Text>
+      {/* Tên + nút Sửa cùng hàng. Màn này là trung tâm NGỮ CẢNH (việc, chi phí,
+          giấy tờ quanh một dịp); sửa chính các trường của sự kiện là việc khác,
+          nên nó đi sang modal `event-form` thay vì mọc thêm ô nhập ở đây. */}
+      <View className="flex-row items-start justify-between gap-3 pt-2">
+        <Text className="flex-1 text-title1 font-semibold text-ink">{event.title}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.edit}
+          hitSlop={8}
+          onPress={() => router.push({ pathname: '/(modals)/event-form', params: { id: eventId } })}
+          className="min-h-touch justify-center px-2"
+        >
+          <Text className="text-label font-semibold text-ink">{t.common.edit}</Text>
+        </Pressable>
+      </View>
 
       {/* Ngày: dương trước (ngày người ta thật sự đến), âm ngay sau và mang màu
           riêng. Cả hai luôn đi cùng nhau — 05 §5.3. */}
@@ -173,7 +187,9 @@ export function EventDetailScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={task.title}
-                onPress={() => router.push(`/(app)/plan/task/${task.id}`)}
+                onPress={() =>
+                  router.push({ pathname: '/(modals)/task-edit', params: { id: task.id } })
+                }
                 className="flex-1"
               >
                 <Text

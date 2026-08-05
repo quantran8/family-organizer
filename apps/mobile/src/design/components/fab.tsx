@@ -14,13 +14,7 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
 import { Pressable } from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { useT } from '@/i18n';
 
@@ -85,49 +79,37 @@ export function FAB({ onPress, bottomOffset = 24, hidden = false }: FABProps) {
 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  /**
-   * Bóng đi theo nhịp RIÊNG, không scale cùng nút.
-   *
-   * `shadow-action` là `0 8px 22px`: quanh một nút 56px thì vệt bóng ấy gần bằng
-   * chính cái nút, mềm hơn và lệch xuống dưới. Để nó scale 0→1 chung với nút thì
-   * thứ nảy rõ nhất trong khung hình là mảng bóng chứ không phải nút — nhìn ra
-   * đúng như "spring diễn ra ở một lớp bên dưới button".
-   *
-   * Nên: bóng chỉ mờ vào ở đoạn cuối, khi nút đã gần đúng cỡ và đang lắng lại.
-   * Nút nảy trên nền phẳng, bóng đọng xuống sau — thứ tự đó cũng đúng vật lý hơn
-   * là bóng nảy cùng vật.
-   */
-  const shadowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scale.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
-  }));
-
   // Tháo hẳn khỏi cây khi ẩn thay vì để scale 0: một nút vô hình vẫn chắn chạm
-  // ngay trên vùng người dùng đang thao tác — và ở đây còn là hai view, cả bóng
-  // nữa. Cũng nhờ vậy chiều ẩn không cần animate — không còn gì để animate.
+  // ngay trên vùng người dùng đang thao tác. Cũng nhờ vậy chiều ẩn không cần
+  // animate — không còn gì để animate.
   if (hidden) return null;
 
+  /**
+   * KHÔNG CÓ BÓNG — nút phẳng.
+   *
+   * Trước đây đây là HAI view chồng nhau: một view bóng riêng, mờ vào ở đoạn
+   * cuối theo nhịp của chính nó, cộng một `useAnimatedStyle` thứ hai chỉ để
+   * chạy `opacity` đó. Cả bộ máy ấy sinh ra để chữa một triệu chứng của chính
+   * cái bóng: `0 8px 22px` quanh một nút 56px là vệt tối gần bằng chính cái
+   * nút, nên khi nó scale 0→1 cùng nút thì thứ nảy rõ nhất trong khung hình là
+   * mảng bóng chứ không phải nút.
+   *
+   * Bỏ bóng thì triệu chứng biến mất cùng nguyên nhân, nên bỏ luôn cả lớp view
+   * và nhịp animation thứ hai — giữ chúng lại là giữ một cơ chế không còn gì để
+   * điều phối. Nút giờ nảy một mình trên nền phẳng.
+   */
   return (
-    <>
-      {/* Bóng tách khỏi nút: cùng hình tròn, cùng chỗ, nhưng opacity theo nhịp
-          riêng (xem `shadowStyle`). `pointerEvents="none"` để nó không cướp cú
-          chạm của nút nằm ngay trên. */}
-      <Animated.View
-        style={[{ bottom: bottomOffset }, style, shadowStyle]}
-        className="absolute right-5 h-14 w-14 rounded-full bg-action shadow-action"
-        pointerEvents="none"
-      />
-      <AnimatedPressable
-        accessibilityRole="button"
-        accessibilityLabel={t.tabs.addAria}
-        style={[{ bottom: bottomOffset }, style]}
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-action active:bg-action-pressed"
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress();
-        }}
-      >
-        <Icon name="plus" size={26} color={ICON_COLOR.white} />
-      </AnimatedPressable>
-    </>
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel={t.tabs.addAria}
+      style={[{ bottom: bottomOffset }, style]}
+      className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-action active:bg-action-pressed"
+      onPress={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+    >
+      <Icon name="plus" size={26} color={ICON_COLOR.white} />
+    </AnimatedPressable>
   );
 }
