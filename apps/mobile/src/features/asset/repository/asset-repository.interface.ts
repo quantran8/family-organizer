@@ -4,7 +4,14 @@
  * Tài sản trả lời "tiền đang nằm ở đâu" — bảng lõi của wedge (schema §5.1).
  */
 
-import type { Asset, AssetKind, ISODate, Liquidity, UUID } from '@family-organizer/domain';
+import type {
+  Asset,
+  AssetKind,
+  ISODate,
+  Liquidity,
+  QuantityUnit,
+  UUID,
+} from '@family-organizer/domain';
 
 export interface AssetInput {
   name: string;
@@ -16,9 +23,20 @@ export interface AssetInput {
    */
   liquidity: Liquidity;
   currentValue: number;
-  /** Trả lời "tiền đang ở đâu", KHÔNG phải để đối chiếu hai người (05 §6.1). */
+  /**
+   * Trả lời "tiền đang ở đâu", KHÔNG phải để đối chiếu hai người (05 §6.1).
+   *
+   * `null` với `receivable` — khoản cho vay không có người giữ, tiền đang ở chỗ
+   * người vay và người đó đã nằm ở `institution` rồi (`assetShape().hasHolder`).
+   */
   holderMemberId: UUID | null;
+  /** Nghĩa đổi theo `assetKind` — xem `assetShape().placeLabel`. */
   institution: string | null;
+  /** Chỉ vàng (`assetShape().hasQuantity`). Hai trường đi liền — có số phải có đơn vị. */
+  quantity: number | null;
+  quantityUnit: QuantityUnit | null;
+  /** Chỉ khoản cho vay (`assetShape().hasDueDate`). */
+  dueDate: ISODate | null;
   asOfDate: ISODate;
   notes: string | null;
 }

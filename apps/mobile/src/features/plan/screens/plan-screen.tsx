@@ -388,7 +388,7 @@ function RecurringTaskList({ tasks, undo }: { tasks: Task[]; undo: UndoHandle })
                 repeats={item.recur !== null}
                 onToggle={(next) => setDone.mutate({ id: item.id, done: next })}
                 onPress={() =>
-                  router.push({ pathname: '/(modals)/task-edit', params: { id: item.id } })
+                  router.push({ pathname: '/(modals)/task-form', params: { id: item.id } })
                 }
                 // KHÔNG truyền `onSnooze` — xem chú thích đầu hàm.
                 onDelete={() =>
@@ -488,7 +488,7 @@ function FlexibleTaskList({ tasks, undo }: { tasks: Task[]; undo: UndoHandle }) 
               repeats={false}
               onToggle={(next) => setDone.mutate({ id: item.id, done: next })}
               onPress={() =>
-                router.push({ pathname: '/(modals)/task-edit', params: { id: item.id } })
+                router.push({ pathname: '/(modals)/task-form', params: { id: item.id } })
               }
               onSnooze={() =>
                 reschedule.mutate({ id: item.id, dueDate: addDays(item.dueDate ?? today, 1) })

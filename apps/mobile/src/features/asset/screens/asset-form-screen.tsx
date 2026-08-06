@@ -1,7 +1,19 @@
 /**
  * Form Tài sản — 05 §6.3.
  *
- * Năm trường: tên · loại · giá trị · nơi giữ · người giữ.
+ * **Hình dạng form đổi theo loại** (03 §2b, `assetShape()`). Một form chung cho
+ * tám loại là một form đúng cho không loại nào: ô "Nơi giữ" mang nghĩa tên ngân
+ * hàng với sổ tiết kiệm, chỗ cất với vàng, địa chỉ với nhà đất, và TÊN MỘT
+ * NGƯỜI với khoản cho vay. Cùng một ô, bốn câu hỏi — người dùng phải tự dịch
+ * mỗi lần, và mỗi người dịch một kiểu.
+ *
+ * Ba thứ đổi theo loại:
+ *   · nhãn + placeholder của `institution` (hoặc ẩn hẳn — tiền mặt không có)
+ *   · số lượng + đơn vị, chỉ vàng
+ *   · ngày hẹn trả + ẩn "người giữ", chỉ khoản cho vay
+ *
+ * Bốn trường CHUNG cho mọi loại — tên · loại · giá trị · ghi chú — vẫn giữ
+ * nguyên thứ tự và vị trí khi đổi loại, nên đổi loại không làm form nhảy chỗ.
  *
  * **Thanh khoản KHÔNG hỏi** (03 §2). Nó được suy ra bằng `inferLiquidity(kind)`
  * và ẩn sau dòng nhỏ "Đổi cách phân loại". Hỏi thẳng *"khoản này dùng ngay được
@@ -23,12 +35,23 @@
  * những "thay đổi" vốn chỉ là sửa lỗi chính tả.
  */
 
-import { ASSET_KINDS, inferLiquidity, LIQUIDITIES, type AssetKind, type Liquidity, type UUID } from '@family-organizer/domain';
+import {
+  ASSET_KINDS,
+  assetShape,
+  inferLiquidity,
+  LIQUIDITIES,
+  QUANTITY_UNITS,
+  type AssetKind,
+  type ISODate,
+  type Liquidity,
+  type QuantityUnit,
+  type UUID,
+} from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
-import { AmountInput, Button, ChipSelect, Field, Sheet } from '@/design/components';
+import { AmountInput, Button, ChipSelect, DatePicker, Field, Sheet } from '@/design/components';
 import {
   useAsset,
   useCreateAsset,
@@ -65,6 +88,14 @@ export function AssetFormScreen() {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  // Trường riêng theo loại — xem `assetShape()`. Loại nào không có thì chúng
+  // được dọn về null lúc đổi loại (`changeKind`), không phải chỉ ẩn đi.
+  const [quantity, setQuantity] = useState<number | null>(null);
+  const [quantityUnit, setQuantityUnit] = useState<QuantityUnit>('chi');
+  const [dueDate, setDueDate] = useState<ISODate | null>(null);
+
+  const shape = assetShape(assetKind);
+
   /**
    * Thanh khoản: `null` = "cứ suy ra từ loại". Người dùng chạm vào một lần thì
    * nó thành một giá trị thật và thôi bị đoán lại.
@@ -72,6 +103,27 @@ export function AssetFormScreen() {
   const [liquidityOverride, setLiquidityOverride] = useState<Liquidity | null>(null);
   const [showLiquidity, setShowLiquidity] = useState(false);
   const liquidity = liquidityOverride ?? inferLiquidity(assetKind);
+
+  /**
+   * Đổi loại thì DỌN những trường loại mới không có, không chỉ ẩn chúng đi.
+   *
+   * Ẩn mà vẫn giữ giá trị sẽ ghi xuống DB một hàng "tiền mặt" mang số lượng
+   * vàng — vô hình trên màn hình nên không ai sửa được, và CHECK ở migration
+   * 0010 sẽ từ chối nó bằng một câu lỗi mà người dùng không nối được với thao
+   * tác nào của mình.
+   *
+   * `institution` KHÔNG bị dọn khi cả hai loại đều có ô đó: gõ nhầm loại rồi
+   * sửa lại là chuyện thường, và xoá chữ người ta vừa gõ là mất dữ liệu chứ
+   * không phải dọn dẹp. Chỉ dọn khi loại mới thật sự không có chỗ chứa nó.
+   */
+  const changeKind = (next: AssetKind): void => {
+    const nextShape = assetShape(next);
+    setAssetKind(next);
+    if (nextShape.placeLabel === null) setInstitution('');
+    if (!nextShape.hasQuantity) setQuantity(null);
+    if (!nextShape.hasHolder) setHolderMemberId(null);
+    if (!nextShape.hasDueDate) setDueDate(null);
+  };
 
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
@@ -82,6 +134,9 @@ export function AssetFormScreen() {
     setInstitution(existing.institution ?? '');
     setHolderMemberId(existing.holderMemberId);
     setNotes(existing.notes ?? '');
+    setQuantity(existing.quantity);
+    if (existing.quantityUnit) setQuantityUnit(existing.quantityUnit);
+    setDueDate(existing.dueDate);
     // Khoản đang sửa đã có thanh khoản đã lưu. Nếu nó khác giá trị suy ra thì
     // đó là một lựa chọn người dùng từng cân nhắc — giữ nguyên và hiện ra, đừng
     // âm thầm kéo nó về giá trị mặc định.
@@ -94,7 +149,13 @@ export function AssetFormScreen() {
 
   const trimmed = name.trim();
   const dirty =
-    trimmed !== '' || value !== null || institution !== '' || holderMemberId !== null || notes !== '';
+    trimmed !== '' ||
+    value !== null ||
+    institution !== '' ||
+    holderMemberId !== null ||
+    notes !== '' ||
+    quantity !== null ||
+    dueDate !== null;
 
   const close = (): void => {
     if (!dirty || isEdit) {
@@ -113,13 +174,21 @@ export function AssetFormScreen() {
     setSubmitted(true);
     if (trimmed === '' || pending) return;
 
+    // Trường riêng theo loại đi qua `shape`, KHÔNG đi thẳng từ state: state có
+    // thể còn giữ giá trị cũ nếu đường nào đó đổi loại mà không qua
+    // `changeKind`. Lọc ở đây là chốt chặn cuối trước khi chạm DB.
     const input = {
       name: trimmed,
       assetKind,
       liquidity,
       currentValue: value ?? 0,
-      holderMemberId,
-      institution: institution.trim() === '' ? null : institution.trim(),
+      holderMemberId: shape.hasHolder ? holderMemberId : null,
+      institution:
+        shape.placeLabel === null || institution.trim() === '' ? null : institution.trim(),
+      // Hai trường đi liền nhau — có số thì có đơn vị, không số thì cả hai null.
+      quantity: shape.hasQuantity ? quantity : null,
+      quantityUnit: shape.hasQuantity && quantity !== null ? quantityUnit : null,
+      dueDate: shape.hasDueDate ? dueDate : null,
       asOfDate: today,
       notes: notes.trim() === '' ? null : notes.trim(),
     };
@@ -152,14 +221,46 @@ export function AssetFormScreen() {
         maxLength={120}
       />
 
+      {/* Loại đứng TRƯỚC giá trị và nơi giữ, vì nó quyết định hai khối bên
+          dưới hỏi gì. Đổi loại ở cuối form sẽ làm những ô vừa điền biến mất. */}
       <Field label={t.asset.fieldKind}>
         <ChipSelect
           scroll
           value={assetKind}
-          onChange={setAssetKind}
+          onChange={changeKind}
           options={ASSET_KINDS.map((k) => ({ value: k, label: t.assetKind[k] }))}
         />
       </Field>
+
+      {/* ── SỐ LƯỢNG: chỉ vàng ──
+          Đặt TRƯỚC ô giá trị vì nó là dữ liệu gốc: "2 chỉ" đúng mãi mãi, còn
+          "15 triệu" chỉ đúng đến lần giá vàng đổi tiếp theo. App không tra giá
+          và không nhân hộ — một con số tiền tự đổi mà không ai khai là đúng thứ
+          ràng buộc #4 cấm. */}
+      {shape.hasQuantity ? (
+        <Field label={t.asset.fieldQuantity} hint={t.asset.quantityHint}>
+          <View className="flex-row items-center gap-3">
+            <TextInput
+              value={quantity === null ? '' : String(quantity)}
+              onChangeText={(s) => {
+                // Dấu phẩy là cách người Việt gõ số lẻ; parseFloat chỉ hiểu dấu
+                // chấm. Không đổi thì "1,5 chỉ" thành NaN rồi âm thầm về null.
+                const n = Number.parseFloat(s.replace(',', '.'));
+                setQuantity(s.trim() === '' || Number.isNaN(n) ? null : n);
+              }}
+              keyboardType="decimal-pad"
+              accessibilityLabel={t.asset.fieldQuantity}
+              maxLength={10}
+              className="min-h-touch flex-1 rounded-control border border-line bg-surface px-4 py-3 text-body text-ink"
+            />
+            <ChipSelect
+              value={quantityUnit}
+              onChange={setQuantityUnit}
+              options={QUANTITY_UNITS.map((u) => ({ value: u, label: t.quantityUnit[u] }))}
+            />
+          </View>
+        </Field>
+      ) : null}
 
       {/* `hint` là DÒNG NHẮC, không phải cảnh báo (06 §2): nó không đổi màu,
           không chặn lưu, và không xuất hiện khi nhà chọn "tự quyết". */}
@@ -199,27 +300,52 @@ export function AssetFormScreen() {
         </Pressable>
       )}
 
-      <Field
-        label={t.asset.fieldInstitution}
-        value={institution}
-        onChangeText={setInstitution}
-        maxLength={120}
-      />
+      {/* ── NƠI GIỮ: nhãn đổi theo loại, tiền mặt thì không có ──
+          Cùng một cột `institution`, năm câu hỏi khác nhau. Tiền mặt là `null`
+          có chủ ý: "nơi giữ" của tiền mặt hoặc hiển nhiên (trong nhà) hoặc là
+          thứ không nên ghi vào một app đồng bộ lên mây. */}
+      {shape.placeLabel !== null ? (
+        <Field
+          label={t.asset.place[shape.placeLabel]}
+          placeholder={t.asset.placePlaceholder[shape.placeLabel]}
+          value={institution}
+          onChangeText={setInstitution}
+          maxLength={120}
+        />
+      ) : null}
+
+      {/* ── NGÀY HẸN TRẢ: chỉ khoản cho vay ──
+          Ngày này để NGƯỜI GHI tự nhớ mình đã hẹn bao giờ. Nó KHÔNG sinh nhắc
+          và KHÔNG vào `upcoming_needs`: app đi đòi hộ là ràng buộc #6, còn cộng
+          tiền-sắp-nhận vào "cần chuẩn bị" làm con số hero nhỏ đi dựa trên một
+          lời hứa của người khác. */}
+      {shape.hasDueDate ? (
+        <Field label={t.asset.fieldDueDate} hint={t.asset.dueDateHint}>
+          <DatePicker value={dueDate} onChange={setDueDate} today={today} />
+        </Field>
+      ) : null}
 
       {/* Người giữ — "tiền đang ở đâu", KHÔNG phải "ai chịu trách nhiệm"
           (ràng buộc #1). "Chưa phân" là một lựa chọn thật, không phải trạng
-          thái ẩn: rất nhiều khoản là của chung và không ai "giữ" cả. */}
-      <Field label={t.asset.fieldHolder}>
-        <ChipSelect
-          scroll
-          value={holderMemberId}
-          onChange={setHolderMemberId}
-          options={[
-            { value: null, label: t.task.fieldAssigneeNone },
-            ...(members ?? []).map((m) => ({ value: m.id as UUID | null, label: m.displayName })),
-          ]}
-        />
-      </Field>
+          thái ẩn: rất nhiều khoản là của chung và không ai "giữ" cả.
+
+          Ẩn với khoản cho vay: tiền đang ở chỗ NGƯỜI VAY, mà người đó đã được
+          ghi ở ô trên rồi. Hỏi thêm "người giữ" ở đây tạo ra đúng thứ ràng buộc
+          #1 cấm — một cái tên gắn vào một con số tiền mà không trả lời câu hỏi
+          nào cả. */}
+      {shape.hasHolder ? (
+        <Field label={t.asset.fieldHolder}>
+          <ChipSelect
+            scroll
+            value={holderMemberId}
+            onChange={setHolderMemberId}
+            options={[
+              { value: null, label: t.task.fieldAssigneeNone },
+              ...(members ?? []).map((m) => ({ value: m.id as UUID | null, label: m.displayName })),
+            ]}
+          />
+        </Field>
+      ) : null}
 
       <Field label={t.common.note}>
         <TextInput

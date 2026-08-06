@@ -201,6 +201,16 @@ export const ASSET_KINDS = [
   'other',
 ] as const satisfies readonly AssetKind[];
 
+/**
+ * Đơn vị đo tài sản hiện vật — chỉ vàng dùng ở v3.
+ *
+ * 1 cây = 1 lượng = 10 chỉ. Ba đơn vị cùng tồn tại vì người ghi nói theo thói
+ * quen vùng miền, và app KHÔNG quy đổi hộ: quy đổi là phép tính người dùng
+ * không nhìn thấy, nên khi nó sai thì không ai bắt được.
+ */
+export const QUANTITY_UNITS = ['chi', 'luong', 'cay'] as const;
+export type QuantityUnit = (typeof QUANTITY_UNITS)[number];
+
 export const LIQUIDITIES = [
   'usable_now',
   'not_immediate',

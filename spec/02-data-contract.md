@@ -222,8 +222,11 @@ export interface Asset {
   assetKind: AssetKind;
   liquidity: Liquidity;
   currentValue: number;
-  holderMemberId: UUID | null;
-  institution: string | null;
+  holderMemberId: UUID | null;   // null với receivable — xem 03 §2b
+  institution: string | null;    // NGHĨA ĐỔI THEO assetKind — xem 03 §2b
+  quantity: number | null;       // chỉ vàng. DỮ LIỆU GỐC, không phải currentValue
+  quantityUnit: QuantityUnit | null;  // 'chi' | 'luong' | 'cay'. Không quy đổi.
+  dueDate: ISODate | null;       // chỉ receivable. Không vào upcoming_needs.
   asOfDate: ISODate;             // bắt buộc hiển thị kèm giá trị
   updatedByMemberId: UUID | null;// để render "Anh cập nhật 6 tuần trước"
   notes: string | null;

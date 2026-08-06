@@ -16,7 +16,12 @@
  * xoá lịch sử.
  */
 
-import { describeMoneyEvent, formatDeclaredAt, type UUID } from '@family-organizer/domain';
+import {
+  assetShape,
+  describeMoneyEvent,
+  formatDeclaredAt,
+  type UUID,
+} from '@family-organizer/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
@@ -74,6 +79,10 @@ export function AssetDetailScreen() {
     );
   }
 
+  // Cùng bảng hình dạng với form — nhãn ở màn chi tiết phải đọc lại đúng câu hỏi
+  // mà form đã hỏi, nếu không người dùng thấy dữ liệu mình ghi bị gọi tên khác.
+  const shape = assetShape(asset.assetKind);
+
   const holder = asset.holderMemberId
     ? ((members ?? []).find((m) => m.id === asset.holderMemberId)?.displayName ?? null)
     : null;
@@ -117,8 +126,25 @@ export function AssetDetailScreen() {
           nó trả lời "tiền đang ở đâu", không phải "ai chịu trách nhiệm". */}
       <View className="mt-6 rounded-status border border-line">
         <InfoRow label={t.asset.fieldKind} value={t.assetKind[asset.assetKind]} />
+        {/* Nhãn của `institution` đổi theo loại — cùng bảng với form
+            (`assetShape()`). Hiện "Nơi giữ: Chú Ba" cho một khoản cho vay là
+            đọc sai chính dữ liệu mình vừa ghi. */}
         {asset.institution ? (
-          <InfoRow label={t.asset.fieldInstitution} value={asset.institution} />
+          <InfoRow
+            label={shape.placeLabel ? t.asset.place[shape.placeLabel] : t.asset.fieldInstitution}
+            value={asset.institution}
+          />
+        ) : null}
+        {/* Số lượng vàng đứng NGAY DƯỚI loại, trước mọi thứ khác: nó là dữ liệu
+            gốc, còn con số tiền lớn ở trên chỉ đúng tới lần giá vàng đổi. */}
+        {asset.quantity !== null && asset.quantityUnit ? (
+          <InfoRow
+            label={t.asset.fieldQuantity}
+            value={`${asset.quantity} ${t.quantityUnit[asset.quantityUnit]}`}
+          />
+        ) : null}
+        {asset.dueDate ? (
+          <InfoRow label={t.asset.fieldDueDate} value={fullSolarDate(asset.dueDate)} />
         ) : null}
         {holder ? <InfoRow label={t.asset.fieldHolder} value={holder} /> : null}
         <InfoRow

@@ -527,6 +527,10 @@ Tên người ở đây trả lời *"ai khai con số này"* trong lịch sử 
 
 Form tạo: tên · loại tài sản · giá trị · nơi giữ · người giữ. **Thanh khoản không hỏi** — suy ra từ loại, ẩn sau dòng nhỏ "Đổi cách phân loại".
 
+**Hình dạng form đổi theo loại** — bảng đầy đủ ở `03 §2b`. Bốn trường chung (tên · loại · giá trị · ghi chú) giữ nguyên thứ tự và vị trí khi đổi loại, nên đổi loại không làm form nhảy chỗ; ba thứ đổi là nhãn của ô nơi giữ (hoặc ẩn hẳn với tiền mặt), khối số lượng (chỉ vàng, đặt **trước** ô giá trị vì nó là dữ liệu gốc), và ngày hẹn trả + ẩn người giữ (chỉ khoản cho vay). Ô loại đứng **trước** giá trị và nơi giữ vì nó quyết định hai khối bên dưới hỏi gì — đổi loại ở cuối form sẽ làm những ô vừa điền biến mất.
+
+Màn chi tiết đọc lại **đúng nhãn mà form đã hỏi** (cùng `assetShape()`): hiện "Nơi giữ: Chú Ba" cho một khoản cho vay là gọi sai tên chính dữ liệu người dùng vừa ghi.
+
 Dưới ô nhập tiền, nếu household có ngưỡng: *"Nhà mình ghi từ 2 triệu trở lên"* — một dòng nhắc nhẹ, **không chặn**.
 
 ### 6.4 Khoản sắp trả `P0`

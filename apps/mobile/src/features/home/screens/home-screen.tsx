@@ -207,7 +207,7 @@ export function HomeScreen() {
       assigneeName={item.assigneeId ? (memberName.get(item.assigneeId) ?? null) : null}
       repeats={item.recur !== null}
       onToggle={(next) => setDone.mutate({ id: item.id, done: next })}
-      onPress={() => router.push({ pathname: '/(modals)/task-edit', params: { id: item.id } })}
+      onPress={() => router.push({ pathname: '/(modals)/task-form', params: { id: item.id } })}
       onDelete={() =>
         undo.schedule({
           id: item.id,

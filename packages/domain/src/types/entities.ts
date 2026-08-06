@@ -28,6 +28,7 @@ import type {
   MoneyEntityType,
   MoneyEventType,
   PaymentState,
+  QuantityUnit,
   Recurrence,
   SubscriptionStatus,
   TaskList,
@@ -162,7 +163,26 @@ export interface Asset {
   liquidity: Liquidity;
   currentValue: number;
   holderMemberId: UUID | null;
+  /**
+   * Nghĩa PHỤ THUỘC vào `assetKind` — xem `assetShape()`. Ngân hàng với sổ tiết
+   * kiệm, chỗ cất với vàng, địa chỉ với bất động sản, TÊN NGƯỜI VAY với khoản
+   * cho vay. Đừng hiện nhãn cố định "Nơi giữ" cho cả tám loại.
+   */
   institution: string | null;
+  /**
+   * Số lượng hiện vật — chỉ vàng dùng (`assetShape().hasQuantity`).
+   *
+   * Tồn tại vì với vàng, `currentValue` là thứ SẼ SAI: giá vàng đổi thì con số
+   * tiền cũ thành vô nghĩa, còn "2 chỉ" thì đúng mãi. Ghi cả hai, và coi số
+   * lượng là dữ liệu gốc — cùng lý do với ràng buộc "ngày âm là dữ liệu gốc".
+   *
+   * App KHÔNG tự tra giá vàng và KHÔNG tự nhân ra tiền: một con số tự đổi mà
+   * không ai khai là thứ ràng buộc #4 cấm.
+   */
+  quantity: number | null;
+  quantityUnit: QuantityUnit | null;
+  /** Ngày hẹn trả của khoản cho vay (`assetShape().hasDueDate`). */
+  dueDate: ISODate | null;
   /** BẮT BUỘC hiển thị kèm giá trị qua formatDeclaredAt() — 03 §8. */
   asOfDate: ISODate;
   /** Để render "Anh cập nhật 6 tuần trước". Ghi bởi RPC update_asset_value. */

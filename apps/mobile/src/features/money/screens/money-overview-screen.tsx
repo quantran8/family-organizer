@@ -280,7 +280,19 @@ export function MoneyOverviewScreen() {
             trên (03 §9 ngoại lệ 2). Đừng mang nó lên đây. */}
         {(funds ?? []).length > 0 ? (
           <>
-            <SectionHeader title={t.fund.title} />
+            <SectionHeader
+              title={t.fund.title}
+              action={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.common.see}
+                  hitSlop={8}
+                  onPress={() => router.push('/(app)/money/fund')}
+                >
+                  <Text className="text-label font-medium text-ink">{t.common.see}</Text>
+                </Pressable>
+              }
+            />
             {(funds ?? []).map((fund) => (
               <Pressable
                 key={fund.id}
@@ -368,22 +380,31 @@ export function MoneyOverviewScreen() {
           </>
         ) : null}
 
-        {/* ── SỔ MỪNG (G15) ──
-            Vào từ tab Tiền vì tiền mừng là tiền thật chảy vào nhà, nhưng KHÔNG
-            gộp vào bốn con số ở trên: một khoản mừng đã nhận không phải là tài
-            sản đang có, và một khoản sắp đi không phải là khoản sắp phải trả.
-            Trộn chúng vào `finance_metrics` sẽ làm trạng thái tài chính đổi mỗi
-            lần ghi một cái phong bì.
+        {/* ── ĐƯỜNG VÀO CÁC MODULE ──
+            Ba dòng này LUÔN hiện, kể cả khi module còn trống — khác các nhóm ở
+            trên, và đó là chủ ý.
 
-            Dòng này LUÔN hiện, kể cả khi sổ trống — khác các nhóm ở trên. Đây là
-            đường vào duy nhất của module, và một đường vào chỉ xuất hiện sau khi
-            đã có dữ liệu thì không ai tìm được nó để tạo dữ liệu đầu tiên. */}
+            Lý do đã ghi ở sổ mừng và áp cho cả ba: một đường vào chỉ xuất hiện
+            SAU KHI đã có dữ liệu thì không ai tìm được nó để tạo dữ liệu đầu
+            tiên. Quỹ chung và mục tiêu từng mắc đúng bẫy đó — hai khối phía trên
+            bị `length > 0` chặn, mà nút tạo lại nằm bên trong màn danh sách phía
+            sau, nên module dựng xong vẫn không có đường nào chạm tới.
+
+            Khi đã có dữ liệu thì khối phía trên hiện kèm «Xem» và dòng ở đây
+            thành đường vào thứ hai — dư một chút, nhưng dư đường vào không hại
+            ai, còn thiếu thì module chết hẳn. */}
         <View className="mt-6">
+          <NavRow label={t.fund.title} onPress={() => router.push('/(app)/money/fund')} />
           <NavRow
-            label={t.gift.title}
-            onPress={() => router.push('/(app)/gifts')}
-            last
+            label={t.money.sectionGoals}
+            onPress={() => router.push('/(app)/money/goals')}
           />
+          {/* Sổ mừng (G15) vào từ tab Tiền vì tiền mừng là tiền thật chảy vào
+              nhà, nhưng KHÔNG gộp vào bốn con số ở trên: một khoản mừng đã nhận
+              không phải là tài sản đang có, và một khoản sắp đi không phải là
+              khoản sắp phải trả. Trộn chúng vào `finance_metrics` sẽ làm trạng
+              thái tài chính đổi mỗi lần ghi một cái phong bì. */}
+          <NavRow label={t.gift.title} onPress={() => router.push('/(app)/gifts')} last />
         </View>
 
         {status === 'no_data' ? (

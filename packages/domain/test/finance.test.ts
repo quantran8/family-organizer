@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeFinanceStatus, explainFinanceStatus } from '../src/finance/status.js';
+import { assetShape } from '../src/finance/asset-shape.js';
 import { inferLiquidity } from '../src/finance/liquidity.js';
 import { debtPaidAmount, progressPct } from '../src/finance/progress.js';
 import { ASSET_KINDS, type Liquidity } from '../src/types/base.js';
@@ -179,6 +180,55 @@ describe('inferLiquidity — phủ hết AssetKind (03 §9)', () => {
 
   it('không bỏ sót loại nào', () => {
     expect(ASSET_KINDS).toHaveLength(Object.keys(expected).length);
+  });
+});
+
+describe('assetShape — hình dạng form theo loại (03 §2b)', () => {
+  it('mọi loại đều có hình dạng, không loại nào rơi qua switch', () => {
+    for (const kind of ASSET_KINDS) {
+      expect(assetShape(kind)).toBeDefined();
+    }
+  });
+
+  it('tiền mặt KHÔNG có nơi giữ', () => {
+    // "Nơi giữ" của tiền mặt hoặc hiển nhiên (trong nhà) hoặc là thứ không nên
+    // ghi vào một app đồng bộ lên mây.
+    expect(assetShape('cash').placeLabel).toBeNull();
+  });
+
+  it('CHỈ vàng có số lượng', () => {
+    const withQuantity = ASSET_KINDS.filter((k) => assetShape(k).hasQuantity);
+    expect(withQuantity).toEqual(['gold']);
+  });
+
+  it('CHỈ khoản cho vay có ngày hẹn trả', () => {
+    const withDueDate = ASSET_KINDS.filter((k) => assetShape(k).hasDueDate);
+    expect(withDueDate).toEqual(['receivable']);
+  });
+
+  /**
+   * Ràng buộc #1. Khoản cho vay là loại DUY NHẤT không hỏi người giữ: tiền đang
+   * ở chỗ người vay, mà người đó đã nằm ở `institution`. Hỏi thêm "ai giữ" ở
+   * đây là gắn một cái tên vào một con số tiền mà không trả lời câu hỏi nào.
+   */
+  it('CHỈ khoản cho vay không hỏi người giữ', () => {
+    const withoutHolder = ASSET_KINDS.filter((k) => !assetShape(k).hasHolder);
+    expect(withoutHolder).toEqual(['receivable']);
+  });
+
+  it('nhãn nơi giữ của khoản cho vay là NGƯỜI, không phải chỗ', () => {
+    expect(assetShape('receivable').placeLabel).toBe('borrower');
+  });
+
+  /**
+   * Loại có số lượng thì bắt buộc có chỗ cất — hai thứ đi cùng nhau: hiện vật
+   * đo được là hiện vật phải để đâu đó.
+   */
+  it('loại có số lượng thì luôn có nơi giữ', () => {
+    for (const kind of ASSET_KINDS) {
+      const s = assetShape(kind);
+      if (s.hasQuantity) expect(s.placeLabel).not.toBeNull();
+    }
   });
 });
 

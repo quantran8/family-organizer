@@ -142,6 +142,38 @@ Người dùng **chỉ chọn loại tài sản**. Trường thanh khoản đư�
 
 ---
 
+## 2b. Hình dạng form theo loại tài sản
+
+```ts
+export function assetShape(kind: AssetKind): AssetShape
+```
+
+Một form chung cho tám loại là một form đúng cho **không loại nào**. Cột `institution` mang bốn nghĩa khác nhau tuỳ loại — và với `receivable` nó không phải một nơi chốn mà là **tên một người**. Cùng một ô, bốn câu hỏi: người dùng phải tự dịch mỗi lần, và mỗi người dịch một kiểu.
+
+| `assetKind` | nhãn `institution` | số lượng | người giữ | ngày hẹn |
+|---|---|---|---|---|
+| `cash` | *(không có ô)* | — | ✓ | — |
+| `bank_account`, `savings` | Ngân hàng | — | ✓ | — |
+| `investment` | Sàn / nơi đầu tư | — | ✓ | — |
+| `gold` | Cất ở đâu | **✓** | ✓ | — |
+| `real_estate` | Địa chỉ | — | ✓ | — |
+| `receivable` | **Người vay** | — | **—** | **✓** |
+| `other` | Cất ở đâu | — | ✓ | — |
+
+Ba ràng buộc của bảng này:
+
+1. **`cash` không có ô nơi giữ.** "Nơi giữ" của tiền mặt hoặc hiển nhiên (trong nhà) hoặc là thứ không nên ghi vào một app đồng bộ lên mây.
+
+2. **`gold` có số lượng, và số lượng là dữ liệu gốc.** Với vàng, `current_value` là thứ *sẽ sai*: giá đổi thì con số tiền khai tháng trước thành vô nghĩa, còn "2 chỉ" thì đúng mãi. Cùng nguyên tắc với "ngày âm là dữ liệu gốc". App **không tra giá vàng và không tự nhân ra tiền** — một con số tiền tự đổi mà không ai khai là đúng thứ ràng buộc #4 cấm. Đơn vị (`chi`/`luong`/`cay`) ghi đúng chữ người dùng nói, **không quy đổi** dù 1 cây = 10 chỉ: quy đổi là phép tính người dùng không nhìn thấy, nên khi nó sai thì không ai bắt được.
+
+3. **`receivable` không hỏi người giữ.** Tiền đang ở chỗ *người vay*, mà người đó đã nằm ở `institution` rồi. Hỏi thêm "ai giữ" là gắn một cái tên vào một con số tiền mà không trả lời câu hỏi nào — đúng thứ ràng buộc #1 cấm. Ngày hẹn trả **không vào `upcoming_needs`** (view đó là tiền phải *chi ra*; cộng tiền-sắp-nhận vào làm con số hero nhỏ đi dựa trên lời hứa của người khác) và **không sinh nhắc** (ràng buộc #6 — app không đi đòi hộ).
+
+Đổi loại thì **dọn** những trường loại mới không có, không chỉ ẩn đi: ẩn mà giữ giá trị sẽ ghi xuống một hàng "tiền mặt" mang số lượng vàng — vô hình trên màn hình nên không ai sửa được. Riêng `institution` không bị dọn khi cả hai loại đều có ô đó (gõ nhầm loại rồi sửa lại là chuyện thường).
+
+Luật "có số thì phải có đơn vị" được ép ở **hai tầng**: CHECK `assets_quantity_unit_pair` (migration 0010) giữ dữ liệu không bao giờ sai, còn `assetFormSchema.superRefine` nói cho người dùng biết sai ở đâu trước khi bấm Lưu.
+
+---
+
 ## 3. Lịch âm
 
 Thuật toán chuyển đổi âm–dương của Hồ Ngọc Đức, port sang TypeScript thuần. Múi giờ cố định UTC+7.

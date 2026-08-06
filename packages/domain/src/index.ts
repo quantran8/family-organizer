@@ -39,6 +39,7 @@ export type {
   NeedKind,
   NeedSource,
   PaymentState,
+  QuantityUnit,
   RecurFreq,
   Recurrence,
   SubscriptionStatus,
@@ -59,6 +60,7 @@ export {
   INGEST_SOURCES,
   LIQUIDITIES,
   NEED_KINDS,
+  QUANTITY_UNITS,
   TASK_LISTS,
 } from './types/base.ts';
 
@@ -124,6 +126,8 @@ export {
 export type { FinanceReason } from './finance/status.ts';
 export { computeFinanceStatus, explainFinanceStatus } from './finance/status.ts';
 export { inferLiquidity } from './finance/liquidity.ts';
+export type { AssetShape, PlaceLabelKey } from './finance/asset-shape.ts';
+export { assetShape } from './finance/asset-shape.ts';
 export { debtPaidAmount, progressPct } from './finance/progress.ts';
 export {
   DEFAULT_RECORD_THRESHOLD,

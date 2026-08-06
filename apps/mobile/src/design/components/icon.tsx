@@ -58,6 +58,14 @@ const GLYPH = {
   payment: 'file-text',
   /** Cảnh báo trên dòng "Cần chú ý" — giấy tờ sắp hết hạn. */
   alert: 'alert-triangle',
+  /**
+   * Xoá bản ghi đang mở, ở cụm nút đáy form.
+   *
+   * Chỉ dùng khi nút xoá KHÔNG có nhãn chữ đi kèm (nút tròn cạnh nút Lưu). Nút
+   * xoá full-width vẫn dùng `Button variant="danger"` với chữ "Xoá" — một hành
+   * động phá huỷ có chỗ để viết ra thì phải viết ra.
+   */
+  trash: 'trash-2',
 } as const;
 
 export type IconName = keyof typeof GLYPH;

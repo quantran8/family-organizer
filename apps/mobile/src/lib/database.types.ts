@@ -242,7 +242,13 @@ export type AssetRow = {
   liquidity: string;
   current_value: number;
   holder_member_id: string | null;
+  /** Nghĩa đổi theo asset_kind — xem assetShape(). Không phải luôn là "nơi giữ". */
   institution: string | null;
+  /** Số lượng hiện vật (vàng). Dữ liệu gốc — xem 0010. */
+  quantity: number | null;
+  quantity_unit: string | null;
+  /** Ngày hẹn trả của khoản cho vay. KHÔNG vào upcoming_needs — xem 0010. */
+  due_date: string | null;
   as_of_date: string;
   /** Ghi bởi RPC update_asset_value. Nguồn của "Anh cập nhật 6 tuần trước". */
   updated_by_member_id: string | null;

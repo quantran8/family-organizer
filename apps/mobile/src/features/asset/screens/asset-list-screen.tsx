@@ -189,9 +189,18 @@ function AssetRow({
 }) {
   const { t } = useT();
 
-  // Nơi giữ + người giữ trên cùng một dòng phụ. Người giữ là NGỮ CẢNH ngang
-  // hàng với "ngân hàng nào", không phải một nhãn trách nhiệm.
-  const sub = [asset.institution, holderName].filter(Boolean).join(' · ');
+  // Số lượng + nơi giữ + người giữ trên cùng một dòng phụ. Người giữ là NGỮ
+  // CẢNH ngang hàng với "ngân hàng nào", không phải một nhãn trách nhiệm.
+  //
+  // Số lượng đứng ĐẦU với vàng: con số tiền bên phải chỉ đúng tới lần giá vàng
+  // đổi tiếp theo, còn "2 chỉ" thì đúng mãi. Dòng này KHÔNG có nhãn nên nghĩa
+  // của `institution` đổi theo loại mà vẫn đọc được — "Chú Ba · 20/12" tự nói
+  // ra nó là gì.
+  const qty =
+    asset.quantity !== null && asset.quantityUnit
+      ? `${asset.quantity} ${t.quantityUnit[asset.quantityUnit]}`
+      : null;
+  const sub = [qty, asset.institution, holderName].filter(Boolean).join(' · ');
 
   return (
     <Pressable

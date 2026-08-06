@@ -122,7 +122,7 @@ export function AttentionListScreen() {
         return;
       // Việc KHÔNG còn màn chi tiết riêng — sửa việc giờ là một modal (09 §D.4).
       case 'task':
-        router.push({ pathname: '/(modals)/task-edit', params: { id: item.entityId } });
+        router.push({ pathname: '/(modals)/task-form', params: { id: item.entityId } });
         return;
       case 'event':
         router.push({ pathname: '/(app)/plan/event/[id]', params: { id: item.entityId } });

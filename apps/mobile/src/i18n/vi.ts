@@ -675,7 +675,41 @@ export const vi = {
     fieldNamePlaceholder: 'Sổ tiết kiệm ACB',
     fieldKind: 'Loại tài sản',
     fieldValue: 'Giá trị',
+    /**
+     * KHÔNG dùng trực tiếp nữa — nhãn của ô `institution` đổi theo loại tài sản
+     * (`assetShape().placeLabel` → `t.asset.place.*`). Giữ lại làm nhãn dự phòng
+     * cho `other`, và cho màn hình chi tiết khi chưa biết loại.
+     */
     fieldInstitution: 'Nơi giữ',
+    /**
+     * Nhãn của ô `institution` theo từng loại. Cùng một cột, năm câu hỏi khác
+     * nhau — hỏi "Nơi giữ" cho khoản cho vay thì người dùng phải tự dịch sang
+     * "ai vay", và mỗi người dịch một kiểu.
+     */
+    place: {
+      bank: 'Ngân hàng',
+      storage: 'Cất ở đâu',
+      address: 'Địa chỉ',
+      /** Khoản cho vay: "nơi giữ" là một CON NGƯỜI. */
+      borrower: 'Người vay',
+      platform: 'Sàn / nơi đầu tư',
+    },
+    placePlaceholder: {
+      bank: 'Vietcombank',
+      storage: 'Tủ ở nhà',
+      address: 'Số 12, ngõ 3, Cầu Giấy',
+      borrower: 'Chú Ba',
+      platform: 'VNDirect',
+    },
+    fieldQuantity: 'Số lượng',
+    /**
+     * Vàng: số chỉ là thứ đúng mãi, còn giá trị tiền chỉ đúng đến lần giá đổi
+     * tiếp theo. Dòng nhắc này giải thích vì sao form hỏi cả hai.
+     */
+    quantityHint: 'Giá vàng đổi thì số tiền cũ đi, số chỉ thì không.',
+    fieldDueDate: 'Ngày hẹn trả',
+    /** Ràng buộc #6: ngày này để người ghi tự nhớ, app KHÔNG đi đòi hộ. */
+    dueDateHint: 'Để nhớ đã hẹn khi nào. App không nhắc đòi.',
     fieldHolder: 'Người giữ',
     fieldAsOf: 'Cập nhật ngày',
     // Thanh khoản KHÔNG hỏi — suy ra từ loại, ẩn sau dòng nhỏ này (03 §2).
@@ -697,6 +731,16 @@ export const vi = {
     investment: 'Đầu tư',
     receivable: 'Cho vay',
     other: 'Khác',
+  },
+
+  /**
+   * Đơn vị vàng. App KHÔNG quy đổi dù 1 cây = 1 lượng = 10 chỉ — quy đổi là
+   * phép tính người dùng không nhìn thấy, nên khi nó sai thì không ai bắt được.
+   */
+  quantityUnit: {
+    chi: 'chỉ',
+    luong: 'lượng',
+    cay: 'cây',
   },
 
   liquidity: {
@@ -1371,6 +1415,9 @@ export const vi = {
     displayName: 'Nhập tên hiển thị',
     eventDate: 'Chọn ngày cho sự kiện',
     amountPositive: 'Số tiền phải lớn hơn 0',
+    /** Có số thì phải có đơn vị — "3" không đơn vị là con số không đọc được. */
+    assetQuantityUnit: 'Chọn đơn vị cho số lượng',
+    assetQuantityKind: 'Loại này không ghi số lượng',
     inviteCodeLength: 'Mã mời có 6 ký tự',
     /** Không có dịp mặc định — cưới chỉ là một trong tám dịp (07 §3). */
     giftOccasion: 'Chọn dịp',

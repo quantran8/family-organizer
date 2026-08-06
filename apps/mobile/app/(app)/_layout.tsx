@@ -51,8 +51,9 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
 
       {/* Sự kiện — trung tâm ngữ cảnh (việc, chi phí, giấy tờ quanh một dịp).
-          KHÔNG còn `plan/task/[id]`: sửa việc giờ là modal `(modals)/task-edit`
-          (09 §D.4), và sửa chính sự kiện là modal `(modals)/event-form`. */}
+          KHÔNG còn `plan/task/[id]`: thêm VÀ sửa việc đều là modal
+          `(modals)/task-form` (`?id=` là sửa), và sửa chính sự kiện là modal
+          `(modals)/event-form`. */}
       <Stack.Screen name="plan/event/[id]" options={DETAIL} />
 
       {/*

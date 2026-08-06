@@ -17,6 +17,9 @@ function toRow(i: Partial<AssetInput>): Record<string, unknown> {
   if (i.currentValue !== undefined) r.current_value = i.currentValue;
   if (i.holderMemberId !== undefined) r.holder_member_id = i.holderMemberId;
   if (i.institution !== undefined) r.institution = i.institution;
+  if (i.quantity !== undefined) r.quantity = i.quantity;
+  if (i.quantityUnit !== undefined) r.quantity_unit = i.quantityUnit;
+  if (i.dueDate !== undefined) r.due_date = i.dueDate;
   if (i.asOfDate !== undefined) r.as_of_date = i.asOfDate;
   if (i.notes !== undefined) r.notes = i.notes;
   return r;

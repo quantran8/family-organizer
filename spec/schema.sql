@@ -572,7 +572,21 @@ create table assets (
   -- ("Chồng giữ 210tr / Vợ giữ 40tr") — thành công cụ đối chiếu ngay.
   holder_member_id  uuid references members(id) on delete set null,
 
-  institution       text,                      -- tên bank / nơi giữ
+  -- NGHĨA ĐỔI THEO asset_kind — xem assetShape() ở 03 §2b. Tên bank với sổ tiết
+  -- kiệm, chỗ cất với vàng, địa chỉ với nhà đất, TÊN NGƯỜI VAY với receivable,
+  -- và KHÔNG TỒN TẠI với tiền mặt. Nhãn dựng ở tầng UI theo loại; đừng hiện
+  -- "Nơi giữ" cố định cho cả tám loại.
+  institution       text,
+
+  -- Số lượng hiện vật — chỉ vàng (0010). DỮ LIỆU GỐC: "2 chỉ" đúng mãi, còn
+  -- current_value chỉ đúng tới lần giá vàng đổi tiếp theo. App không tra giá và
+  -- không tự nhân ra tiền (ràng buộc #4). Đơn vị không quy đổi dù 1 cây=10 chỉ.
+  quantity          numeric(14,3),
+  quantity_unit     text,                      -- chi | luong | cay
+
+  -- Ngày hẹn trả của khoản cho vay (0010). KHÔNG vào upcoming_needs và KHÔNG
+  -- sinh nhắc — xem 03 §2b ràng buộc 3.
+  due_date          date,
 
   -- NGÀY KHAI, không phải ngày đo. current_value là thứ MỘT NGƯỜI ĐÃ NÓI RA
   -- TẠI MỘT THỜI ĐIỂM, không phải sự thật hiện tại. Nếu UI hiển thị trần trụi,
@@ -588,7 +602,17 @@ create table assets (
   created_by        uuid not null references profiles(id) on delete cascade,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
-  deleted_at        timestamptz
+  deleted_at        timestamptz,
+
+  -- Hai cột đi liền nhau: "3" không đơn vị là con số không đọc được, và "chỉ"
+  -- không có số cũng vậy. Tầng zod soi cùng luật này để nói SAI Ở ĐÂU trước khi
+  -- người dùng bấm Lưu — CHECK ở đây chỉ đảm bảo dữ liệu không bao giờ sai.
+  constraint assets_quantity_unit_pair check (
+    (quantity is null and quantity_unit is null)
+    or (quantity is not null and quantity_unit in ('chi', 'luong', 'cay'))
+  ),
+  -- 0 hợp lệ: bán hết vàng nhưng giữ hàng để xem lịch sử là trạng thái thật.
+  constraint assets_quantity_nonneg check (quantity is null or quantity >= 0)
 );
 
 create index assets_household_idx on assets (household_id)

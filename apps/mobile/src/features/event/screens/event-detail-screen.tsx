@@ -188,7 +188,7 @@ export function EventDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={task.title}
                 onPress={() =>
-                  router.push({ pathname: '/(modals)/task-edit', params: { id: task.id } })
+                  router.push({ pathname: '/(modals)/task-form', params: { id: task.id } })
                 }
                 className="flex-1"
               >

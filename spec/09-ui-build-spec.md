@@ -1184,7 +1184,7 @@ form trên:
 
 | Form | Trường |
 |---|---|
-| Tài sản | tên · loại (chip) · giá trị · **[đk]** thanh khoản · nơi giữ · người giữ (chip) · ghi chú |
+| Tài sản | tên · loại (chip) · **[đk]** số lượng+đơn vị · giá trị · **[đk]** thanh khoản · **[đk]** nơi giữ · **[đk]** ngày hẹn trả · **[đk]** người giữ (chip) · ghi chú |
 | Cập nhật giá trị | dòng ngữ cảnh · giá trị · ngày · ghi chú |
 | Nợ | tên · **[đk]** dư nợ · người cho vay · gốc · kỳ trả · ngày tới · **[đk]** kỳ lặp · hạn cuối · người vay |
 | Khoản phải trả | tên · số tiền · ngày đến hạn · ghi chú |
@@ -1198,6 +1198,10 @@ form trên:
 |---|---|---|
 | Tài sản | mặc định | dòng nhỏ «Có thể dùng ngay · **Đổi**» (chữ «Đổi» màu `brand`) |
 | | sau khi chạm «Đổi» | hàng chip thanh khoản đầy đủ |
+| Tài sản | loại = **vàng** | khối «Số lượng» (ô số + chip chỉ/lượng/cây) **trên** ô giá trị · nhãn nơi giữ = «Cất ở đâu» |
+| Tài sản | loại = **tiền mặt** | ô nơi giữ **biến mất** |
+| Tài sản | loại = **cho vay** | nhãn nơi giữ = «Người vay» · thêm «Ngày hẹn trả» · ô người giữ **biến mất** |
+| Tài sản | loại = ngân hàng/tiết kiệm · đầu tư · nhà đất | nhãn nơi giữ = «Ngân hàng» · «Sàn / nơi đầu tư» · «Địa chỉ» |
 | Nợ | đang **sửa** | ô dư nợ **thay bằng** một dòng chữ nền `soft` giải thích dư nợ tự giảm thế nào |
 | Nợ | có ngày trả tới | hiện chip kỳ lặp |
 | Mục tiêu | đang **sửa** | trường «Đã có» **biến mất** |
